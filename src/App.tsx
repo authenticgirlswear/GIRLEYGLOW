@@ -34,10 +34,10 @@ import { AdminCoupons, AdminInventory, AdminReports } from '@/pages/admin/Coupon
 
 // ===== Scroll to Top on Navigation =====
 const ScrollToTop: React.FC = () => {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   React.useEffect(() => {
     window.scrollTo(0, 0);
-  }, [pathname]);
+  }, [pathname, search]);
   return null;
 };
 

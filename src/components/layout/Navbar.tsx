@@ -137,10 +137,10 @@ export const Navbar: React.FC = () => {
               {/* Logo */}
               <Link to="/" className="flex-shrink-0 group">
                 <div className="flex flex-col items-start leading-none">
-                  <span className="font-serif text-[13px] md:text-[15px] font-semibold tracking-[0.22em] text-[#2C2C2C] group-hover:text-[#B07D6B] transition-colors duration-300">
+                  <span className="font-serif text-[22px] md:text-[22px] font-semibold tracking-[0.15em] text-[#FF5349] group-hover:text-[#B07D6B] transition-colors duration-300">
                     AUTHENTIC
                   </span>
-                  <span className="font-serif text-[7px] md:text-[8px] font-normal tracking-[0.55em] text-[#B07D6B] mt-0.5">
+                  <span className="font-serif text-[18px] md:text-[18px] font-semibold tracking-[0.15em] text-[#2C2C2C] mt-0.5">
                     GIRLSWEAR
                   </span>
                 </div>
@@ -227,7 +227,7 @@ export const Navbar: React.FC = () => {
                   className="p-2 rounded-full hover:bg-white/40 transition-all duration-300 text-[#2C2C2C] hover:text-[#B07D6B]"
                   aria-label="Search"
                 >
-                  <Search size={16} />
+                  <Search size={20} />
                 </button>
 
                 <Link
@@ -235,7 +235,7 @@ export const Navbar: React.FC = () => {
                   className="relative p-2 rounded-full hover:bg-white/40 transition-all duration-300 text-[#2C2C2C] hover:text-[#B07D6B]"
                   aria-label="Shopping bag"
                 >
-                  <ShoppingBag size={16} />
+                  <ShoppingBag size={20} />
                   {itemCount > 0 && (
                     <motion.span
                       initial={{ scale: 0 }}
