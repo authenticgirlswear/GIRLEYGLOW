@@ -111,8 +111,8 @@ interface AdminAuthStore {
   isAuthenticated: boolean;
   login: (email: string, password: string) => boolean;
   logout: () => void;
+  setAuthenticated: (val: boolean) => void; // ADD THIS
 }
-
 export const useAdminAuthStore = create<AdminAuthStore>()(
   persist(
     (set) => ({
@@ -129,6 +129,7 @@ export const useAdminAuthStore = create<AdminAuthStore>()(
         return false;
       },
       logout: () => set({ admin: null, isAuthenticated: false }),
+      setAuthenticated: (val) => set({ isAuthenticated: val }),
     }),
     { name: 'authentic-girlswear-admin' }
   )

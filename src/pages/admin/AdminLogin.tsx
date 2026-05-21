@@ -2,7 +2,7 @@
    AUTHENTIC GIRLSWEAR - Admin Login Page
    Real Supabase Authentication (no demo credentials)
    =================================================== */
-
+import { useAdminAuthStore } from '@/store';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -17,6 +17,9 @@ export const AdminLoginPage: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+const { setAuthenticated } = useAdminAuthStore();
+
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -24,6 +27,7 @@ export const AdminLoginPage: React.FC = () => {
 
     try {
       await signIn(email, password);
+      setAuthenticated(true);
       navigate('/admin/dashboard');
     } catch {
       setError('Invalid email or password. Please try again.');
@@ -31,7 +35,6 @@ export const AdminLoginPage: React.FC = () => {
       setLoading(false);
     }
   };
-
   return (
     <div className="min-h-screen admin-gradient flex items-center justify-center p-4">
       <motion.div
