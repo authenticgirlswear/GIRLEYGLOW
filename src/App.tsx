@@ -3,6 +3,7 @@
    =================================================== */
 
 import React from 'react';
+import { Analytics } from "@vercel/analytics/react"
 import { HashRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 // Layout Components
 import { Navbar } from '@/components/layout/Navbar';
