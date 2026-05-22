@@ -7,7 +7,7 @@ import { Save, Eye, Plus, Trash2, Image, Megaphone, ToggleLeft, ToggleRight } fr
 import { Button, Input } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 // ✅ FIX: import from dedicated store file — not defined here anymore
-import { useContentStore, type ContentData } from '@/store/contentStore';
+import { useContentStore, type ContentData } from '@/store/contentstore';
 
 const gradients = [
   'linear-gradient(135deg, #F4C2C2, #E6E6FA, #F7E7CE)',
@@ -211,11 +211,10 @@ export const AdminContent: React.FC = () => {
                 key={anim}
                 type="button"
                 onClick={() => updateAnnouncement('animation', anim)}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${
-                  content.announcement.animation === anim
-                    ? 'bg-rose-gold text-white'
-                    : 'bg-blush-light/50 text-charcoal hover:bg-blush-light'
-                }`}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${content.announcement.animation === anim
+                  ? 'bg-rose-gold text-white'
+                  : 'bg-blush-light/50 text-charcoal hover:bg-blush-light'
+                  }`}
               >
                 {anim === 'marquee' ? '➡️ Scrolling' : anim === 'fade' ? '✨ Fade' : '⏸️ Static'}
               </button>
@@ -232,9 +231,8 @@ export const AdminContent: React.FC = () => {
                 key={preset.name}
                 type="button"
                 onClick={() => { updateAnnouncement('bgColor', preset.bg); updateAnnouncement('textColor', preset.text); }}
-                className={`px-3 py-2 rounded-lg text-xs font-medium border-2 transition-all ${
-                  content.announcement.bgColor === preset.bg ? 'border-rose-gold scale-105' : 'border-transparent'
-                }`}
+                className={`px-3 py-2 rounded-lg text-xs font-medium border-2 transition-all ${content.announcement.bgColor === preset.bg ? 'border-rose-gold scale-105' : 'border-transparent'
+                  }`}
                 style={{ backgroundColor: preset.bg, color: preset.text }}
               >
                 {preset.name}
@@ -396,8 +394,8 @@ export const AdminContent: React.FC = () => {
                   bannerPreviews[banner.id]
                     ? { backgroundImage: `url(${bannerPreviews[banner.id]})`, backgroundSize: 'cover', backgroundPosition: 'center' }
                     : banner.imageUrl
-                    ? { backgroundImage: `url(${banner.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-                    : { background: banner.gradient }
+                      ? { backgroundImage: `url(${banner.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+                      : { background: banner.gradient }
                 }
               >
                 <div className="flex-1 bg-white/40 backdrop-blur-sm rounded-lg px-3 py-1">

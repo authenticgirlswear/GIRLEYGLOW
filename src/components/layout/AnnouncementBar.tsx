@@ -9,7 +9,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
-import { useContentStore } from '@/store/contentStore';
+import { useContentStore } from '@/store/contentstore';
 
 export const AnnouncementBar: React.FC = () => {
   const { content } = useContentStore();

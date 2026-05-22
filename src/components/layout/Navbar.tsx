@@ -127,8 +127,8 @@ export const Navbar: React.FC = () => {
               w-full rounded-full pointer-events-auto
               transition-all duration-500
               ${scrolled
-                ? 'bg-[#c4a484]/85 backdrop-blur-2xl shadow-xl shadow-black/10'
-                : 'bg-[#c4a484]/70 backdrop-blur-xl shadow-lg shadow-black/5'
+                ? 'bg-[#cfc1b4]/85 backdrop-blur-2xl shadow-xl shadow-black/10'
+                : 'bg-[#cfc1b4]/70 backdrop-blur-xl shadow-lg shadow-black/5'
               }
             `}
           >
@@ -355,6 +355,7 @@ export const Navbar: React.FC = () => {
                       <Link
                         key={cat.id}
                         to={`/shop?category=${cat.slug}`}
+                        onClick={() => setMobileMenuOpen(false)}
                         className="block px-4 py-2.5 rounded-xl text-[10px] font-semibold tracking-wider uppercase text-[#9A8880] hover:bg-white/40 hover:text-[#2C2C2C] transition-colors"
                       >
                         {cat.name}
