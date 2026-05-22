@@ -12,7 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, ArrowLeft, ShoppingBag, Star, Sparkles } from 'lucide-react';
 import { FadeIn, SectionHeader, PriceDisplay, Badge, StarRating, Button } from '@/components/ui';
 import { useMemo } from 'react';
-import { useProductStore } from '@/store';
+import { useProductStore, useCartStore } from '@/store';
 import { useContentStore } from '@/pages/admin/Content';
 import type { Product } from '@/types';
 
@@ -742,7 +742,7 @@ interface ProductCardProps {
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const navigate = useNavigate();
- console.log('colors raw data:', JSON.stringify(product.colors)); 
+  const [showQuickView, setShowQuickView] = useState(false);
 
   return (
     <motion.div
@@ -782,9 +782,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         <div className="absolute bottom-3 left-3 right-3 flex gap-2 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
           <button
             onClick={e => {
-              e.stopPropagation();
-              navigate(`/product/${product.slug}`);
-            }}
+  e.stopPropagation();
+  setShowQuickView(true);
+}}
             className="flex-1 py-2.5 glass rounded-xl text-xs font-medium text-charcoal hover:bg-white/90 transition-colors flex items-center justify-center gap-1.5"
           >
             <ShoppingBag size={14} /> Quick View
@@ -860,6 +860,355 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 };
 
 // ==========================================
+// QUICK VIEW MODAL
+// ==========================================
+
+const QV_COLOR_MAP: Record<string, string> = {
+  red:'#E53E3E',black:'#1A1A1A',white:'#FFFFFF',skin:'#F5CBA7',
+  beige:'#F5F0E8',pink:'#FFB6C1',navy:'#1A237E',blue:'#3182CE',
+  green:'#38A169',yellow:'#ECC94B',orange:'#ED8936',purple:'#805AD5',
+  grey:'#A0AEC0',gray:'#A0AEC0',brown:'#8B4513',maroon:'#800000',
+  cream:'#FFFDD0',gold:'#FFD700',silver:'#C0C0C0',coral:'#FF6B6B',
+  peach:'#FFCBA4','rose gold':'#B76E79',teal:'#008080',burgundy:'#722F37',
+  lavender:'#E6E6FA',mint:'#98FF98',mustard:'#FFDB58',wine:'#722F37',
+};
+const resolveQVColor = (c: string) => {
+  const k = c.trim().toLowerCase();
+  if (QV_COLOR_MAP[k]) return QV_COLOR_MAP[k];
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(k)) return c;
+  return '#cccccc';
+};
+
+// ── Bengali Size Guide Popup ──
+const SizeGuidePopup: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  const [band, setBand] = useState('');
+  const [bust, setBust] = useState('');
+  const [result, setResult] = useState('');
+  const [celebrate, setCelebrate] = useState(false);
+
+  const calculate = () => {
+    const b = parseFloat(band), bu = parseFloat(bust);
+    if (!b || !bu || bu <= b) { alert('সঠিক মাপ দিন। বাস্ট অবশ্যই ব্যান্ডের চেয়ে বড় হতে হবে।'); return; }
+    let bandSize = Math.round(b);
+    if (bandSize % 2 !== 0) bandSize += 1;
+    const cups = ['AA','A','B','C','D','DD','DDD','G'];
+    const cup = cups[Math.min(Math.round(bu - b), cups.length - 1)];
+    setResult(`${bandSize}${cup}`);
+    setCelebrate(true);
+    setTimeout(() => setCelebrate(false), 2000);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <motion.div initial={{ opacity:0, scale:0.9 }} animate={{ opacity:1, scale:1 }}
+        className="relative bg-white rounded-3xl p-6 max-w-sm w-full z-10 max-h-[90vh] overflow-y-auto">
+        <button onClick={onClose} className="absolute top-4 right-4 p-1 rounded-full hover:bg-blush-light">
+          <X size={18} className="text-warm-gray" />
+        </button>
+        <h3 className="heading-serif text-xl font-semibold text-charcoal mb-1">সাইজ গাইড</h3>
+        <p className="text-xs text-warm-gray mb-4">আপনার সঠিক ব্রা সাইজ জানুন</p>
+
+        <div className="bg-blush-light/40 rounded-2xl p-4 mb-4 space-y-3">
+          <div>
+            <p className="text-sm font-semibold text-charcoal mb-1">📏 ব্যান্ড সাইজ কীভাবে মাপবেন?</p>
+            <p className="text-xs text-warm-gray leading-relaxed">বুকের ঠিক নিচে (আন্ডারবাস্ট) টেপ মেজার দিয়ে শ্বাস ছেড়ে আঁটোভাবে মাপুন। এটাই আপনার ব্যান্ড সাইজ।</p>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-charcoal mb-1">📏 বাস্ট সাইজ কীভাবে মাপবেন?</p>
+            <p className="text-xs text-warm-gray leading-relaxed">বুকের সবচেয়ে পূর্ণ অংশের উপর দিয়ে (নিপলের সমান্তরালে) আলগাভাবে মাপুন। এটাই আপনার বাস্ট সাইজ।</p>
+          </div>
+        </div>
+
+        <div className="space-y-3 mb-4">
+          <div>
+            <label className="text-xs text-warm-gray mb-1 block">ব্যান্ড সাইজ (ইঞ্চি)</label>
+            <input type="number" value={band} onChange={e => setBand(e.target.value)} placeholder="যেমন: 32"
+              className="w-full px-4 py-2.5 rounded-xl border border-blush/30 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-gold/30" />
+          </div>
+          <div>
+            <label className="text-xs text-warm-gray mb-1 block">বাস্ট সাইজ (ইঞ্চি)</label>
+            <input type="number" value={bust} onChange={e => setBust(e.target.value)} placeholder="যেমন: 36"
+              className="w-full px-4 py-2.5 rounded-xl border border-blush/30 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-gold/30" />
+          </div>
+        </div>
+
+        <button onClick={calculate}
+          className="w-full py-3 bg-rose-gold text-white rounded-xl text-sm font-medium hover:bg-deep-rose transition-colors">
+          আমার সাইজ বের করুন
+        </button>
+
+        {result && (
+          <motion.div initial={{ opacity:0, scale:0.8 }} animate={{ opacity:1, scale: celebrate ? [1,1.1,1] : 1 }}
+            className="mt-4 text-center bg-blush-light/60 rounded-2xl p-4">
+            <p className="text-xs text-warm-gray mb-1">আপনার সঠিক ব্রা সাইজ</p>
+            <p className="text-4xl font-bold text-rose-gold">{result}</p>
+            <p className="text-sm text-charcoal mt-2">🎉 অভিনন্দন! আপনার পারফেক্ট সাইজ পেয়ে গেছেন!</p>
+          </motion.div>
+        )}
+      </motion.div>
+    </div>
+  );
+};
+
+// ── Main Quick View Modal ──
+export const QuickViewModal: React.FC<{ product: Product | null; onClose: () => void }> = ({ product, onClose }) => {
+  const { addItem } = useCartStore();
+  const { products } = useProductStore();
+  const navigate = useNavigate();
+
+  const [currentImage, setCurrentImage] = useState(0);
+  const [selectedColor, setSelectedColor] = useState('');
+  const [selectedSize, setSelectedSize] = useState('');
+  const [quantity, setQuantity] = useState(1);
+  const [showSizeGuide, setShowSizeGuide] = useState(false);
+  const [similarPage, setSimilarPage] = useState(0);
+  const touchStartX = useRef(0);
+
+  useEffect(() => {
+    if (product) {
+      setCurrentImage(0);
+      setSelectedColor(product.colors?.[0] || '');
+      setSelectedSize(product.sizes?.[0] || '');
+      setQuantity(1);
+      setSimilarPage(0);
+    }
+  }, [product]);
+
+  if (!product) return null;
+
+  const images = (product.images || []).filter((img: string) => img.startsWith('http'));
+  const isLimitedStock = product.stock > 0 && product.stock <= 10;
+
+  const allSimilar = products.filter(p => p.id !== product.id && p.categorySlug === product.categorySlug);
+  const similarProducts = allSimilar.slice(similarPage * 3, similarPage * 3 + 3);
+  const totalSimilarPages = Math.ceil(allSimilar.length / 3);
+
+  const handleAddToCart = () => {
+    if (!selectedSize && product.sizes?.length > 0) { alert('Please select a size'); return; }
+    addItem(product, selectedSize, selectedColor, quantity);
+    onClose();
+  };
+
+  const handleBuyNow = () => {
+    if (!selectedSize && product.sizes?.length > 0) { alert('Please select a size'); return; }
+    addItem(product, selectedSize, selectedColor, quantity);
+    navigate('/checkout');
+    onClose();
+  };
+
+  return (
+    <>
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 md:p-6">
+        <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
+          className="absolute inset-0 bg-charcoal/50 backdrop-blur-sm" onClick={onClose} />
+
+        <motion.div initial={{ opacity:0, scale:0.95, y:20 }} animate={{ opacity:1, scale:1, y:0 }}
+          exit={{ opacity:0, scale:0.95 }}
+          className="relative bg-white rounded-3xl w-full max-w-3xl max-h-[92vh] overflow-y-auto z-10">
+
+          <button onClick={onClose}
+            className="absolute top-4 right-4 z-20 p-2 rounded-full bg-white/90 hover:bg-white shadow-sm">
+            <X size={18} className="text-warm-gray" />
+          </button>
+
+          <div className="grid grid-cols-1 md:grid-cols-2">
+
+            {/* ── Images ── */}
+            <div className="relative">
+              <div className="relative aspect-[3/4] overflow-hidden rounded-t-3xl md:rounded-tr-none md:rounded-l-3xl bg-blush-light/20"
+                onTouchStart={e => { touchStartX.current = e.targetTouches[0].clientX; }}
+                onTouchEnd={e => {
+                  const diff = touchStartX.current - e.changedTouches[0].clientX;
+                  if (Math.abs(diff) > 50) {
+                    if (diff > 0) setCurrentImage(i => Math.min(i + 1, images.length - 1));
+                    else setCurrentImage(i => Math.max(i - 1, 0));
+                  }
+                }}>
+                <AnimatePresence mode="wait">
+                  {images[currentImage] && (
+                    <motion.img key={currentImage} src={images[currentImage]} alt={product.name}
+                      initial={{ opacity:0, x:30 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-30 }}
+                      transition={{ duration:0.3 }} className="w-full h-full object-cover" />
+                  )}
+                </AnimatePresence>
+
+                <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
+                  {product.isOnSale && <Badge variant="sale">Sale</Badge>}
+                  {product.isNewArrival && <Badge variant="new">New</Badge>}
+                  {isLimitedStock && (
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
+                      Limited Stock
+                    </span>
+                  )}
+                </div>
+
+                {images.length > 1 && (
+                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                    {images.map((_,i) => (
+                      <button key={i} onClick={() => setCurrentImage(i)}
+                        className={`rounded-full transition-all duration-300 ${i === currentImage ? 'bg-white w-5 h-2' : 'bg-white/50 w-2 h-2'}`} />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {images.length > 1 && (
+                <div className="flex gap-2 p-3 overflow-x-auto">
+                  {images.map((img, i) => (
+                    <button key={i} onClick={() => setCurrentImage(i)}
+                      className={`flex-shrink-0 w-14 h-16 rounded-xl overflow-hidden border-2 transition-all ${i === currentImage ? 'border-rose-gold' : 'border-transparent opacity-60'}`}>
+                      <img src={img} alt="" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* ── Details ── */}
+            <div className="p-5 flex flex-col gap-4">
+              <div>
+                <p className="text-xs text-warm-gray mb-0.5">{product.category}</p>
+                <h2 className="heading-serif text-xl font-semibold text-charcoal mb-2">{product.name}</h2>
+                <PriceDisplay price={product.price} comparePrice={product.comparePrice} size="lg" />
+              </div>
+
+              {/* Colors */}
+              {product.colors?.length > 0 && (
+                <div>
+                  <p className="text-sm font-medium text-charcoal mb-2">
+                    Color: <span className="text-warm-gray font-normal">{selectedColor}</span>
+                  </p>
+                  <div className="flex gap-2.5 flex-wrap">
+                    {product.colors.map((color: string) => {
+                      const hex = resolveQVColor(color);
+                      const isSel = selectedColor === color;
+                      return (
+                        <button key={color} onClick={() => setSelectedColor(color)} title={color}
+                          className="rounded-full transition-all duration-200"
+                          style={{
+                            width: isSel ? '34px' : '26px', height: isSel ? '34px' : '26px',
+                            backgroundColor: hex,
+                            border: isSel ? '3px solid #B07D6B' : '2px solid #d1b0a0',
+                            boxShadow: isSel ? '0 0 0 2px white, 0 0 0 4px #B07D6B' : 'none',
+                            transform: isSel ? 'scale(1.15)' : 'scale(1)',
+                          }} />
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Sizes */}
+              {product.sizes?.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium text-charcoal">
+                      Size: <span className="text-warm-gray font-normal">{selectedSize}</span>
+                    </p>
+                    <button onClick={() => setShowSizeGuide(true)}
+                      className="text-xs text-rose-gold hover:underline">Size Guide</button>
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    {product.sizes.map((size: string) => (
+                      <button key={size} onClick={() => setSelectedSize(size)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${
+                          selectedSize === size
+                            ? 'bg-rose-gold text-white border-rose-gold'
+                            : 'border-blush/40 text-warm-gray hover:border-rose-gold hover:text-rose-gold'
+                        }`}>{size}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Quantity */}
+              <div>
+                <p className="text-sm font-medium text-charcoal mb-2">Quantity</p>
+                <div className="flex items-center gap-3">
+                  <button onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                    className="w-8 h-8 rounded-full border border-blush/40 flex items-center justify-center hover:border-rose-gold text-warm-gray hover:text-rose-gold transition-colors">−</button>
+                  <span className="text-sm font-medium w-6 text-center">{quantity}</span>
+                  <button onClick={() => setQuantity(q => q + 1)}
+                    className="w-8 h-8 rounded-full border border-blush/40 flex items-center justify-center hover:border-rose-gold text-warm-gray hover:text-rose-gold transition-colors">+</button>
+                  {isLimitedStock && (
+                    <span className="text-xs text-orange-600 font-medium">⚠ মাত্র {product.stock}টি বাকি!</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-3">
+                <button onClick={handleBuyNow}
+                  className="flex-1 py-3 bg-rose-gold text-white rounded-xl text-sm font-medium hover:bg-deep-rose transition-colors flex items-center justify-center gap-2">
+                  <ShoppingBag size={16} /> Buy Now
+                </button>
+                <button onClick={handleAddToCart}
+                  className="flex-1 py-3 border-2 border-rose-gold text-rose-gold rounded-xl text-sm font-medium hover:bg-rose-gold hover:text-white transition-all">
+                  Add to Bag
+                </button>
+              </div>
+
+              {/* Trust Badges */}
+              <div className="grid grid-cols-3 gap-2 pt-2 border-t border-blush/20">
+                {[
+                  { icon: '🚚', label: 'দ্রুত ডেলিভারি' },
+                  { icon: '✅', label: '১০০% অরিজিনাল' },
+                  { icon: '🔒', label: 'নিরাপদ পেমেন্ট' },
+                ].map(b => (
+                  <div key={b.label} className="flex flex-col items-center gap-1 text-center">
+                    <span className="text-lg">{b.icon}</span>
+                    <span className="text-[10px] text-warm-gray">{b.label}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* You May Also Like */}
+              {allSimilar.length > 0 && (
+                <div className="border-t border-blush/20 pt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm font-medium text-charcoal">You May Also Like</p>
+                    <div className="flex gap-1">
+                      <button onClick={() => setSimilarPage(p => Math.max(0, p - 1))}
+                        disabled={similarPage === 0}
+                        className="w-7 h-7 rounded-full border border-blush/40 flex items-center justify-center disabled:opacity-30 hover:border-rose-gold transition-colors">
+                        <ArrowLeft size={12} />
+                      </button>
+                      <button onClick={() => setSimilarPage(p => Math.min(totalSimilarPages - 1, p + 1))}
+                        disabled={similarPage >= totalSimilarPages - 1}
+                        className="w-7 h-7 rounded-full border border-blush/40 flex items-center justify-center disabled:opacity-30 hover:border-rose-gold transition-colors">
+                        <ArrowRight size={12} />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {similarProducts.map(p => (
+                      <div key={p.id} onClick={() => { navigate(`/product/${p.slug}`); onClose(); }}
+                        className="cursor-pointer group">
+                        <div className="aspect-[3/4] rounded-xl overflow-hidden mb-1 bg-blush-light/30">
+                          {p.images?.[0]?.startsWith('http') ? (
+                            <img src={p.images[0]} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                          ) : (
+                            <div className="w-full h-full bg-blush-light" />
+                          )}
+                        </div>
+                        <p className="text-xs text-charcoal line-clamp-1">{p.name}</p>
+                        <p className="text-xs text-rose-gold font-medium">৳{p.price}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      {showSizeGuide && <SizeGuidePopup onClose={() => setShowSizeGuide(false)} />}
+    </>
+  );
+};
+// ==========================================
 // NEW ARRIVALS
 // ==========================================
 export const NewArrivals: React.FC = () => {
@@ -922,6 +1271,9 @@ style={{ backgroundColor: '#FFFFFF' }}
                     <p className="text-sm text-warm-gray mb-3">{product.shortDescription}</p>
                     <PriceDisplay price={product.price} comparePrice={product.comparePrice} />
                   </div>
+                  {showQuickView && (
+        <QuickViewModal product={product} onClose={() => setShowQuickView(false)} />
+      )}
                 </motion.div>
               ))}
             </div>
