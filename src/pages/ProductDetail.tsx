@@ -4,16 +4,15 @@
    so admin-uploaded products display correctly.
    =================================================== */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ShoppingBag, Heart, Truck, RotateCcw, Shield,
-  Minus, Plus, ChevronRight,
+  ShoppingBag, Heart, ArrowLeft, ArrowRight,
+  Minus, Plus, ChevronRight, X,
 } from 'lucide-react';
-import { Button, Badge, PriceDisplay, StarRating, FadeIn } from '@/components/ui';
+import { Button, Badge, PriceDisplay, FadeIn } from '@/components/ui';
 import { ProductCard } from '@/components/home';
-import { reviews as allReviews } from '@/data/mockData';
 import { supabase } from '@/lib/supabase';
 import { useCartStore, useRecentlyViewedStore } from '@/store';
 import type { Product } from '@/types';
@@ -62,7 +61,9 @@ export const ProductDetailPage: React.FC = () => {
   const [selectedColor, setSelectedColor] = useState('');
   const [quantity, setQuantity]           = useState(1);
   const [activeTab, setActiveTab]         = useState<'description' | 'reviews' | 'shipping'>('description');
-  const [addedToCart, setAddedToCart]     = useState(false);
+  const [addedToCart, setAddedToCart] = useState(false);
+const [showSizeGuide, setShowSizeGuide] = useState(false);
+const [similarPage, setSimilarPage] = useState(0);
 
   /* ── Fetch product by slug from Supabase ── */
   useEffect(() => {
@@ -114,12 +115,6 @@ setSelectedColor(
     fetchProduct();
   }, [slug, addRecentlyViewed]);
 
-  /* ── Reviews — still from mockData (no reviews table yet) ── */
-  const productReviews = useMemo(
-    () => (product ? allReviews.filter(r => r.productId === product.id) : []),
-    [product],
-  );
-
   /* ── Loading state ── */
   if (loading) {
     return (
@@ -142,7 +137,69 @@ setSelectedColor(
       </div>
     );
   }
-
+const SizeGuidePopup = () => {
+    const [band, setBand] = useState('');
+    const [bust, setBust] = useState('');
+    const [result, setResult] = useState('');
+    const [celebrate, setCelebrate] = useState(false);
+    const calculate = () => {
+      const b = parseFloat(band), bu = parseFloat(bust);
+      if (!b || !bu || bu <= b) { alert('সঠিক মাপ দিন।'); return; }
+      let bandSize = Math.round(b);
+      if (bandSize % 2 !== 0) bandSize += 1;
+      const cups = ['AA','A','B','C','D','DD','DDD','G'];
+      const cup = cups[Math.min(Math.round(bu - b), cups.length - 1)];
+      setResult(`${bandSize}${cup}`);
+      setCelebrate(true);
+      setTimeout(() => setCelebrate(false), 2000);
+    };
+    return (
+      <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-black/50" onClick={() => setShowSizeGuide(false)} />
+        <motion.div initial={{ opacity:0, scale:0.9 }} animate={{ opacity:1, scale:1 }}
+          className="relative bg-white rounded-3xl p-6 max-w-sm w-full z-10 max-h-[90vh] overflow-y-auto">
+          <button onClick={() => setShowSizeGuide(false)} className="absolute top-4 right-4 p-1 rounded-full hover:bg-blush-light">
+            <X size={18} />
+          </button>
+          <h3 className="heading-serif text-xl font-semibold text-charcoal mb-1">সাইজ গাইড</h3>
+          <p className="text-xs text-warm-gray mb-4">আপনার সঠিক ব্রা সাইজ জানুন</p>
+          <div className="bg-blush-light/40 rounded-2xl p-4 mb-4 space-y-3">
+            <div>
+              <p className="text-sm font-semibold text-charcoal mb-1">📏 ব্যান্ড সাইজ কীভাবে মাপবেন?</p>
+              <p className="text-xs text-warm-gray leading-relaxed">বুকের ঠিক নিচে টেপ মেজার দিয়ে শ্বাস ছেড়ে আঁটোভাবে মাপুন।</p>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-charcoal mb-1">📏 বাস্ট সাইজ কীভাবে মাপবেন?</p>
+              <p className="text-xs text-warm-gray leading-relaxed">বুকের সবচেয়ে পূর্ণ অংশের উপর দিয়ে আলগাভাবে মাপুন।</p>
+            </div>
+          </div>
+          <div className="space-y-3 mb-4">
+            <div>
+              <label className="text-xs text-warm-gray mb-1 block">Band Size (Inch)</label>
+              <input type="number" value={band} onChange={e => setBand(e.target.value)} placeholder="যেমন: 32"
+                className="w-full px-4 py-2.5 rounded-xl border border-blush/30 text-sm focus:outline-none focus:ring-2 focus:ring-rose-gold/30" />
+            </div>
+            <div>
+              <label className="text-xs text-warm-gray mb-1 block">Bust Size (Inch)</label>
+              <input type="number" value={bust} onChange={e => setBust(e.target.value)} placeholder="যেমন: 36"
+                className="w-full px-4 py-2.5 rounded-xl border border-blush/30 text-sm focus:outline-none focus:ring-2 focus:ring-rose-gold/30" />
+            </div>
+          </div>
+          <button onClick={calculate} className="w-full py-3 bg-rose-gold text-white rounded-xl text-sm font-medium hover:bg-deep-rose transition-colors">
+            Find My Size
+          </button>
+          {result && (
+            <motion.div initial={{ opacity:0, scale:0.8 }} animate={{ opacity:1, scale: celebrate ? 1.05 : 1 }}
+              className="mt-4 text-center bg-blush-light/60 rounded-2xl p-4">
+              <p className="text-xs text-warm-gray mb-1">Your perfect bra size</p>
+              <p className="text-4xl font-bold text-rose-gold">{result}</p>
+              <p className="text-sm text-charcoal mt-2">🎉 Congratulations!</p>
+            </motion.div>
+          )}
+        </motion.div>
+      </div>
+    );
+  };
   const handleAddToCart = () => {
     if (!selectedSize) return;
     addItem(product, selectedSize, selectedColor, quantity);
@@ -267,12 +324,6 @@ setSelectedColor(
               <h1 className="heading-serif text-3xl md:text-4xl font-bold text-charcoal mb-3">
                 {product.name}
               </h1>
-
-              <div className="flex items-center gap-3 mb-4">
-                <StarRating rating={product.rating} />
-                <span className="text-sm text-warm-gray">({product.reviewCount} reviews)</span>
-              </div>
-
               <div className="mb-6">
                 <PriceDisplay price={product.price} comparePrice={product.comparePrice} size="lg" />
               </div>
@@ -330,7 +381,7 @@ setSelectedColor(
                     <p className="text-sm font-medium text-charcoal">
                       Size: <span className="text-warm-gray font-normal">{selectedSize}</span>
                     </p>
-                    <button className="text-xs text-rose-gold hover:underline">Size Guide</button>
+                    <button onClick={() => setShowSizeGuide(true)} className="text-xs text-rose-gold hover:underline">Size Guide</button>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {product.sizes.map(size => (
@@ -367,66 +418,54 @@ setSelectedColor(
                   >
                     <Plus size={16} />
                   </button>
-                  <span className="text-sm text-warm-gray ml-2">
-                    {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
-                  </span>
+                    {product.stock > 0 && product.stock <= 10 && (
+                    <span className="text-xs text-orange-600 font-medium ml-2">
+                      ⚠ Limited Stock
+                    </span>
+                  )}
                 </div>
               </div>
 
               {/* Add to Cart */}
-              <div className="flex gap-3 mb-8">
+<div className="flex gap-3 mb-8">
                 <Button
                   size="lg"
                   fullWidth
-                  onClick={handleAddToCart}
+                  onClick={() => {
+                    if (!selectedSize && product.sizes.length > 0) return;
+                    addItem(product, selectedSize, selectedColor, quantity);
+                    navigate('/checkout');
+                  }}
                   disabled={product.stock === 0}
-                  className={addedToCart ? '!bg-green-500' : ''}
                 >
-                  {addedToCart ? '✓ Added to Bag' : (
-                    <>
-                      <ShoppingBag size={18} />
-                      {product.stock === 0 ? 'Out of Stock' : 'Add to Bag'}
-                    </>
-                  )}
+                  <ShoppingBag size={18} />
+                  {product.stock === 0 ? 'Out of Stock' : 'Buy Now'}
                 </Button>
                 <Button
                   variant="outline"
                   size="lg"
-                  onClick={() =>
-                    navigate('/checkout', {
-                      state: {
-                        product,
-                        size:     selectedSize,
-                        color:    selectedColor,
-                        quantity,
-                      },
-                    })
-                  }
+                  fullWidth
+                  onClick={handleAddToCart}
+                  disabled={product.stock === 0}
+                  className={addedToCart ? '!border-green-500 !text-green-500' : ''}
                 >
-                  Buy Now
+                  {addedToCart ? '✓ Added' : 'Add to Bag'}
                 </Button>
               </div>
 
               {/* Trust Badges */}
-              <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-3">
                 {[
-                  { icon: <Truck size={18} />,     label: 'Free Shipping' },
-                  { icon: <RotateCcw size={18} />, label: 'Easy Returns'  },
-                  { icon: <Shield size={18} />,    label: 'Secure Payment' },
+                  { icon: '🚚', label: 'Fast Delivery' },
+                  { icon: '✅', label: '100% Authentic%' },
+                  { icon: '🔒', label: 'Secure Payment' },
                 ].map(item => (
-                  <div
-                    key={item.label}
-                    className="flex flex-col items-center gap-1.5 text-center p-3 rounded-xl bg-blush-light/30"
-                  >
-                    <span className="text-rose-gold">{item.icon}</span>
+                  <div key={item.label} className="flex flex-col items-center gap-1.5 text-center p-3 rounded-xl bg-blush-light/30">
+                    <span className="text-xl">{item.icon}</span>
                     <span className="text-xs text-warm-gray">{item.label}</span>
                   </div>
                 ))}
               </div>
-
-              {product.sku && (
-                <p className="text-xs text-warm-gray mt-4">SKU: {product.sku}</p>
-              )}
             </div>
           </FadeIn>
         </div>
@@ -434,7 +473,7 @@ setSelectedColor(
         {/* ── Tabs ── */}
         <div className="mt-16">
           <div className="flex gap-6 border-b border-blush/20 mb-6">
-            {(['description', 'reviews', 'shipping'] as const).map(tab => (
+            {(['description', 'shipping'] as const).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -444,7 +483,7 @@ setSelectedColor(
                     : 'text-warm-gray hover:text-charcoal'
                 }`}
               >
-                {tab} {tab === 'reviews' && `(${productReviews.length})`}
+                {tab === 'description' ? 'Description' : tab === 'shipping' ? 'Shipping Info' : ''}
               </button>
             ))}
           </div>
@@ -470,46 +509,16 @@ setSelectedColor(
                   </div>
                 </div>
               )}
-
-              {activeTab === 'reviews' && (
-                <div className="space-y-6">
-                  {productReviews.length === 0 ? (
-                    <p className="text-warm-gray text-center py-8">
-                      No reviews yet. Be the first to review!
-                    </p>
-                  ) : (
-                    productReviews.map(review => (
-                      <div key={review.id} className="glass-card rounded-2xl p-5">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-rose-gold/20 flex items-center justify-center">
-                              <span className="text-sm font-medium text-rose-gold">
-                                {review.customerName.charAt(0)}
-                              </span>
-                            </div>
-                            <span className="font-medium text-charcoal">{review.customerName}</span>
-                          </div>
-                          <span className="text-xs text-warm-gray">{review.createdAt}</span>
-                        </div>
-                        <StarRating rating={review.rating} size={14} />
-                        <p className="mt-2 text-warm-gray text-sm">{review.comment}</p>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'shipping' && (
+               {activeTab === 'shipping' && (
                 <div className="space-y-4 text-warm-gray">
                   <div className="glass-card rounded-2xl p-5">
                     <h4 className="font-medium text-charcoal mb-2">Shipping Information</h4>
-                    <p>Free standard shipping on orders over $150. Express shipping available at checkout.</p>
-                    <p className="mt-2">Standard delivery: 3-5 business days</p>
-                    <p>Express delivery: 1-2 business days</p>
+                    <p className="mt-2">Inside Dhaka City  delivery: Max 48 Hour </p>
+                    <p className="mt-2">Out Size Dhaka City  delivery: Max 86 Hour </p>
                   </div>
                   <div className="glass-card rounded-2xl p-5">
                     <h4 className="font-medium text-charcoal mb-2">Returns & Exchanges</h4>
-                    <p>We accept returns within 14 days of delivery. Items must be unworn with tags attached.</p>
+                    <p>We accept Exchanges within 3 days of delivery. Items must be Intacked and unworn.</p>
                   </div>
                 </div>
               )}
@@ -518,13 +527,27 @@ setSelectedColor(
         </div>
 
         {/* ── Related Products ── */}
-        {related.length > 0 && (
+{related.length > 0 && (
           <div className="mt-16">
-            <h2 className="heading-serif text-2xl md:text-3xl font-bold text-charcoal mb-6">
-              You May Also Like
-            </h2>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="heading-serif text-2xl md:text-3xl font-bold text-charcoal">
+                You May Also Like
+              </h2>
+              <div className="flex gap-2">
+                <button onClick={() => setSimilarPage(p => Math.max(0, p - 1))}
+                  disabled={similarPage === 0}
+                  className="w-9 h-9 rounded-full border border-blush/40 flex items-center justify-center disabled:opacity-30 hover:border-rose-gold transition-colors">
+                  <ArrowLeft size={16} />
+                </button>
+                <button onClick={() => setSimilarPage(p => Math.min(Math.ceil(related.length / 4) - 1, p + 1))}
+                  disabled={similarPage >= Math.ceil(related.length / 4) - 1}
+                  className="w-9 h-9 rounded-full border border-blush/40 flex items-center justify-center disabled:opacity-30 hover:border-rose-gold transition-colors">
+                  <ArrowRight size={16} />
+                </button>
+              </div>
+            </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-              {related.map(p => (
+              {related.slice(similarPage * 4, similarPage * 4 + 4).map(p => (
                 <ProductCard key={p.id} product={p} />
               ))}
             </div>

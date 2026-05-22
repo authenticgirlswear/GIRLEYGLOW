@@ -782,6 +782,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         <div className="absolute bottom-3 left-3 right-3 flex gap-2 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
           <button
             onClick={e => {
+              {showQuickView && (
+        <QuickViewModal product={product} onClose={() => setShowQuickView(false)} />
+      )}
   e.stopPropagation();
   setShowQuickView(true);
 }}
@@ -804,9 +807,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         <h3 className="text-sm font-medium text-charcoal mb-1 line-clamp-1 group-hover:text-rose-gold transition-colors">
           {product.name}
         </h3>
-        <div className="flex items-center gap-2 mb-1">
-          <StarRating rating={product.rating} size={12} />
-        </div>
         <PriceDisplay
           price={product.price}
           comparePrice={product.comparePrice}
@@ -1271,9 +1271,6 @@ style={{ backgroundColor: '#FFFFFF' }}
                     <p className="text-sm text-warm-gray mb-3">{product.shortDescription}</p>
                     <PriceDisplay price={product.price} comparePrice={product.comparePrice} />
                   </div>
-                  {showQuickView && (
-        <QuickViewModal product={product} onClose={() => setShowQuickView(false)} />
-      )}
                 </motion.div>
               ))}
             </div>
