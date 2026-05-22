@@ -11,7 +11,6 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, ArrowLeft, ShoppingBag, Star, Sparkles } from 'lucide-react';
 import { FadeIn, SectionHeader, PriceDisplay, Badge, StarRating, Button } from '@/components/ui';
-import { useMemo } from 'react';
 import { useProductStore } from '@/store';
 import { useContentStore } from '@/store/contentstore';
 import type { Product } from '@/types';
@@ -515,16 +514,6 @@ export const FeaturedCollection: React.FC = () => {
 // ==========================================
 
 // Soft gradient palette — cycles through for each unique category
-const CATEGORY_GRADIENTS = [
-  'linear-gradient(135deg, #EBCDD2 0%, #E0BEC6 100%)',  // dusty pink
-  'linear-gradient(135deg, #D7E2F0 0%, #C8D6EC 100%)',  // powder blue
-  'linear-gradient(135deg, #E8DCCF 0%, #DDD0C0 100%)',  // champagne nude
-  'linear-gradient(135deg, #EBCDD2 0%, #E0BEC6 100%)',  // dusty pink
-  'linear-gradient(135deg, #D7E2F0 0%, #C8D6EC 100%)',  // powder blue
-  'linear-gradient(135deg, #E8DCCF 0%, #DDD0C0 100%)',  // champagne nude
-  'linear-gradient(135deg, #EBCDD2 0%, #E0BEC6 100%)',  // dusty pink
-  'linear-gradient(135deg, #D7E2F0 0%, #C8D6EC 100%)',  // powder blue
-];
 
 export const CategoryShowcase: React.FC = () => {
   const navigate = useNavigate();
