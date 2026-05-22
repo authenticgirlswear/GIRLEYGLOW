@@ -143,16 +143,45 @@ const SizeGuidePopup = () => {
     const [result, setResult] = useState('');
     const [celebrate, setCelebrate] = useState(false);
     const calculate = () => {
-      const b = parseFloat(band), bu = parseFloat(bust);
-      if (!b || !bu || bu <= b) { alert('সঠিক মাপ দিন।'); return; }
-      let bandSize = Math.round(b);
-      if (bandSize % 2 !== 0) bandSize += 1;
-      const cups = ['AA','A','B','C','D','DD','DDD','G'];
-      const cup = cups[Math.min(Math.round(bu - b), cups.length - 1)];
-      setResult(`${bandSize}${cup}`);
-      setCelebrate(true);
-      setTimeout(() => setCelebrate(false), 2000);
-    };
+  const bandValue = parseFloat(band);
+  const bustValue = parseFloat(bust);
+
+  if (!bandValue || !bustValue) {
+    alert('সঠিক মাপ দিন');
+    return;
+  }
+
+  // nearest even band size
+  const roundedBand = Math.round(bandValue / 2) * 2;
+
+  // cup difference
+  const difference = bustValue - bandValue;
+
+  const cupSizes = [
+    'AA',
+    'A',
+    'B',
+    'C',
+    'D',
+    'DD',
+    'E',
+    'F',
+    'G'
+  ];
+
+  const cupIndex = Math.max(
+    0,
+    Math.min(Math.round(difference), cupSizes.length - 1)
+  );
+
+  const cup = cupSizes[cupIndex];
+
+  setResult(`${roundedBand}${cup}`);
+
+  setCelebrate(true);
+
+  setTimeout(() => setCelebrate(false), 2500);
+};
     return (
       <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-black/50" onClick={() => setShowSizeGuide(false)} />
@@ -224,7 +253,7 @@ const SizeGuidePopup = () => {
           <span className="text-charcoal">{product.name}</span>
         </nav>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-16">
 
           {/* ── Image Gallery ── */}
           <FadeIn>
@@ -232,8 +261,14 @@ const SizeGuidePopup = () => {
               {/* Main image */}
               <motion.div
                 className="relative rounded-3xl overflow-hidden aspect-[3/4] bg-blush-light/30"
-                whileHover={{ scale: 1.02 }}
-                transition={{ duration: 0.3 }}
+                onTouchStart={e => { (window as any)._touchX = e.targetTouches[0].clientX; }}
+                onTouchEnd={e => {
+                  const diff = (window as any)._touchX - e.changedTouches[0].clientX;
+                  if (Math.abs(diff) > 50) {
+                    if (diff > 0) setSelectedImage(i => Math.min(i + 1, product.images.length - 1));
+                    else setSelectedImage(i => Math.max(i - 1, 0));
+                  }
+                }}
               >
                 {selectedImage === -1 && product.videoUrl ? (
                   <video
@@ -263,6 +298,18 @@ const SizeGuidePopup = () => {
                 <button className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors">
                   <Heart size={18} className="text-rose-gold" />
                 </button>
+                {selectedImage > 0 && (
+                  <button onClick={() => setSelectedImage(i => i - 1)}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white shadow-md transition-all">
+                    <ArrowLeft size={16} className="text-charcoal" />
+                  </button>
+                )}
+                {selectedImage < product.images.length - 1 && (
+                  <button onClick={() => setSelectedImage(i => i + 1)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white shadow-md transition-all">
+                    <ArrowRight size={16} className="text-charcoal" />
+                  </button>
+                )}
               </motion.div>
 
               {/* Thumbnails */}
@@ -381,7 +428,7 @@ const SizeGuidePopup = () => {
                     <p className="text-sm font-medium text-charcoal">
                       Size: <span className="text-warm-gray font-normal">{selectedSize}</span>
                     </p>
-                    <button onClick={() => setShowSizeGuide(true)} className="text-xs text-rose-gold hover:underline">Size Guide</button>
+                    <button onClick={() => setShowSizeGuide(true)} className="text-xs px-3 py-1.5 rounded-lg border border-rose-gold text-rose-gold hover:bg-rose-gold hover:text-white transition-all duration-200">📏 Size Guide</button>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {product.sizes.map(size => (
