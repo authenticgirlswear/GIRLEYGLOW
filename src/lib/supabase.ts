@@ -126,9 +126,15 @@ export async function sendOrderToGoogleSheets(order: Record<string, unknown>) {
       ? (order.items as Array<Record<string, unknown>>)
       : [];
 
-    // Product names comma separated
+    // ✅ FIXED: Product name + size + color in same column
     const productNames = itemsArray.length > 0
-      ? itemsArray.map(item => String(item.productName || '')).join(', ')
+      ? itemsArray.map(item => {
+        const name = String(item.productName || '');
+        const size = String(item.size || '');
+        const color = String(item.color || '');
+        const details = [size, color].filter(Boolean).join('/');
+        return details ? `${name} (${details})` : name;
+      }).join(', ')
       : String(order.items || '-');
 
     // Quantities comma separated
@@ -149,8 +155,8 @@ export async function sendOrderToGoogleSheets(order: Record<string, unknown>) {
     const pm = String(order.paymentMethod || 'cod');
     const paymentLabel =
       pm === 'cod' ? 'Cash on Delivery' :
-      pm === 'bkash' ? 'বিকাশ' :
-      pm === 'nagad' ? 'নগদ' : pm;
+        pm === 'bkash' ? 'বিকাশ' :
+          pm === 'nagad' ? 'নগদ' : pm;
 
     // Notes
     const notes = String(order.notes || '-');
