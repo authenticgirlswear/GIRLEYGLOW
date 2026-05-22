@@ -13,7 +13,7 @@ import { ArrowRight, ArrowLeft, ShoppingBag, Star, Sparkles } from 'lucide-react
 import { FadeIn, SectionHeader, PriceDisplay, Badge, StarRating, Button } from '@/components/ui';
 import { useMemo } from 'react';
 import { useProductStore } from '@/store';
-import { useContentStore } from '@/pages/admin/Content';
+import { useContentStore } from '@/store/contentstore';
 import type { Product } from '@/types';
 
 // ==========================================
@@ -99,6 +99,8 @@ export const Hero: React.FC = () => {
   const navigate = useNavigate();
   const { content } = useContentStore();
 
+  if (!content.heroEnabled) return null;   // ← add this one line
+
   const hasImage = !!content.heroImageUrl;
 
   return (
@@ -107,10 +109,10 @@ export const Hero: React.FC = () => {
       style={
         hasImage
           ? {
-              backgroundImage: `url(${content.heroImageUrl})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-            }
+            backgroundImage: `url(${content.heroImageUrl})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }
           : undefined
       }
     >
@@ -146,7 +148,7 @@ export const Hero: React.FC = () => {
           >
             <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/30 backdrop-blur-sm text-sm font-medium text-charcoal mb-4">
               <Sparkles size={14} className="text-rose-gold" />
-              {}
+              { }
             </span>
           </motion.div>
 
@@ -154,9 +156,8 @@ export const Hero: React.FC = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.15 }}
-            className={`heading-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] mb-4 ${
-              hasImage ? 'text-white drop-shadow-lg' : 'text-charcoal'
-            }`}
+            className={`heading-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] mb-4 ${hasImage ? 'text-white drop-shadow-lg' : 'text-charcoal'
+              }`}
           >
             {content.heroTitle}
           </motion.h1>
@@ -165,9 +166,8 @@ export const Hero: React.FC = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.3 }}
-            className={`text-sm md:text-base max-w-lg mb-6 leading-relaxed ${
-              hasImage ? 'text-white/90 drop-shadow' : 'text-warm-gray'
-            }`}
+            className={`text-sm md:text-base max-w-lg mb-6 leading-relaxed ${hasImage ? 'text-white/90 drop-shadow' : 'text-warm-gray'
+              }`}
           >
             {content.heroSubtitle}
           </motion.p>
@@ -233,10 +233,10 @@ export const BannerSlider: React.FC = () => {
               style={
                 banner.imageUrl
                   ? {
-                      backgroundImage: `url(${banner.imageUrl})`,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                    }
+                    backgroundImage: `url(${banner.imageUrl})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                  }
                   : { background: banner.gradient }
               }
             >
@@ -245,16 +245,14 @@ export const BannerSlider: React.FC = () => {
 
               <div className="relative px-8 md:px-16 max-w-xl">
                 <h3
-                  className={`heading-serif text-2xl md:text-4xl lg:text-5xl font-bold mb-3 ${
-                    banner.imageUrl ? 'text-white drop-shadow-lg' : 'text-charcoal'
-                  }`}
+                  className={`heading-serif text-2xl md:text-4xl lg:text-5xl font-bold mb-3 ${banner.imageUrl ? 'text-white drop-shadow-lg' : 'text-charcoal'
+                    }`}
                 >
                   {banner.title}
                 </h3>
                 <p
-                  className={`text-sm md:text-base mb-6 ${
-                    banner.imageUrl ? 'text-white/90 drop-shadow' : 'text-warm-gray'
-                  }`}
+                  className={`text-sm md:text-base mb-6 ${banner.imageUrl ? 'text-white/90 drop-shadow' : 'text-warm-gray'
+                    }`}
                 >
                   {banner.subtitle}
                 </p>
@@ -273,9 +271,8 @@ export const BannerSlider: React.FC = () => {
                 <button
                   key={i}
                   onClick={() => setCurrent(i)}
-                  className={`h-2.5 rounded-full transition-all duration-300 ${
-                    i === current ? 'bg-rose-gold w-8' : 'bg-white/60 w-2.5'
-                  }`}
+                  className={`h-2.5 rounded-full transition-all duration-300 ${i === current ? 'bg-rose-gold w-8' : 'bg-white/60 w-2.5'
+                    }`}
                 />
               ))}
             </div>
@@ -391,14 +388,14 @@ export const FeaturedCollection: React.FC = () => {
   };
 
   return (
-<section className="py-5 md:py-5 overflow-hidden" style={{ backgroundColor: '#F7EFEA' }}>      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <FadeIn>
-          <SectionHeader
-            title={content.featuredTitle}
-            subtitle={content.featuredSubtitle}
-          />
-        </FadeIn>
-      </div>
+    <section className="py-5 md:py-5 overflow-hidden" style={{ backgroundColor: '#F7EFEA' }}>      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <FadeIn>
+        <SectionHeader
+          title={content.featuredTitle}
+          subtitle={content.featuredSubtitle}
+        />
+      </FadeIn>
+    </div>
 
       {featured.length === 0 ? (
         <div className="text-center py-16 text-warm-gray">
@@ -498,10 +495,10 @@ export const FeaturedCollection: React.FC = () => {
       <FadeIn delay={0.4}>
         <div className="text-center mt-10">
           <Button
-  variant="outline"
-  onClick={() => navigate('/shop')}
-  style={{ borderColor: '#B87A5D', color: '#B87A5D' }}
->
+            variant="outline"
+            onClick={() => navigate('/shop')}
+            style={{ borderColor: '#B87A5D', color: '#B87A5D' }}
+          >
             View All Products <ArrowRight size={16} />
           </Button>
         </div>
@@ -570,14 +567,14 @@ export const CategoryShowcase: React.FC = () => {
   );
 
   return (
-<section className="py-8 md:py-12 overflow-hidden" style={{ backgroundColor: '#EFE7E2' }}>      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <FadeIn>
-          <SectionHeader
-            title="Shop by Category"
-            subtitle="Find your perfect piece in our curated collections"
-          />
-        </FadeIn>
-      </div>
+    <section className="py-8 md:py-12 overflow-hidden" style={{ backgroundColor: '#EFE7E2' }}>      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <FadeIn>
+        <SectionHeader
+          title="Shop by Category"
+          subtitle="Find your perfect piece in our curated collections"
+        />
+      </FadeIn>
+    </div>
 
       {derivedCategories.length === 0 ? (
         <div className="text-center py-16 text-warm-gray">
@@ -653,20 +650,20 @@ export const TrendingProducts: React.FC = () => {
   const { products, fetchProducts } = useProductStore();
   const { content } = useContentStore();
   const navigate = useNavigate();
- 
+
   const CARD_WIDTH = 280 + 20;
   const trending = products.filter((p) => p.isTrending);
   const allSlides = [...trending, ...trending, ...trending];
- 
+
   const { trackRef, isPausedRef, handlePrev, handleNext } = useAutoScroll(
     trending.length,
     CARD_WIDTH,
     1.2,    // ← speed
     false   // ← false = right to left
   );
- 
+
   useEffect(() => { fetchProducts(); }, []);
- 
+
   return (
     <section className="py-8 md:py-12 overflow-hidden" style={{ backgroundColor: '#F3E5E1' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -674,7 +671,7 @@ export const TrendingProducts: React.FC = () => {
           <SectionHeader title={content.trendingTitle} subtitle={content.trendingSubtitle} />
         </FadeIn>
       </div>
- 
+
       {trending.length === 0 ? (
         <div className="text-center py-16 text-warm-gray">
           <p>No trending products yet. Mark products as "Trending" in the admin panel.</p>
@@ -693,7 +690,7 @@ export const TrendingProducts: React.FC = () => {
                 <div
                   key={`${product.id}-${idx}`}
                   className="relative flex-shrink-0 w-[280px] rounded-2xl overflow-hidden aspect-[3/4] cursor-pointer group"
-style={{ backgroundColor: '#FFFFFF' }}
+                  style={{ backgroundColor: '#FFFFFF' }}
                   onClick={() => navigate(`/product/${product.slug}`)}
                 >
                   {product.images?.[0]?.startsWith('http') ? (
@@ -742,26 +739,26 @@ interface ProductCardProps {
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const navigate = useNavigate();
- console.log('colors raw data:', JSON.stringify(product.colors)); 
+  console.log('colors raw data:', JSON.stringify(product.colors));
 
   return (
     <motion.div
-  whileHover={{
-    y: -4,
-    boxShadow: '0 20px 40px rgba(0,0,0,0.14)',
-    transition: { duration: 0.3 },
-  }}
-  className="group cursor-pointer"
-  onClick={() => navigate(`/product/${product.slug}`)}
-  style={{
-    borderRadius: '20px',
-    boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
-    backdropFilter: 'blur(10px)',
-    transition: 'all 0.3s ease',
-    padding: '8px',
-     backgroundColor: 'rgba(255, 228, 237, 0.35)',
-  }}
->
+      whileHover={{
+        y: -4,
+        boxShadow: '0 20px 40px rgba(0,0,0,0.14)',
+        transition: { duration: 0.3 },
+      }}
+      className="group cursor-pointer"
+      onClick={() => navigate(`/product/${product.slug}`)}
+      style={{
+        borderRadius: '20px',
+        boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
+        backdropFilter: 'blur(10px)',
+        transition: 'all 0.3s ease',
+        padding: '8px',
+        backgroundColor: 'rgba(255, 228, 237, 0.35)',
+      }}
+    >
       <div className="relative rounded-2xl overflow-hidden aspect-[3/4] mb-3 bg-blush-light/30">
         {product.images?.[0]?.startsWith('http') ? (
           <img
@@ -814,49 +811,49 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         />
       </div>
 
-  {product.colors && product.colors.length > 0 && (
-  <div className="flex items-center gap-1.5 mt-2">
-    {product.colors.map((color: any, index: number) => {
-      const colorMap: Record<string, string> = {
-        red: '#E53E3E',
-        magenta: '#FF00FF',
-        black: '#1A1A1A',
-        hotpink: '#FF69B4',
-        white: '#FFFFFF',
-        skin: '#F5CBA7',
-        beige: '#F5F0E8',
-        pink: '#FFB6C1',
-        navy: '#1A237E',
-        blue: '#3182CE',
-        green: '#38A169',
-        yellow: '#ECC94B',
-        orange: '#ED8936',
-        purple: '#805AD5',
-        grey: '#A0AEC0',
-        gray: '#A0AEC0',
-        brown: '#8B4513',
-        maroon: '#800000',
-        cream: '#FFFDD0',
-        gold: '#FFD700',
-        silver: '#C0C0C0',
-        coral: '#FF6B6B',
-        peach: '#FFCBA4',
-      };
+      {product.colors && product.colors.length > 0 && (
+        <div className="flex items-center gap-1.5 mt-2">
+          {product.colors.map((color: any, index: number) => {
+            const colorMap: Record<string, string> = {
+              red: '#E53E3E',
+              magenta: '#FF00FF',
+              black: '#1A1A1A',
+              hotpink: '#FF69B4',
+              white: '#FFFFFF',
+              skin: '#F5CBA7',
+              beige: '#F5F0E8',
+              pink: '#FFB6C1',
+              navy: '#1A237E',
+              blue: '#3182CE',
+              green: '#38A169',
+              yellow: '#ECC94B',
+              orange: '#ED8936',
+              purple: '#805AD5',
+              grey: '#A0AEC0',
+              gray: '#A0AEC0',
+              brown: '#8B4513',
+              maroon: '#800000',
+              cream: '#FFFDD0',
+              gold: '#FFD700',
+              silver: '#C0C0C0',
+              coral: '#FF6B6B',
+              peach: '#FFCBA4',
+            };
 
-      const colorName = typeof color === 'string' ? color : color.name || '';
-      const hex = colorMap[colorName.toLowerCase()] || colorName;
+            const colorName = typeof color === 'string' ? color : color.name || '';
+            const hex = colorMap[colorName.toLowerCase()] || colorName;
 
-      return (
-        <span
-          key={index}
-          className="w-3.5 h-3.5 rounded-full border border-charcoal/10"
-          style={{ backgroundColor: hex }}
-          title={colorName}
-        />
-      );
-    })}
-  </div>
-)}
+            return (
+              <span
+                key={index}
+                className="w-3.5 h-3.5 rounded-full border border-charcoal/10"
+                style={{ backgroundColor: hex }}
+                title={colorName}
+              />
+            );
+          })}
+        </div>
+      )}
     </motion.div>
   );
 };
@@ -868,28 +865,28 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 export const NewArrivals: React.FC = () => {
   const { products, fetchProducts } = useProductStore();
   const navigate = useNavigate();
- 
+
   const CARD_WIDTH = 380 + 24;
   const newItems = products.filter((p) => p.isNewArrival);
   const allSlides = [...newItems, ...newItems, ...newItems];
- 
+
   const { trackRef, isPausedRef, handlePrev, handleNext } = useAutoScroll(
     newItems.length,
     CARD_WIDTH,
     1.2,   // ← speed
     true   // ← true = left to right
   );
- 
+
   useEffect(() => { fetchProducts(); }, []);
- 
+
   return (
-   <section className="py-8 md:py-12 overflow-hidden" style={{ backgroundColor: '#FAF7F3' }}>
+    <section className="py-8 md:py-12 overflow-hidden" style={{ backgroundColor: '#FAF7F3' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <FadeIn>
           <SectionHeader title="New Arrivals" subtitle="Fresh styles just landed — be the first to discover them" />
         </FadeIn>
       </div>
- 
+
       {newItems.length === 0 ? (
         <div className="text-center py-16 text-warm-gray">
           <p>No new arrivals yet. Mark products as "New Arrival" in the admin panel.</p>
@@ -910,7 +907,7 @@ export const NewArrivals: React.FC = () => {
                   whileHover={{ y: -4 }}
                   onClick={() => navigate(`/product/${product.slug}`)}
                   className="flex-shrink-0 w-[380px] group cursor-pointer rounded-2xl overflow-hidden transition-all duration-300"
-style={{ backgroundColor: '#FFFFFF' }}
+                  style={{ backgroundColor: '#FFFFFF' }}
                 >
                   <div className="relative aspect-[4/3] overflow-hidden bg-blush-light/30">
                     {product.images?.[0]?.startsWith('http') ? (

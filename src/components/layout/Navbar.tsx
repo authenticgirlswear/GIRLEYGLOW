@@ -127,8 +127,8 @@ export const Navbar: React.FC = () => {
               w-full rounded-full pointer-events-auto
               transition-all duration-500
               ${scrolled
-                ? 'bg-[#F5E6DC]/85 backdrop-blur-2xl shadow-xl shadow-black/10'
-                : 'bg-[#F5E6DC]/70 backdrop-blur-xl shadow-lg shadow-black/5'
+                ? 'bg-[#c4a484]/85 backdrop-blur-2xl shadow-xl shadow-black/10'
+                : 'bg-[#c4a484]/70 backdrop-blur-xl shadow-lg shadow-black/5'
               }
             `}
           >
@@ -235,7 +235,7 @@ export const Navbar: React.FC = () => {
                   className="relative p-2 rounded-full hover:bg-white/40 transition-all duration-300 text-[#2C2C2C] hover:text-[#B07D6B]"
                   aria-label="Shopping bag"
                 >
-                  <ShoppingBag size={20} />
+                  <ShoppingBag size={24} />
                   {itemCount > 0 && (
                     <motion.span
                       initial={{ scale: 0 }}
@@ -336,9 +336,8 @@ export const Navbar: React.FC = () => {
                     <Link
                       key={link.path}
                       to={link.path}
-                      className={`block px-4 py-2.5 rounded-xl text-[10px] font-semibold tracking-[0.25em] uppercase transition-colors ${
-                        isActive(link.path) ? 'bg-white/70 text-[#B07D6B]' : 'text-[#2C2C2C] hover:bg-white/40'
-                      }`}
+                      className={`block px-4 py-2.5 rounded-xl text-[10px] font-semibold tracking-[0.25em] uppercase transition-colors ${isActive(link.path) ? 'bg-white/70 text-[#B07D6B]' : 'text-[#2C2C2C] hover:bg-white/40'
+                        }`}
                     >
                       {link.label}
                     </Link>
