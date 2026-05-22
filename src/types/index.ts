@@ -46,6 +46,7 @@ export interface Category {
   productCount: number;
   gradient: string;
   createdAt: string;
+  images?: string[];
 }
 
 // ===== Cart Types =====
@@ -85,12 +86,12 @@ export interface OrderItem {
   price: number;
 }
 
-export type OrderStatus = 
-  | 'pending' 
-  | 'confirmed' 
-  | 'processing' 
-  | 'shipped' 
-  | 'delivered' 
+export type OrderStatus =
+  | 'pending'
+  | 'confirmed'
+  | 'processing'
+  | 'shipped'
+  | 'delivered'
   | 'cancelled';
 
 export type PaymentMethod = 'cod' | 'bkash' | 'nagad';
@@ -193,11 +194,11 @@ export interface ProductFilters {
   inStock: boolean;
 }
 
-export type SortOption = 
-  | 'newest' 
-  | 'price_asc' 
-  | 'price_desc' 
-  | 'popular' 
+export type SortOption =
+  | 'newest'
+  | 'price_asc'
+  | 'price_desc'
+  | 'popular'
   | 'rating';
 
 // ===== Analytics Types =====

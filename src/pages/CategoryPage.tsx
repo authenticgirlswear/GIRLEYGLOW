@@ -11,7 +11,7 @@ import { ChevronRight } from 'lucide-react';
 import { ProductCard } from '@/components/home';
 import { FadeIn, Button } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
-import { categories } from '@/data/mockData';
+import { useCategoryStore } from '@/store';
 
 export const CategoryPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -20,10 +20,13 @@ export const CategoryPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   // Find category metadata (name, gradient, description) from mockData
+  const { categories } = useCategoryStore();
+
   const category = useMemo(() => {
     if (!slug) return undefined;
+
     return categories.find((c) => c.slug === slug);
-  }, [slug]);
+  }, [slug, categories]);
 
   // Fetch products from Supabase filtered by category_slug.
   // This matches exactly how admin/products.tsx saves them:
@@ -57,29 +60,29 @@ export const CategoryPage: React.FC = () => {
   // receives the same shape it gets on the Shop page
   const normalisedProducts = useMemo(() => {
     return products.map((p) => ({
-      id:               p.id,
-      name:             p.name,
-      slug:             p.slug,
-      description:      p.description,
+      id: p.id,
+      name: p.name,
+      slug: p.slug,
+      description: p.description,
       shortDescription: p.short_description,
-      price:            Number(p.price) || 0,
-      comparePrice:     p.compare_price ? Number(p.compare_price) : undefined,
-      images:           p.images || [],
-      category:         p.category_name || p.category || '',
-      categorySlug:     p.category_slug  || '',
-      sizes:            p.sizes          || [],
-      colors:           p.colors         || [],
-      stock:            p.stock          || 0,
-      sku:              p.sku            || '',
-      tags:             p.tags           || [],
-      isFeatured:       p.is_featured    || false,
-      isTrending:       p.is_trending    || false,
-      isNewArrival:     p.is_new_arrival || false,
-      isOnSale:         p.is_on_sale     || false,
-      rating:           p.rating         || 0,
-      reviewCount:      p.review_count   || 0,
-      createdAt:        p.created_at     || '',
-      updatedAt:        p.updated_at     || '',
+      price: Number(p.price) || 0,
+      comparePrice: p.compare_price ? Number(p.compare_price) : undefined,
+      images: p.images || [],
+      category: p.category_name || p.category || '',
+      categorySlug: p.category_slug || '',
+      sizes: p.sizes || [],
+      colors: p.colors || [],
+      stock: p.stock || 0,
+      sku: p.sku || '',
+      tags: p.tags || [],
+      isFeatured: p.is_featured || false,
+      isTrending: p.is_trending || false,
+      isNewArrival: p.is_new_arrival || false,
+      isOnSale: p.is_on_sale || false,
+      rating: p.rating || 0,
+      reviewCount: p.review_count || 0,
+      createdAt: p.created_at || '',
+      updatedAt: p.updated_at || '',
     }));
   }, [products]);
 

@@ -116,7 +116,7 @@ export const AdminInventory: React.FC = () => {
   // ✅ Real products from Supabase-connected store
   const { products, updateProduct } = useProductStore();
   const [searchQuery, setSearchQuery] = useState('');
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [] = useState<string | null>(null);
 
   const filtered = products.filter(p =>
     !searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.sku.toLowerCase().includes(searchQuery.toLowerCase())
@@ -130,9 +130,6 @@ export const AdminInventory: React.FC = () => {
     updateProduct(id, { stock: Math.max(0, stock) });
   };
 
-  const saveEdit = () => {
-    setEditingId(null);
-  };
 
   return (
     <div>
@@ -205,19 +202,18 @@ export const AdminInventory: React.FC = () => {
                       min={0}
                       value={product.stock}
                       onChange={e => updateStock(product.id, parseInt(e.target.value) || 0)}
-                      className={`w-20 px-2 py-1 rounded-lg border text-sm text-center focus:outline-none focus:ring-2 focus:ring-rose-gold/30 ${
-                        product.stock === 0 ? 'border-red-300 bg-red-50 text-red-600' :
-                        product.stock <= 10 ? 'border-yellow-300 bg-yellow-50 text-yellow-700' :
-                        'border-blush/30 bg-white'
-                      }`}
+                      className={`w-20 px-2 py-1 rounded-lg border text-sm text-center focus:outline-none focus:ring-2 focus:ring-rose-gold/30 ${product.stock === 0 ? 'border-red-300 bg-red-50 text-red-600' :
+                          product.stock <= 10 ? 'border-yellow-300 bg-yellow-50 text-yellow-700' :
+                            'border-blush/30 bg-white'
+                        }`}
                     />
                   </td>
                   <td className="py-3 px-4">
                     {product.stock === 0
                       ? <Badge variant="danger">Out of Stock</Badge>
                       : product.stock <= 10
-                      ? <Badge variant="warning">Low Stock</Badge>
-                      : <Badge variant="success">In Stock</Badge>}
+                        ? <Badge variant="warning">Low Stock</Badge>
+                        : <Badge variant="success">In Stock</Badge>}
                   </td>
                   <td className="py-3 px-4 text-right">
                     <div className="flex items-center justify-end gap-2">
@@ -248,7 +244,7 @@ export const AdminReports: React.FC = () => {
 
   // ── Real revenue by month (last 6 months) ──
   const now = new Date();
-  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
   const salesData = useMemo(() => Array.from({ length: 6 }, (_, i) => {
     const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
@@ -264,13 +260,13 @@ export const AdminReports: React.FC = () => {
   }), [orders]);
 
   const maxRevenue = Math.max(...salesData.map(d => d.revenue), 1);
-  const maxOrders  = Math.max(...salesData.map(d => d.orders), 1);
+  const maxOrders = Math.max(...salesData.map(d => d.orders), 1);
 
   // ── Real stats ──
-  const activeOrders    = orders.filter(o => o.status !== 'cancelled');
-  const totalRevenue    = activeOrders.reduce((s, o) => s + o.total, 0);
-  const totalOrders     = activeOrders.length;
-  const avgOrderValue   = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+  const activeOrders = orders.filter(o => o.status !== 'cancelled');
+  const totalRevenue = activeOrders.reduce((s, o) => s + o.total, 0);
+  const totalOrders = activeOrders.length;
+  const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
   const cancelledOrders = orders.filter(o => o.status === 'cancelled').length;
 
   // ── Top products by revenue from real orders ──
@@ -326,7 +322,7 @@ export const AdminReports: React.FC = () => {
           <div className="flex items-end gap-3 h-48">
             {salesData.map(data => (
               <div key={data.month} className="flex-1 flex flex-col items-center gap-1">
-                <span className="text-[10px] text-warm-gray">{data.revenue > 0 ? `$${(data.revenue/1000).toFixed(1)}k` : '$0'}</span>
+                <span className="text-[10px] text-warm-gray">{data.revenue > 0 ? `$${(data.revenue / 1000).toFixed(1)}k` : '$0'}</span>
                 <div className="w-full flex items-end" style={{ height: '100%' }}>
                   <div className="w-full rounded-t-md" style={{ height: `${Math.max((data.revenue / maxRevenue) * 100, data.revenue > 0 ? 4 : 0)}%`, background: 'linear-gradient(to top, #B76E79, #F4C2C2)', minHeight: data.revenue > 0 ? 4 : 0 }} />
                 </div>
@@ -406,12 +402,11 @@ export const AdminReports: React.FC = () => {
                       ${order.total.toFixed(2)}
                     </td>
                     <td className="py-3">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${
-                        order.status === 'delivered' ? 'bg-green-100 text-green-700' :
-                        order.status === 'cancelled' ? 'bg-red-100 text-red-600' :
-                        order.status === 'shipped' ? 'bg-indigo-100 text-indigo-700' :
-                        'bg-yellow-100 text-yellow-700'
-                      }`}>
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${order.status === 'delivered' ? 'bg-green-100 text-green-700' :
+                          order.status === 'cancelled' ? 'bg-red-100 text-red-600' :
+                            order.status === 'shipped' ? 'bg-indigo-100 text-indigo-700' :
+                              'bg-yellow-100 text-yellow-700'
+                        }`}>
                         {order.status}
                       </span>
                     </td>
