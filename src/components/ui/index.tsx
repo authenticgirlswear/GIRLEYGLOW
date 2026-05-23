@@ -25,7 +25,7 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const baseStyles = 'inline-flex items-center justify-center font-medium rounded-xl transition-all duration-300 ease-out focus:outline-none focus:ring-2 focus:ring-rose-gold/30 disabled:opacity-50 disabled:cursor-not-allowed';
-  
+
   const variants = {
     primary: 'bg-rose-gold text-white hover:bg-deep-rose shadow-lg shadow-rose-gold/20 hover:shadow-rose-gold/40',
     secondary: 'bg-blush text-charcoal hover:bg-blush-dark',
@@ -73,9 +73,8 @@ export const Input: React.FC<InputProps> = ({ label, error, className = '', id, 
       )}
       <input
         id={id}
-        className={`w-full px-4 py-2.5 rounded-xl border bg-white/80 text-charcoal placeholder:text-warm-gray/50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-rose-gold/30 focus:border-rose-gold ${
-          error ? 'border-red-400' : 'border-blush/30'
-        } ${className}`}
+        className={`w-full px-4 py-2.5 rounded-xl border bg-white/80 text-charcoal placeholder:text-warm-gray/50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-rose-gold/30 focus:border-rose-gold ${error ? 'border-red-400' : 'border-blush/30'
+          } ${className}`}
         {...props}
       />
       {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
@@ -99,9 +98,8 @@ export const Textarea: React.FC<TextareaProps> = ({ label, error, className = ''
       )}
       <textarea
         id={id}
-        className={`w-full px-4 py-2.5 rounded-xl border bg-white/80 text-charcoal placeholder:text-warm-gray/50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-rose-gold/30 focus:border-rose-gold resize-none ${
-          error ? 'border-red-400' : 'border-blush/30'
-        } ${className}`}
+        className={`w-full px-4 py-2.5 rounded-xl border bg-white/80 text-charcoal placeholder:text-warm-gray/50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-rose-gold/30 focus:border-rose-gold resize-none ${error ? 'border-red-400' : 'border-blush/30'
+          } ${className}`}
         rows={4}
         {...props}
       />
@@ -297,11 +295,11 @@ export const PriceDisplay: React.FC<PriceDisplayProps> = ({ price, comparePrice,
   return (
     <div className="flex items-center gap-2">
       <span className={`${sizes[size]} font-semibold text-charcoal`}>
-        ${price.toFixed(2)}
+        ৳{price.toFixed(2)}
       </span>
       {comparePrice && comparePrice > price && (
         <span className={`${saleSizes[size]} text-warm-gray line-through`}>
-          ${comparePrice.toFixed(2)}
+          ৳{comparePrice.toFixed(2)}
         </span>
       )}
       {comparePrice && comparePrice > price && (
