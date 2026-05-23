@@ -146,7 +146,7 @@ export const useContentStore = create<ContentStore>((set) => ({
 
     try {
       const { data, error } = await supabase
-        .from<'site_content', SiteContentRow>('site_content')
+        .from('site_content')
         .select('content')
         .eq('id', 'global-content')
         .single();
@@ -160,7 +160,9 @@ export const useContentStore = create<ContentStore>((set) => ({
         throw new Error(error.message);
       }
 
-      if (!data?.content) {
+      const row = data as SiteContentRow | null;
+
+      if (!row?.content) {
         // Row exists but content column is null — use defaults
         set({ content: defaultContent, loading: false });
         return;
@@ -170,7 +172,7 @@ export const useContentStore = create<ContentStore>((set) => ({
       // undefined for existing rows that pre-date the schema addition.
       const merged: ContentData = {
         ...defaultContent,
-        ...data.content,
+        ...row.content,
         announcement: {
           ...defaultContent.announcement,
           ...(data.content.announcement ?? {}),
