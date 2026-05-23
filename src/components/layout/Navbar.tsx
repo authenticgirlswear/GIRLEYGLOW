@@ -24,9 +24,16 @@ export const Navbar: React.FC = () => {
   const location = useLocation();
   const { mobileMenuOpen, setMobileMenuOpen } = useUIStore();
   const getItemCount = useCartStore(s => s.getItemCount);
-  const { categories } = useCategoryStore();
+
+  // ── Pull both categories AND the Supabase loader from the store ──
+  const { categories, loadCategories, loading: categoriesLoading } = useCategoryStore();
 
   const itemCount = getItemCount();
+
+  // ── Fetch from Supabase on mount — bypasses any stale localStorage data ──
+  useEffect(() => {
+    loadCategories();
+  }, [loadCategories]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -81,6 +88,34 @@ export const Navbar: React.FC = () => {
     const fullPath = location.pathname + location.search;
     if (fullPath === path) return true;
     return location.pathname.startsWith(path.split('?')[0]) && path !== '/';
+  };
+
+  // ── Shared category list renderer — avoids duplicating loading/empty states ──
+  const renderCategoryLinks = (onClick?: () => void) => {
+    if (categoriesLoading) {
+      return (
+        <p className="px-4 py-2 text-[10px] text-[#9A8880] text-center">
+          Loading…
+        </p>
+      );
+    }
+    if (categories.length === 0) {
+      return (
+        <p className="px-4 py-2 text-[10px] text-[#9A8880] text-center">
+          No categories yet
+        </p>
+      );
+    }
+    return categories.map(cat => (
+      <Link
+        key={cat.id}
+        to={`/shop?category=${cat.slug}`}
+        onClick={onClick}
+        className="block px-4 py-2 text-[10px] font-semibold tracking-wider uppercase text-[#2C2C2C] hover:bg-white/60 hover:text-[#B07D6B] rounded-xl transition-all duration-200"
+      >
+        {cat.name}
+      </Link>
+    ));
   };
 
   return (
@@ -193,19 +228,7 @@ export const Navbar: React.FC = () => {
                         className="absolute top-full left-1/2 -translate-x-1/2 pt-4"
                       >
                         <div className="bg-[#F5E6DC]/95 backdrop-blur-xl rounded-2xl p-1.5 shadow-xl shadow-black/10 min-w-[180px] border border-white/50">
-                          {categories.length === 0 ? (
-                            <p className="px-4 py-2 text-[10px] text-[#9A8880] text-center">No categories yet</p>
-                          ) : (
-                            categories.map(cat => (
-                              <Link
-                                key={cat.id}
-                                to={`/shop?category=${cat.slug}`}
-                                className="block px-4 py-2 text-[10px] font-semibold tracking-wider uppercase text-[#2C2C2C] hover:bg-white/60 hover:text-[#B07D6B] rounded-xl transition-all duration-200"
-                              >
-                                {cat.name}
-                              </Link>
-                            ))
-                          )}
+                          {renderCategoryLinks()}
                         </div>
                       </motion.div>
                     )}
@@ -348,20 +371,12 @@ export const Navbar: React.FC = () => {
 
                 <p className="px-4 text-[9px] font-semibold text-[#9A8880] uppercase tracking-[0.3em] mb-2">Categories</p>
                 <div className="space-y-0.5 mb-5">
-                  {categories.length === 0 ? (
-                    <p className="px-4 py-2 text-xs text-[#9A8880]">No categories yet</p>
-                  ) : (
-                    categories.map(cat => (
-                      <Link
-                        key={cat.id}
-                        to={`/shop?category=${cat.slug}`}
-                        onClick={() => setMobileMenuOpen(false)}
-                        className="block px-4 py-2.5 rounded-xl text-[10px] font-semibold tracking-wider uppercase text-[#9A8880] hover:bg-white/40 hover:text-[#2C2C2C] transition-colors"
-                      >
-                        {cat.name}
-                      </Link>
-                    ))
-                  )}
+                  {/*
+                    Mobile drawer uses the same renderCategoryLinks() helper.
+                    Pass setMobileMenuOpen(false) as the onClick so the drawer
+                    closes when the user taps a category — matching original behaviour.
+                  */}
+                  {renderCategoryLinks(() => setMobileMenuOpen(false))}
                 </div>
 
                 <div className="h-px bg-[#2C2C2C]/10 my-4" />

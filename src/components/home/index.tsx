@@ -12,7 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, ArrowLeft, ShoppingBag, Star, Sparkles } from 'lucide-react';
 import { FadeIn, SectionHeader, PriceDisplay, Badge, StarRating, Button } from '@/components/ui';
 import { useProductStore } from '@/store';
-import { useContentStore } from '@/store/contentstore';
+import { useContentStore } from '@/store/contentStore';
 import type { Product } from '@/types';
 
 // ==========================================

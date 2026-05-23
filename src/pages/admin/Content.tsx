@@ -7,7 +7,7 @@ import { Save, Eye, Plus, Trash2, Image, Megaphone, ToggleLeft, ToggleRight } fr
 import { Button, Input } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 // ✅ FIX: import from dedicated store file — not defined here anymore
-import { useContentStore, type ContentData } from '@/store/contentstore';
+import { useContentStore, type ContentData } from '@/store/contentStore';
 
 const gradients = [
   'linear-gradient(135deg, #F4C2C2, #E6E6FA, #F7E7CE)',
@@ -33,17 +33,37 @@ const uploadContentImage = async (file: File, folder: string): Promise<string> =
   const { error } = await supabase.storage.from('product-images').upload(path, file);
   if (error) {
     console.error('Upload error:', error);
-    throw new Error(error.message); // ✅ FIX: throw so caller knows it failed
+    throw new Error(error.message);
   }
   const { data } = supabase.storage.from('product-images').getPublicUrl(path);
   return data.publicUrl;
+};
+
+// ── Persist content to Supabase site_content table ──
+// Table schema: id (text PK), content (jsonb), updated_at (timestamptz)
+const saveContentToSupabase = async (contentData: ContentData): Promise<void> => {
+  const { error } = await supabase
+    .from('site_content')
+    .upsert(
+      {
+        id: 'global-content',
+        content: contentData,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'id' }
+    );
+
+  if (error) {
+    console.error('Supabase upsert error:', error);
+    throw new Error(error.message);
+  }
 };
 
 export const AdminContent: React.FC = () => {
   const { content, setContent } = useContentStore();
   const [saved, setSaved] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState('');   // ✅ NEW: show upload errors
+  const [uploadError, setUploadError] = useState('');
   const [heroFile, setHeroFile] = useState<File | null>(null);
   const [heroPreview, setHeroPreview] = useState('');
   const [bannerFiles, setBannerFiles] = useState<Record<string, File>>({});
@@ -106,12 +126,14 @@ export const AdminContent: React.FC = () => {
     let updatedContent = { ...content };
 
     try {
+      // ── Step 1: Upload hero image if a new file was selected ──
       if (heroFile) {
         const url = await uploadContentImage(heroFile, 'hero');
         updatedContent = { ...updatedContent, heroImageUrl: url };
       }
 
-      const updatedBanners = [...content.banners];
+      // ── Step 2: Upload any new banner images ──
+      const updatedBanners = [...updatedContent.banners];
       for (const [bannerId, file] of Object.entries(bannerFiles)) {
         const url = await uploadContentImage(file, 'banners');
         const idx = updatedBanners.findIndex(b => b.id === bannerId);
@@ -119,15 +141,30 @@ export const AdminContent: React.FC = () => {
       }
       updatedContent = { ...updatedContent, banners: updatedBanners };
 
+      // ── Step 3: Persist entire content object to Supabase ──
+      // This saves: heroSection, announcement, bannerSlider, sectionTitles — all in one upsert.
+      await saveContentToSupabase(updatedContent);
+
+      // ── Step 4: Sync successful result back into Zustand (and localStorage if configured) ──
       setContent(updatedContent);
+
+      // ── Step 5: Clean up local file/preview state ──
       setHeroFile(null);
       setHeroPreview('');
       setBannerFiles({});
       setBannerPreviews({});
+
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (err: any) {
-      setUploadError(`Image upload failed: ${err.message}. Check Supabase bucket permissions.`);
+      // Differentiate storage vs database errors for clearer messaging
+      const isStorageError = err.message?.toLowerCase().includes('upload') ||
+        err.message?.toLowerCase().includes('storage');
+      setUploadError(
+        isStorageError
+          ? `Image upload failed: ${err.message}. Check Supabase bucket permissions.`
+          : `Save failed: ${err.message}. Check Supabase table permissions for site_content.`
+      );
     } finally {
       setUploading(false);
     }
@@ -145,7 +182,7 @@ export const AdminContent: React.FC = () => {
         </Button>
       </div>
 
-      {/* ✅ Upload error banner */}
+      {/* Upload / save error banner */}
       {uploadError && (
         <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
           ⚠️ {uploadError}
@@ -273,7 +310,6 @@ export const AdminContent: React.FC = () => {
 
       {/* Hero Section */}
       <div className="glass-card rounded-2xl p-6 mb-6">
-        {/* ✅ NEW: Hero enable/disable toggle in the header */}
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-charcoal flex items-center gap-2">
             <Eye size={16} className="text-rose-gold" /> Hero Section

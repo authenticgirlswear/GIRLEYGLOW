@@ -3,7 +3,7 @@
    WITH Luxury Animated Bra Size Guide Modal
    =================================================== */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   MapPin,
@@ -14,10 +14,96 @@ import {
   Heart
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useCategoryStore } from '@/store';
+import { create } from 'zustand';
+import { supabase } from '@/lib/supabase'; // adjust path to your supabase client
+
+// ===================================================
+// TYPES
+// ===================================================
+
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+interface CategoryState {
+  categories: Category[];
+  loading: boolean;
+  error: string | null;
+  fetchCategories: () => Promise<void>;
+  setCategories: (categories: Category[]) => void;
+}
+
+// ===================================================
+// SUPABASE-BACKED ZUSTAND STORE
+// Global singleton — all components share the same
+// fetched state, so one tab re-fetch updates all.
+// ===================================================
+
+const useSupabaseCategoryStore = create<CategoryState>((set) => ({
+  categories: [],
+  loading: false,
+  error: null,
+
+  fetchCategories: async () => {
+    set({ loading: true, error: null });
+
+    const { data, error } = await supabase
+      .from('categories')
+      .select('id, name, slug')
+      .order('name', { ascending: true });
+
+    if (error) {
+      set({ loading: false, error: error.message });
+      return;
+    }
+
+    set({ categories: data ?? [], loading: false });
+  },
+
+  setCategories: (categories: Category[]) => set({ categories }),
+}));
+
+// ===================================================
+// HOOK — fetch on mount + realtime sync
+// ===================================================
+
+function useCategoriesSync() {
+  const { fetchCategories, setCategories } = useSupabaseCategoryStore();
+
+  useEffect(() => {
+    // Initial fetch
+    fetchCategories();
+
+    // Realtime subscription so every device sees updates instantly
+    const channel = supabase
+      .channel('public:categories')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'categories' },
+        () => {
+          // Re-fetch on any insert / update / delete
+          fetchCategories();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchCategories]);
+}
+
+// ===================================================
+// FOOTER COMPONENT
+// ===================================================
 
 export const Footer: React.FC = () => {
-  const { categories } = useCategoryStore();
+  const { categories, loading } = useSupabaseCategoryStore();
+
+  // Kick off fetch + realtime subscription for this component tree
+  useCategoriesSync();
 
   // ===================================================
   // SIZE GUIDE STATES
@@ -168,7 +254,7 @@ export const Footer: React.FC = () => {
                     fill="currentColor"
                     className="text-white"
                   >
-                    <path d="M16 0C7.163 0 0 7.163 0 16c0 2.833.737 5.49 2.027 7.8L0 32l8.418-2.004A15.954 15.954 0 0016 32c8.837 0 16-7.163 16-16S24.837 0 16 0zm8.043 22.205c-.33.928-1.944 1.77-2.664 1.88-.72.111-1.62.157-2.61-.164-.602-.19-1.374-.444-2.355-.87-4.145-1.79-6.852-5.972-7.06-6.25-.207-.277-1.687-2.244-1.687-4.28 0-2.035 1.068-3.033 1.446-3.446.378-.414.825-.518 1.1-.518.275 0 .55.003.79.014.254.012.594-.096.93.71.344.827 1.17 2.862 1.272 3.069.103.207.172.45.034.727-.138.276-.207.449-.413.69-.207.242-.435.54-.62.725-.206.206-.421.43-.181.843.24.414 1.067 1.76 2.29 2.851 1.574 1.402 2.9 1.835 3.314 2.042.413.207.655.172.896-.103.24-.276 1.033-1.205 1.308-1.618.276-.414.55-.345.928-.207.378.138 2.404 1.135 2.817 1.342.413.207.688.31.79.482.104.173.104 1.002-.226 1.93z"/>
+                    <path d="M16 0C7.163 0 0 7.163 0 16c0 2.833.737 5.49 2.027 7.8L0 32l8.418-2.004A15.954 15.954 0 0016 32c8.837 0 16-7.163 16-16S24.837 0 16 0zm8.043 22.205c-.33.928-1.944 1.77-2.664 1.88-.72.111-1.62.157-2.61-.164-.602-.19-1.374-.444-2.355-.87-4.145-1.79-6.852-5.972-7.06-6.25-.207-.277-1.687-2.244-1.687-4.28 0-2.035 1.068-3.033 1.446-3.446.378-.414.825-.518 1.1-.518.275 0 .55.003.79.014.254.012.594-.096.93.71.344.827 1.17 2.862 1.272 3.069.103.207.172.45.034.727-.138.276-.207.449-.413.69-.207.242-.435.54-.62.725-.206.206-.421.43-.181.843.24.414 1.067 1.76 2.29 2.851 1.574 1.402 2.9 1.835 3.314 2.042.413.207.655.172.896-.103.24-.276 1.033-1.205 1.308-1.618.276-.414.55-.345.928-.207.378.138 2.404 1.135 2.817 1.342.413.207.688.31.79.482.104.173.104 1.002-.226 1.93z" />
                   </svg>
                 </a>
 
@@ -176,7 +262,7 @@ export const Footer: React.FC = () => {
             </div>
 
             {/* ===================================================
-                QUICK LINKS
+                QUICK LINKS — Supabase-synced categories
             =================================================== */}
 
             <div>
@@ -185,16 +271,25 @@ export const Footer: React.FC = () => {
               </h4>
 
               <ul className="space-y-3">
-                {categories.map(category => (
-                  <li key={category.id}>
-                    <Link
-                      to={`/shop?category=${category.slug}`}
-                      className="text-white/50 hover:text-rose-gold-light text-sm transition-colors"
-                    >
-                      {category.name}
-                    </Link>
-                  </li>
-                ))}
+                {loading && categories.length === 0 ? (
+                  // Loading placeholders — same height as real links
+                  Array.from({ length: 4 }).map((_, i) => (
+                    <li key={i}>
+                      <span className="inline-block h-4 w-24 rounded bg-white/10 animate-pulse" />
+                    </li>
+                  ))
+                ) : (
+                  categories.map(category => (
+                    <li key={category.id}>
+                      <Link
+                        to={`/shop?category=${category.slug}`}
+                        className="text-white/50 hover:text-rose-gold-light text-sm transition-colors"
+                      >
+                        {category.name}
+                      </Link>
+                    </li>
+                  ))
+                )}
               </ul>
             </div>
 

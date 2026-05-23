@@ -8,6 +8,8 @@ import { persist } from 'zustand/middleware';
 import type { CartItem, Product, Coupon, AdminUser, OrderStatus, PaymentStatus, Category } from '@/types';
 import { coupons as mockCoupons } from '@/data/mockData';
 import { supabase } from '@/lib/supabase';
+export { useContentStore, defaultContent } from './contentStore';
+export type { ContentData, Banner, AnnouncementSettings } from './contentStore';
 
 // ==========================================
 // CART STORE
@@ -111,7 +113,7 @@ interface AdminAuthStore {
   isAuthenticated: boolean;
   login: (email: string, password: string) => boolean;
   logout: () => void;
-  setAuthenticated: (val: boolean) => void; // ADD THIS
+  setAuthenticated: (val: boolean) => void;
 }
 export const useAdminAuthStore = create<AdminAuthStore>()(
   persist(
@@ -136,8 +138,7 @@ export const useAdminAuthStore = create<AdminAuthStore>()(
 );
 
 // ==========================================
-// ORDER STORE — REPLACE THIS ENTIRE SECTION
-// in your store/index.ts
+// ORDER STORE
 // ==========================================
 
 export interface RealOrder {
@@ -179,10 +180,7 @@ interface OrderStore {
   placeOrder: (order: RealOrder) => void;
   updateOrderStatus: (id: string, status: OrderStatus) => void;
   updatePaymentStatus: (id: string, status: PaymentStatus) => void;
-  // ✅ NEW: replaces a full order (persists item + total edits)
   updateOrder: (order: RealOrder) => void;
-  // ✅ NEW: no-op for localStorage store (data is already in memory),
-  //         but satisfies the fetchOrders() call in AdminOrders on mount
   fetchOrders: () => void;
 }
 
@@ -191,7 +189,6 @@ export const useOrderStore = create<OrderStore>()(
     (set, get) => ({
       orders: [],
 
-      // Called when customer completes checkout
       placeOrder: (order) => {
         set({ orders: [order, ...get().orders] });
       },
@@ -212,7 +209,6 @@ export const useOrderStore = create<OrderStore>()(
         });
       },
 
-      // ✅ Replaces the whole order object — persists item edits, total edits, etc.
       updateOrder: (updatedOrder) => {
         set({
           orders: get().orders.map(o =>
@@ -223,8 +219,6 @@ export const useOrderStore = create<OrderStore>()(
         });
       },
 
-      // ✅ Orders live in localStorage via `persist`, so fetchOrders is a no-op here.
-      // If you later switch to Supabase, replace this body with a real fetch.
       fetchOrders: () => {
         // already loaded from localStorage by zustand/persist on boot — nothing to do
       },
@@ -234,43 +228,176 @@ export const useOrderStore = create<OrderStore>()(
 );
 
 // ==========================================
-// CATEGORY STORE — persists add/edit/delete
+// CATEGORY STORE — Supabase as source of truth
 // ==========================================
-const defaultCategories: Category[] = [
-  { id: '1', name: 'Dresses', slug: 'dresses', description: 'Beautiful dresses for every occasion', image: 'product-gradient-1', productCount: 0, gradient: 'linear-gradient(135deg, #F4C2C2, #E6E6FA)', createdAt: new Date().toISOString() },
-  { id: '2', name: 'Tops', slug: 'tops', description: 'Stylish tops and blouses', image: 'product-gradient-2', productCount: 0, gradient: 'linear-gradient(135deg, #F7E7CE, #F4C2C2)', createdAt: new Date().toISOString() },
-  { id: '3', name: 'Bottoms', slug: 'bottoms', description: 'Skirts, pants and more', image: 'product-gradient-3', productCount: 0, gradient: 'linear-gradient(135deg, #E3BCA4, #FADBD8)', createdAt: new Date().toISOString() },
-];
+
+/**
+ * Expected Supabase table schema (categories):
+ *   id          uuid / text  primary key
+ *   name        text
+ *   slug        text
+ *   description text
+ *   image       text
+ *   product_count int  (default 0)
+ *   gradient    text
+ *   created_at  timestamptz
+ *
+ * All mutations (add / update / delete) hit Supabase first,
+ * then refresh local Zustand state from the returned row —
+ * so the UI always reflects the DB, even across tabs/deploys.
+ */
 
 interface CategoryStore {
   categories: Category[];
-  addCategory: (category: Category) => void;
-  updateCategory: (id: string, updates: Partial<Category>) => void;
-  deleteCategory: (id: string) => void;
+  loading: boolean;
+  error: string | null;
+
+  loadCategories: () => Promise<void>;
+  addCategory: (category: Omit<Category, 'createdAt'>) => Promise<void>;
+  updateCategory: (id: string, updates: Partial<Category>) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
 }
 
-export const useCategoryStore = create<CategoryStore>()(
-  persist(
-    (set, get) => ({
-      categories: defaultCategories,
+/** Maps a raw Supabase row → our Category type */
+function rowToCategory(row: Record<string, unknown>): Category {
+  return {
+    id: row.id as string,
+    name: row.name as string,
+    slug: row.slug as string,
+    description: (row.description as string) ?? '',
+    image: (row.image as string) ?? '',
+    productCount: Number(row.product_count ?? 0),
+    gradient: (row.gradient as string) ?? '',
+    createdAt: (row.created_at as string) ?? new Date().toISOString(),
+  };
+}
 
-      addCategory: (category) => {
-        set({ categories: [...get().categories, category] });
-      },
+/** Maps our Category type → Supabase column names */
+function categoryToRow(cat: Partial<Category>): Record<string, unknown> {
+  const row: Record<string, unknown> = {};
+  if (cat.name !== undefined) row.name = cat.name;
+  if (cat.slug !== undefined) row.slug = cat.slug;
+  if (cat.description !== undefined) row.description = cat.description;
+  if (cat.image !== undefined) row.image = cat.image;
+  if (cat.productCount !== undefined) row.product_count = cat.productCount;
+  if (cat.gradient !== undefined) row.gradient = cat.gradient;
+  return row;
+}
 
-      updateCategory: (id, updates) => {
-        set({
-          categories: get().categories.map(c => c.id === id ? { ...c, ...updates } : c),
-        });
-      },
+export const useCategoryStore = create<CategoryStore>()((set, get) => ({
+  categories: [],
+  loading: false,
+  error: null,
 
-      deleteCategory: (id) => {
-        set({ categories: get().categories.filter(c => c.id !== id) });
-      },
-    }),
-    { name: 'authentic-girlswear-categories' } // ← saved to localStorage, survives refresh
-  )
-);
+  /**
+   * Fetch all categories from Supabase.
+   * Call once on app boot (e.g. in a top-level layout or _app).
+   * Subsequent calls are safe — they re-fetch and keep state fresh.
+   */
+  loadCategories: async () => {
+    // Prevent concurrent fetches
+    if (get().loading) return;
+
+    set({ loading: true, error: null });
+
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      set({
+        categories: (data ?? []).map(rowToCategory),
+        loading: false,
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to load categories';
+      console.error('[CategoryStore] loadCategories error:', message);
+      set({ loading: false, error: message });
+    }
+  },
+
+  /**
+   * Insert a new category into Supabase, then push it into local state.
+   * Pass everything except createdAt — Supabase sets that via default.
+   */
+  addCategory: async (category) => {
+    set({ error: null });
+
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .insert([categoryToRow(category)])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      set({ categories: [...get().categories, rowToCategory(data)] });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to add category';
+      console.error('[CategoryStore] addCategory error:', message);
+      set({ error: message });
+      // Re-throw so the calling UI can show its own error toast if needed
+      throw err;
+    }
+  },
+
+  /**
+   * Update an existing category in Supabase, then sync local state
+   * with the row Supabase returns (single source of truth).
+   */
+  updateCategory: async (id, updates) => {
+    set({ error: null });
+
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .update(categoryToRow(updates))
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      set({
+        categories: get().categories.map(c =>
+          c.id === id ? rowToCategory(data) : c
+        ),
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to update category';
+      console.error('[CategoryStore] updateCategory error:', message);
+      set({ error: message });
+      throw err;
+    }
+  },
+
+  /**
+   * Delete a category from Supabase, then remove it from local state.
+   */
+  deleteCategory: async (id) => {
+    set({ error: null });
+
+    try {
+      const { error } = await supabase
+        .from('categories')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      set({ categories: get().categories.filter(c => c.id !== id) });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to delete category';
+      console.error('[CategoryStore] deleteCategory error:', message);
+      set({ error: message });
+      throw err;
+    }
+  },
+}));
 
 // ==========================================
 // ADMIN DATA STORE
