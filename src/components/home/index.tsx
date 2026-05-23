@@ -588,9 +588,9 @@ export const CategoryShowcase: React.FC = () => {
                   }}
                 >
                   {/* CATEGORY IMAGE */}
-                  {category.images?.[0] && (
+                  {category.image && (
                     <img
-                      src={category.images[0]}
+                      src={category.image}
                       alt={category.name}
                       className="absolute inset-0 w-full h-full object-cover"
                     />

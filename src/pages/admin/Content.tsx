@@ -1,12 +1,12 @@
 /* ===================================================
    AUTHENTIC GIRLSWEAR - Admin Content Editor
+   Fixed: uses saveContent from store, guards undefined messages
    =================================================== */
 
 import React, { useState } from 'react';
 import { Save, Eye, Plus, Trash2, Image, Megaphone, ToggleLeft, ToggleRight } from 'lucide-react';
 import { Button, Input } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
-// ✅ FIX: import from dedicated store file — not defined here anymore
 import { useContentStore, type ContentData } from '@/store/contentStore';
 
 const gradients = [
@@ -31,36 +31,13 @@ const uploadContentImage = async (file: File, folder: string): Promise<string> =
   const ext = file.name.split('.').pop();
   const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
   const { error } = await supabase.storage.from('product-images').upload(path, file);
-  if (error) {
-    console.error('Upload error:', error);
-    throw new Error(error.message);
-  }
+  if (error) throw new Error(error.message);
   const { data } = supabase.storage.from('product-images').getPublicUrl(path);
   return data.publicUrl;
 };
 
-// ── Persist content to Supabase site_content table ──
-// Table schema: id (text PK), content (jsonb), updated_at (timestamptz)
-const saveContentToSupabase = async (contentData: ContentData): Promise<void> => {
-  const { error } = await supabase
-    .from('site_content')
-    .upsert(
-      {
-        id: 'global-content',
-        content: contentData,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'id' }
-    );
-
-  if (error) {
-    console.error('Supabase upsert error:', error);
-    throw new Error(error.message);
-  }
-};
-
 export const AdminContent: React.FC = () => {
-  const { content, setContent } = useContentStore();
+  const { content, setContent, saveContent } = useContentStore();
   const [saved, setSaved] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
@@ -69,7 +46,10 @@ export const AdminContent: React.FC = () => {
   const [bannerFiles, setBannerFiles] = useState<Record<string, File>>({});
   const [bannerPreviews, setBannerPreviews] = useState<Record<string, string>>({});
 
-  const updateField = (field: keyof ContentData, value: any) => {
+  // Safe accessor — announcement.messages is always an array after contentStore defaults
+  const messages = content.announcement?.messages ?? [];
+
+  const updateField = (field: keyof ContentData, value: unknown) => {
     setContent({ ...content, [field]: value });
   };
 
@@ -79,7 +59,7 @@ export const AdminContent: React.FC = () => {
     setContent({ ...content, banners });
   };
 
-  const updateAnnouncement = (field: string, value: any) => {
+  const updateAnnouncement = (field: string, value: unknown) => {
     setContent({
       ...content,
       announcement: { ...content.announcement, [field]: value },
@@ -87,16 +67,16 @@ export const AdminContent: React.FC = () => {
   };
 
   const updateAnnouncementMessage = (index: number, value: string) => {
-    const messages = [...content.announcement.messages];
-    messages[index] = value;
-    updateAnnouncement('messages', messages);
+    const updated = [...messages];
+    updated[index] = value;
+    updateAnnouncement('messages', updated);
   };
 
   const addAnnouncementMessage = () =>
-    updateAnnouncement('messages', [...content.announcement.messages, 'New announcement']);
+    updateAnnouncement('messages', [...messages, 'New announcement']);
 
   const removeAnnouncementMessage = (index: number) =>
-    updateAnnouncement('messages', content.announcement.messages.filter((_, i) => i !== index));
+    updateAnnouncement('messages', messages.filter((_, i) => i !== index));
 
   const addBanner = () => {
     setContent({
@@ -126,13 +106,13 @@ export const AdminContent: React.FC = () => {
     let updatedContent = { ...content };
 
     try {
-      // ── Step 1: Upload hero image if a new file was selected ──
+      // Step 1: Upload hero image if selected
       if (heroFile) {
         const url = await uploadContentImage(heroFile, 'hero');
         updatedContent = { ...updatedContent, heroImageUrl: url };
       }
 
-      // ── Step 2: Upload any new banner images ──
+      // Step 2: Upload banner images
       const updatedBanners = [...updatedContent.banners];
       for (const [bannerId, file] of Object.entries(bannerFiles)) {
         const url = await uploadContentImage(file, 'banners');
@@ -141,14 +121,10 @@ export const AdminContent: React.FC = () => {
       }
       updatedContent = { ...updatedContent, banners: updatedBanners };
 
-      // ── Step 3: Persist entire content object to Supabase ──
-      // This saves: heroSection, announcement, bannerSlider, sectionTitles — all in one upsert.
-      await saveContentToSupabase(updatedContent);
+      // Step 3: Save to Supabase via store (handles upsert + local state update)
+      await saveContent(updatedContent);
 
-      // ── Step 4: Sync successful result back into Zustand (and localStorage if configured) ──
-      setContent(updatedContent);
-
-      // ── Step 5: Clean up local file/preview state ──
+      // Step 4: Clean up local file state
       setHeroFile(null);
       setHeroPreview('');
       setBannerFiles({});
@@ -156,14 +132,13 @@ export const AdminContent: React.FC = () => {
 
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
-    } catch (err: any) {
-      // Differentiate storage vs database errors for clearer messaging
-      const isStorageError = err.message?.toLowerCase().includes('upload') ||
-        err.message?.toLowerCase().includes('storage');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      const isStorageError = msg.toLowerCase().includes('upload') || msg.toLowerCase().includes('storage');
       setUploadError(
         isStorageError
-          ? `Image upload failed: ${err.message}. Check Supabase bucket permissions.`
-          : `Save failed: ${err.message}. Check Supabase table permissions for site_content.`
+          ? `Image upload failed: ${msg}. Check Supabase bucket permissions.`
+          : `Save failed: ${msg}. Check Supabase table permissions for site_content.`,
       );
     } finally {
       setUploading(false);
@@ -182,7 +157,6 @@ export const AdminContent: React.FC = () => {
         </Button>
       </div>
 
-      {/* Upload / save error banner */}
       {uploadError && (
         <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
           ⚠️ {uploadError}
@@ -198,7 +172,7 @@ export const AdminContent: React.FC = () => {
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
-              checked={content.announcement.enabled}
+              checked={content.announcement?.enabled ?? false}
               onChange={e => updateAnnouncement('enabled', e.target.checked)}
               className="w-4 h-4 rounded accent-rose-gold"
             />
@@ -209,10 +183,10 @@ export const AdminContent: React.FC = () => {
         {/* Live Preview */}
         <div
           className="rounded-xl overflow-hidden mb-4 h-10 flex items-center justify-center px-4"
-          style={{ backgroundColor: content.announcement.bgColor, color: content.announcement.textColor }}
+          style={{ backgroundColor: content.announcement?.bgColor ?? '#000', color: content.announcement?.textColor ?? '#fff' }}
         >
-          <p className="text-sm text-center" style={{ fontWeight: content.announcement.bold ? 600 : 500 }}>
-            ✨ {content.announcement.messages[0] || 'Your announcement preview'}
+          <p className="text-sm text-center" style={{ fontWeight: content.announcement?.bold ? 600 : 500 }}>
+            ✨ {messages[0] || 'Your announcement preview'}
           </p>
         </div>
 
@@ -223,7 +197,7 @@ export const AdminContent: React.FC = () => {
             <Button size="sm" onClick={addAnnouncementMessage}><Plus size={12} /> Add Message</Button>
           </div>
           <div className="space-y-2">
-            {content.announcement.messages.map((msg, idx) => (
+            {messages.map((msg, idx) => (
               <div key={idx} className="flex items-center gap-2">
                 <input
                   value={msg}
@@ -248,7 +222,7 @@ export const AdminContent: React.FC = () => {
                 key={anim}
                 type="button"
                 onClick={() => updateAnnouncement('animation', anim)}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${content.announcement.animation === anim
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${content.announcement?.animation === anim
                   ? 'bg-rose-gold text-white'
                   : 'bg-blush-light/50 text-charcoal hover:bg-blush-light'
                   }`}
@@ -268,8 +242,7 @@ export const AdminContent: React.FC = () => {
                 key={preset.name}
                 type="button"
                 onClick={() => { updateAnnouncement('bgColor', preset.bg); updateAnnouncement('textColor', preset.text); }}
-                className={`px-3 py-2 rounded-lg text-xs font-medium border-2 transition-all ${content.announcement.bgColor === preset.bg ? 'border-rose-gold scale-105' : 'border-transparent'
-                  }`}
+                className={`px-3 py-2 rounded-lg text-xs font-medium border-2 transition-all ${content.announcement?.bgColor === preset.bg ? 'border-rose-gold scale-105' : 'border-transparent'}`}
                 style={{ backgroundColor: preset.bg, color: preset.text }}
               >
                 {preset.name}
@@ -283,26 +256,26 @@ export const AdminContent: React.FC = () => {
           <div>
             <label className="block text-sm font-medium text-warm-gray mb-1.5">Background Color</label>
             <div className="flex items-center gap-2">
-              <input type="color" value={content.announcement.bgColor} onChange={e => updateAnnouncement('bgColor', e.target.value)} className="w-12 h-10 rounded-lg border border-blush/30 cursor-pointer" />
-              <input type="text" value={content.announcement.bgColor} onChange={e => updateAnnouncement('bgColor', e.target.value)} className="flex-1 px-3 py-2 rounded-lg border border-blush/30 bg-white/80 text-sm" />
+              <input type="color" value={content.announcement?.bgColor ?? '#000000'} onChange={e => updateAnnouncement('bgColor', e.target.value)} className="w-12 h-10 rounded-lg border border-blush/30 cursor-pointer" />
+              <input type="text" value={content.announcement?.bgColor ?? '#000000'} onChange={e => updateAnnouncement('bgColor', e.target.value)} className="flex-1 px-3 py-2 rounded-lg border border-blush/30 bg-white/80 text-sm" />
             </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-warm-gray mb-1.5">Text Color</label>
             <div className="flex items-center gap-2">
-              <input type="color" value={content.announcement.textColor} onChange={e => updateAnnouncement('textColor', e.target.value)} className="w-12 h-10 rounded-lg border border-blush/30 cursor-pointer" />
-              <input type="text" value={content.announcement.textColor} onChange={e => updateAnnouncement('textColor', e.target.value)} className="flex-1 px-3 py-2 rounded-lg border border-blush/30 bg-white/80 text-sm" />
+              <input type="color" value={content.announcement?.textColor ?? '#ffffff'} onChange={e => updateAnnouncement('textColor', e.target.value)} className="w-12 h-10 rounded-lg border border-blush/30 cursor-pointer" />
+              <input type="text" value={content.announcement?.textColor ?? '#ffffff'} onChange={e => updateAnnouncement('textColor', e.target.value)} className="flex-1 px-3 py-2 rounded-lg border border-blush/30 bg-white/80 text-sm" />
             </div>
           </div>
         </div>
 
         <div className="flex gap-4">
           <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" checked={content.announcement.bold} onChange={e => updateAnnouncement('bold', e.target.checked)} className="w-4 h-4 rounded accent-rose-gold" />
+            <input type="checkbox" checked={content.announcement?.bold ?? false} onChange={e => updateAnnouncement('bold', e.target.checked)} className="w-4 h-4 rounded accent-rose-gold" />
             <span className="text-sm text-charcoal">Bold text</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" checked={content.announcement.dismissible} onChange={e => updateAnnouncement('dismissible', e.target.checked)} className="w-4 h-4 rounded accent-rose-gold" />
+            <input type="checkbox" checked={content.announcement?.dismissible ?? false} onChange={e => updateAnnouncement('dismissible', e.target.checked)} className="w-4 h-4 rounded accent-rose-gold" />
             <span className="text-sm text-charcoal">Show close button</span>
           </label>
         </div>
@@ -365,13 +338,7 @@ export const AdminContent: React.FC = () => {
                 {content.heroImageUrl && !heroPreview && (
                   <div className="flex items-center justify-between mt-1">
                     <p className="text-xs text-warm-gray">Current hero image — upload a new one to replace</p>
-                    <button
-                      type="button"
-                      onClick={() => updateField('heroImageUrl', '')}
-                      className="text-xs text-red-400 hover:text-red-600"
-                    >
-                      Remove image
-                    </button>
+                    <button type="button" onClick={() => updateField('heroImageUrl', '')} className="text-xs text-red-400 hover:text-red-600">Remove image</button>
                   </div>
                 )}
               </div>
@@ -395,7 +362,7 @@ export const AdminContent: React.FC = () => {
           )}
           <div className="text-center bg-white/40 backdrop-blur-sm rounded-xl px-4 py-2">
             <p className="heading-serif text-lg font-bold text-charcoal">{content.heroTitle}</p>
-            <p className="text-xs text-warm-gray">{content.heroSubtitle.substring(0, 60)}...</p>
+            <p className="text-xs text-warm-gray">{content.heroSubtitle?.substring(0, 60)}...</p>
             <p className="text-xs font-medium text-rose-gold mt-1">{content.heroButtonText}</p>
           </div>
         </div>
