@@ -18,7 +18,9 @@ import {
 } from 'lucide-react';
 import { useCartStore, useOrderStore } from '@/store';
 import { sendOrderToGoogleSheets } from '@/lib/supabase';
-import type { PaymentMethod, Product } from '@/types';
+import type { PaymentMethod, Product, } from '@/types';
+import { trackInitiateCheckout } from '@/lib/facebookPixel';
+
 
 interface BuyNowState {
   product: Product;
@@ -212,7 +214,10 @@ export const CheckoutPage: React.FC = () => {
   };
 
   const handleReviewOrder = () => {
-    if (validate()) setShowReview(true);
+    if (validate()) {
+      trackInitiateCheckout(total);
+      setShowReview(true);
+    }
   };
 
   // Place order

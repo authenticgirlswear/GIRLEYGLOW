@@ -3,6 +3,9 @@ import { createRoot } from "react-dom/client";
 import "./index.css";
 import App from "./App";
 import { useContentStore, useCategoryStore } from '@/store';
+import { initFacebookPixel } from '@/lib/facebookPixel';
+
+initFacebookPixel();
 
 function Root() {
   const loadContent = useContentStore((s) => s.loadContent);

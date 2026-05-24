@@ -16,54 +16,55 @@ import { ProductCard } from '@/components/home';
 import { supabase } from '@/lib/supabase';
 import { useCartStore, useRecentlyViewedStore } from '@/store';
 import type { Product } from '@/types';
+import { trackViewContent } from '@/lib/facebookPixel';
 
 /* ─── normalise snake_case Supabase row → Product shape ─── */
 const normalise = (p: any): Product => ({
-  id:               p.id,
-  name:             p.name             || '',
-  slug:             p.slug             || '',
-  description:      p.description      || '',
+  id: p.id,
+  name: p.name || '',
+  slug: p.slug || '',
+  description: p.description || '',
   shortDescription: p.short_description || '',
-  price:            Number(p.price)    || 0,
-  comparePrice:     p.compare_price    ? Number(p.compare_price) : undefined,
-  images:           p.images           || [],
-  category:         p.category_name   || p.category      || '',
-  categorySlug:     p.category_slug   || '',
-  sizes:            p.sizes            || [],
-  colors:           p.colors           || [],
-  stock:            Number(p.stock)    || 0,
-  sku:              p.sku              || '',
-  tags:             p.tags             || [],
-  isFeatured:       p.is_featured      || false,
-  isTrending:       p.is_trending      || false,
-  isNewArrival:     p.is_new_arrival   || false,
-  isOnSale:         p.is_on_sale       || false,
-  rating:           Number(p.rating)   || 0,
-  reviewCount:      Number(p.review_count) || 0,
-  createdAt:        p.created_at       || '',
-  videoUrl:         p.video_url        || '',
-  updatedAt:        p.updated_at       || '',
+  price: Number(p.price) || 0,
+  comparePrice: p.compare_price ? Number(p.compare_price) : undefined,
+  images: p.images || [],
+  category: p.category_name || p.category || '',
+  categorySlug: p.category_slug || '',
+  sizes: p.sizes || [],
+  colors: p.colors || [],
+  stock: Number(p.stock) || 0,
+  sku: p.sku || '',
+  tags: p.tags || [],
+  isFeatured: p.is_featured || false,
+  isTrending: p.is_trending || false,
+  isNewArrival: p.is_new_arrival || false,
+  isOnSale: p.is_on_sale || false,
+  rating: Number(p.rating) || 0,
+  reviewCount: Number(p.review_count) || 0,
+  createdAt: p.created_at || '',
+  videoUrl: p.video_url || '',
+  updatedAt: p.updated_at || '',
 });
 
 export const ProductDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
-  const navigate  = useNavigate();
-  const addItem   = useCartStore(s => s.addItem);
+  const navigate = useNavigate();
+  const addItem = useCartStore(s => s.addItem);
   const addRecentlyViewed = useRecentlyViewedStore(s => s.addProduct);
 
-  const [product, setProduct]       = useState<Product | null>(null);
-  const [related, setRelated]       = useState<Product[]>([]);
-  const [loading, setLoading]       = useState(true);
-  const [notFound, setNotFound]     = useState(false);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [related, setRelated] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
   const [selectedImage, setSelectedImage] = useState(0);
-  const [selectedSize, setSelectedSize]   = useState('');
+  const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
-  const [quantity, setQuantity]           = useState(1);
-  const [activeTab, setActiveTab]         = useState<'description' | 'reviews' | 'shipping'>('description');
+  const [quantity, setQuantity] = useState(1);
+  const [activeTab, setActiveTab] = useState<'description' | 'reviews' | 'shipping'>('description');
   const [addedToCart, setAddedToCart] = useState(false);
-const [showSizeGuide, setShowSizeGuide] = useState(false);
-const [similarPage, setSimilarPage] = useState(0);
+  const [showSizeGuide, setShowSizeGuide] = useState(false);
+  const [similarPage, setSimilarPage] = useState(0);
 
   /* ── Fetch product by slug from Supabase ── */
   useEffect(() => {
@@ -87,14 +88,21 @@ const [similarPage, setSimilarPage] = useState(0);
       }
 
       const normalised = normalise(data);
+
       setProduct(normalised);
-      setSelectedSize(normalised.sizes[0]  || '');
+
+      /* FACEBOOK PIXEL VIEW CONTENT */
+      trackViewContent(normalised.name, normalised.price);
+
+      setSelectedSize(normalised.sizes[0] || '');
+
       const firstColor = normalised.colors[0];
-setSelectedColor(
-  typeof firstColor === 'string'
-    ? firstColor
-    : firstColor?.name || firstColor?.label || ''
-);
+
+      setSelectedColor(
+        typeof firstColor === 'string'
+          ? firstColor
+          : firstColor?.name || firstColor?.label || ''
+      );
       addRecentlyViewed(normalised.id);
 
       /* ── Fetch related products (same category, excluding this one) ── */
@@ -137,55 +145,55 @@ setSelectedColor(
       </div>
     );
   }
-const SizeGuidePopup = () => {
+  const SizeGuidePopup = () => {
     const [band, setBand] = useState('');
     const [bust, setBust] = useState('');
     const [result, setResult] = useState('');
     const [celebrate, setCelebrate] = useState(false);
     const calculate = () => {
-  const bandValue = parseFloat(band);
-  const bustValue = parseFloat(bust);
+      const bandValue = parseFloat(band);
+      const bustValue = parseFloat(bust);
 
-  if (!bandValue || !bustValue) {
-    alert('সঠিক মাপ দিন');
-    return;
-  }
+      if (!bandValue || !bustValue) {
+        alert('সঠিক মাপ দিন');
+        return;
+      }
 
-  // nearest even band size
-  const roundedBand = Math.round(bandValue / 2) * 2;
+      // nearest even band size
+      const roundedBand = Math.round(bandValue / 2) * 2;
 
-  // cup difference
-  const difference = bustValue - bandValue;
+      // cup difference
+      const difference = bustValue - bandValue;
 
-  const cupSizes = [
-    'AA',
-    'A',
-    'B',
-    'C',
-    'D',
-    'DD',
-    'E',
-    'F',
-    'G'
-  ];
+      const cupSizes = [
+        'AA',
+        'A',
+        'B',
+        'C',
+        'D',
+        'DD',
+        'E',
+        'F',
+        'G'
+      ];
 
-  const cupIndex = Math.max(
-    0,
-    Math.min(Math.round(difference), cupSizes.length - 1)
-  );
+      const cupIndex = Math.max(
+        0,
+        Math.min(Math.round(difference), cupSizes.length - 1)
+      );
 
-  const cup = cupSizes[cupIndex];
+      const cup = cupSizes[cupIndex];
 
-  setResult(`${roundedBand}${cup}`);
+      setResult(`${roundedBand}${cup}`);
 
-  setCelebrate(true);
+      setCelebrate(true);
 
-  setTimeout(() => setCelebrate(false), 2500);
-};
+      setTimeout(() => setCelebrate(false), 2500);
+    };
     return (
       <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-black/50" onClick={() => setShowSizeGuide(false)} />
-        <motion.div initial={{ opacity:0, scale:0.9 }} animate={{ opacity:1, scale:1 }}
+        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
           className="relative bg-white rounded-3xl p-6 max-w-sm w-full z-10 max-h-[90vh] overflow-y-auto">
           <button onClick={() => setShowSizeGuide(false)} className="absolute top-4 right-4 p-1 rounded-full hover:bg-blush-light">
             <X size={18} />
@@ -218,7 +226,7 @@ const SizeGuidePopup = () => {
             Find My Size
           </button>
           {result && (
-            <motion.div initial={{ opacity:0, scale:0.8 }} animate={{ opacity:1, scale: celebrate ? 1.05 : 1 }}
+            <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: celebrate ? 1.05 : 1 }}
               className="mt-4 text-center bg-blush-light/60 rounded-2xl p-4">
               <p className="text-xs text-warm-gray mb-1">Your perfect bra size</p>
               <p className="text-4xl font-bold text-rose-gold">{result}</p>
@@ -290,9 +298,9 @@ const SizeGuidePopup = () => {
 
                 {/* Badges */}
                 <div className="absolute top-4 left-4 flex flex-col gap-2">
-                  {product.isOnSale    && <Badge variant="sale">Sale</Badge>}
+                  {product.isOnSale && <Badge variant="sale">Sale</Badge>}
                   {product.isNewArrival && <Badge variant="new">New</Badge>}
-                  {product.isTrending  && <Badge variant="trending">Trending</Badge>}
+                  {product.isTrending && <Badge variant="trending">Trending</Badge>}
                 </div>
 
                 <button className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors">
@@ -319,11 +327,10 @@ const SizeGuidePopup = () => {
                     <button
                       key={i}
                       onClick={() => setSelectedImage(i)}
-                      className={`w-20 h-24 rounded-xl overflow-hidden bg-blush-light/30 transition-all duration-200 flex-shrink-0 ${
-                        i === selectedImage
-                          ? 'ring-2 ring-rose-gold ring-offset-2'
-                          : 'opacity-60 hover:opacity-100'
-                      }`}
+                      className={`w-20 h-24 rounded-xl overflow-hidden bg-blush-light/30 transition-all duration-200 flex-shrink-0 ${i === selectedImage
+                        ? 'ring-2 ring-rose-gold ring-offset-2'
+                        : 'opacity-60 hover:opacity-100'
+                        }`}
                     >
                       {img.startsWith('http') ? (
                         <img src={img} alt="" className="w-full h-full object-cover" />
@@ -337,11 +344,10 @@ const SizeGuidePopup = () => {
                   {product.videoUrl && (
                     <button
                       onClick={() => setSelectedImage(-1)}
-                      className={`w-20 h-24 rounded-xl overflow-hidden bg-blush-light/30 transition-all duration-200 flex-shrink-0 relative ${
-                        selectedImage === -1
-                          ? 'ring-2 ring-rose-gold ring-offset-2'
-                          : 'opacity-60 hover:opacity-100'
-                      }`}
+                      className={`w-20 h-24 rounded-xl overflow-hidden bg-blush-light/30 transition-all duration-200 flex-shrink-0 relative ${selectedImage === -1
+                        ? 'ring-2 ring-rose-gold ring-offset-2'
+                        : 'opacity-60 hover:opacity-100'
+                        }`}
                     >
                       <video
                         src={product.videoUrl}
@@ -353,7 +359,7 @@ const SizeGuidePopup = () => {
                       <div className="absolute inset-0 flex items-center justify-center bg-black/20">
                         <div className="w-8 h-8 rounded-full bg-white/80 flex items-center justify-center">
                           <svg width="12" height="14" viewBox="0 0 12 14" fill="none">
-                            <path d="M1 1l10 6-10 6V1z" fill="#B07D6B"/>
+                            <path d="M1 1l10 6-10 6V1z" fill="#B07D6B" />
                           </svg>
                         </div>
                       </div>
@@ -381,46 +387,46 @@ const SizeGuidePopup = () => {
 
               {/* Color Selection */}
               {/* Color Selection */}
-{product.colors.length > 0 && (
-  <div className="mb-6">
-    <p className="text-sm font-medium text-charcoal mb-3">
-      Color: <span className="text-warm-gray font-normal">{selectedColor}</span>
-    </p>
-    <div className="flex flex-wrap gap-3">
-      {product.colors.map((color: any) => {
-        // Handle all possible shapes from admin panel:
-        // { name, hex } or { name, value } or { name, color } or just a plain string
-        const colorName  = typeof color === 'string' ? color : (color.name  || color.label || String(color));
-        const colorValue = typeof color === 'string' ? color : (color.hex   || color.value || color.color || color.code || '#cccccc');
-        const isSelected = selectedColor === colorName;
+              {product.colors.length > 0 && (
+                <div className="mb-6">
+                  <p className="text-sm font-medium text-charcoal mb-3">
+                    Color: <span className="text-warm-gray font-normal">{selectedColor}</span>
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    {product.colors.map((color: any) => {
+                      // Handle all possible shapes from admin panel:
+                      // { name, hex } or { name, value } or { name, color } or just a plain string
+                      const colorName = typeof color === 'string' ? color : (color.name || color.label || String(color));
+                      const colorValue = typeof color === 'string' ? color : (color.hex || color.value || color.color || color.code || '#cccccc');
+                      const isSelected = selectedColor === colorName;
 
-        return (
-          <button
-            key={colorName}
-            onClick={() => setSelectedColor(colorName)}
-            title={colorName}
-            className="relative flex-shrink-0 transition-all duration-200"
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: '50%',
-              backgroundColor: colorValue,
-              border: isSelected
-                ? '3px solid #B07D6B'
-                : '2px solid rgba(0,0,0,0.12)',
-              transform: isSelected ? 'scale(1.18)' : 'scale(1)',
-              boxShadow: isSelected
-                ? '0 0 0 2px white, 0 0 0 4px #B07D6B'
-                : '0 1px 3px rgba(0,0,0,0.15)',
-              outline: 'none',
-              cursor: 'pointer',
-            }}
-          />
-        );
-      })}
-    </div>
-  </div>
-)}
+                      return (
+                        <button
+                          key={colorName}
+                          onClick={() => setSelectedColor(colorName)}
+                          title={colorName}
+                          className="relative flex-shrink-0 transition-all duration-200"
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: '50%',
+                            backgroundColor: colorValue,
+                            border: isSelected
+                              ? '3px solid #B07D6B'
+                              : '2px solid rgba(0,0,0,0.12)',
+                            transform: isSelected ? 'scale(1.18)' : 'scale(1)',
+                            boxShadow: isSelected
+                              ? '0 0 0 2px white, 0 0 0 4px #B07D6B'
+                              : '0 1px 3px rgba(0,0,0,0.15)',
+                            outline: 'none',
+                            cursor: 'pointer',
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               {/* Size Selection */}
               {product.sizes.length > 0 && (
                 <div className="mb-6">
@@ -435,11 +441,10 @@ const SizeGuidePopup = () => {
                       <button
                         key={size}
                         onClick={() => setSelectedSize(size)}
-                        className={`w-14 h-11 rounded-xl text-sm font-medium transition-all ${
-                          selectedSize === size
-                            ? 'bg-rose-gold text-white shadow-md'
-                            : 'bg-blush-light/50 text-warm-gray hover:bg-blush-light'
-                        }`}
+                        className={`w-14 h-11 rounded-xl text-sm font-medium transition-all ${selectedSize === size
+                          ? 'bg-rose-gold text-white shadow-md'
+                          : 'bg-blush-light/50 text-warm-gray hover:bg-blush-light'
+                          }`}
                       >
                         {size}
                       </button>
@@ -465,7 +470,7 @@ const SizeGuidePopup = () => {
                   >
                     <Plus size={16} />
                   </button>
-                    {product.stock > 0 && product.stock <= 10 && (
+                  {product.stock > 0 && product.stock <= 10 && (
                     <span className="text-xs text-orange-600 font-medium ml-2">
                       ⚠ Limited Stock
                     </span>
@@ -474,7 +479,7 @@ const SizeGuidePopup = () => {
               </div>
 
               {/* Add to Cart */}
-<div className="flex gap-3 mb-8">
+              <div className="flex gap-3 mb-8">
                 <Button
                   size="lg"
                   fullWidth
@@ -501,7 +506,7 @@ const SizeGuidePopup = () => {
               </div>
 
               {/* Trust Badges */}
-            <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 {[
                   { icon: '🚚', label: 'Fast Delivery' },
                   { icon: '✅', label: '100% Authentic%' },
@@ -524,11 +529,10 @@ const SizeGuidePopup = () => {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`pb-3 text-sm font-medium capitalize transition-colors ${
-                  activeTab === tab
-                    ? 'text-rose-gold border-b-2 border-rose-gold'
-                    : 'text-warm-gray hover:text-charcoal'
-                }`}
+                className={`pb-3 text-sm font-medium capitalize transition-colors ${activeTab === tab
+                  ? 'text-rose-gold border-b-2 border-rose-gold'
+                  : 'text-warm-gray hover:text-charcoal'
+                  }`}
               >
                 {tab === 'description' ? 'Description' : tab === 'shipping' ? 'Shipping Info' : ''}
               </button>
@@ -556,7 +560,7 @@ const SizeGuidePopup = () => {
                   </div>
                 </div>
               )}
-               {activeTab === 'shipping' && (
+              {activeTab === 'shipping' && (
                 <div className="space-y-4 text-warm-gray">
                   <div className="glass-card rounded-2xl p-5">
                     <h4 className="font-medium text-charcoal mb-2">Shipping Information</h4>
@@ -574,7 +578,7 @@ const SizeGuidePopup = () => {
         </div>
 
         {/* ── Related Products ── */}
-{related.length > 0 && (
+        {related.length > 0 && (
           <div className="mt-16">
             <div className="flex items-center justify-between mb-6">
               <h2 className="heading-serif text-2xl md:text-3xl font-bold text-charcoal">

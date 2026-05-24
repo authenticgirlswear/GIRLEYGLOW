@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { CartItem, Product, Coupon } from '@/types';
 import { coupons as mockCoupons } from '@/data/mockData';
+import { trackAddToCart } from '@/lib/facebookPixel';
 
 interface CartStore {
   items: CartItem[];
@@ -32,27 +33,39 @@ export const useCartStore = create<CartStore>()(
 
       addItem: (product, size, color, quantity = 1) => {
         const items = get().items;
+
         const existingIndex = items.findIndex(
           (i) =>
             i.product.id === product.id &&
             i.selectedSize === size &&
             i.selectedColor === color,
         );
+
         if (existingIndex >= 0) {
           const newItems = [...items];
+
           newItems[existingIndex] = {
             ...newItems[existingIndex],
             quantity: newItems[existingIndex].quantity + quantity,
           };
+
           set({ items: newItems });
         } else {
           set({
             items: [
               ...items,
-              { product, quantity, selectedSize: size, selectedColor: color },
+              {
+                product,
+                quantity,
+                selectedSize: size,
+                selectedColor: color,
+              },
             ],
           });
         }
+
+        // FACEBOOK PIXEL TRACKING
+        trackAddToCart(product.name, product.price);
       },
 
       removeItem: (productId, size, color) => {
@@ -76,8 +89,8 @@ export const useCartStore = create<CartStore>()(
         set({
           items: get().items.map((i) =>
             i.product.id === productId &&
-            i.selectedSize === size &&
-            i.selectedColor === color
+              i.selectedSize === size &&
+              i.selectedColor === color
               ? { ...i, quantity }
               : i,
           ),
@@ -132,7 +145,7 @@ export const useCartStore = create<CartStore>()(
         if (!coupon) return 0;
         const subtotal = get().getSubtotal();
         return coupon.type === 'percentage'
-          ? Math.round(subtotal * coupon.discount) / 100
+          ? (subtotal * coupon.discount) / 100
           : Math.min(coupon.discount, subtotal);
       },
 

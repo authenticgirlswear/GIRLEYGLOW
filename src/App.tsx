@@ -31,6 +31,21 @@ import { AdminCustomers } from '@/pages/admin/Customers';
 import { AdminContent } from '@/pages/admin/Content';
 import { AdminCoupons, AdminInventory, AdminReports } from '@/pages/admin/CouponsInventoryReports';
 
+// facebook pixel
+import { useEffect } from 'react';
+import { trackPageView } from '@/lib/facebookPixel';
+
+function PixelTracker() {
+  const location = useLocation();
+
+  useEffect(() => {
+    trackPageView();
+  }, [location]);
+
+  return null;
+}
+
+
 // ===== Scroll to Top on Navigation =====
 const ScrollToTop: React.FC = () => {
   const { pathname, search } = useLocation();
@@ -66,6 +81,7 @@ const AdminProtectedRoute: React.FC = () => {
 const App: React.FC = () => {
   return (
     <HashRouter>
+      <PixelTracker />
       <ScrollToTop />
       <Routes>
         {/* ========================
