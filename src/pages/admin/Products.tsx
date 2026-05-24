@@ -21,6 +21,7 @@ const emptyProduct: any = {
   category: '', categorySlug: '',
   sizes: [], colors: [], stock: 0, sku: '', tags: [],
   isFeatured: false, isTrending: false, isNewArrival: false, isOnSale: false,
+  customText: '',
 };
 
 // ─────────────────────────────────────────────────
@@ -314,6 +315,7 @@ export const AdminProducts: React.FC = () => {
         stock: form.stock || 0,
         sku: form.sku || null,
         tags: form.tags || [],
+        custom_text: form.customText || '',
         is_featured: form.isFeatured || false,
         is_trending: form.isTrending || false,
         is_new_arrival: form.isNewArrival || false,
@@ -686,13 +688,13 @@ export const AdminProducts: React.FC = () => {
                     >
                       <div
                         className="w-4 h-4 rounded-full border border-gray-200 shadow-sm flex-shrink-0"
-                        style={{ backgroundColor: resolveColor(color) }}
-                        title={resolveColor(color)}
+                        style={{ backgroundColor: resolveColor(String(color)) }}
+                        title={resolveColor(String(color))}
                       />
-                      <span className="text-xs text-charcoal font-medium">{color}</span>
+                      <span className="text-xs text-charcoal font-medium">{String(color)}</span>
                       <button
                         type="button"
-                        onClick={() => removeColor(color)}
+                        onClick={() => removeColor(String(color))}
                         className="text-warm-gray hover:text-red-500 ml-0.5 transition-colors"
                       >
                         <X size={10} />
@@ -757,9 +759,9 @@ export const AdminProducts: React.FC = () => {
                 <p className="text-xs text-warm-gray mb-2">Selected ({(form.sizes || []).length}):</p>
                 <div className="flex flex-wrap gap-2">
                   {(form.sizes || []).map((size: string) => (
-                    <div key={size} className="flex items-center gap-1 bg-rose-gold/10 text-rose-gold rounded-full px-3 py-1 border border-rose-gold/20">
-                      <span className="text-xs font-medium">{size}</span>
-                      <button type="button" onClick={() => removeSize(size)} className="hover:text-red-500 ml-1 transition-colors">
+                    <div key={String(size)} className="flex items-center gap-1 bg-rose-gold/10 text-rose-gold rounded-full px-3 py-1 border border-rose-gold/20">
+                      <span className="text-xs font-medium">{String(size)}</span>
+                      <button type="button" onClick={() => removeSize(String(size))} className="hover:text-red-500 ml-1 transition-colors">
                         <X size={10} />
                       </button>
                     </div>
@@ -767,6 +769,21 @@ export const AdminProducts: React.FC = () => {
                 </div>
               </>
             )}
+          </div>
+
+          {/* ── Custom Product Detail Text ── */}
+          <div>
+            <label className="block text-sm font-medium text-warm-gray mb-1.5">
+              Custom Product Detail Text
+            </label>
+
+            <textarea
+              value={form.customText || ''}
+              onChange={e => setForm({ ...form, customText: e.target.value })}
+              className="w-full px-4 py-3 rounded-xl border border-blush/30 bg-white/80 text-sm focus:outline-none focus:ring-2 focus:ring-rose-gold/30 resize-none"
+              rows={5}
+              placeholder="Write custom product information, offer, sizing help, delivery notes, fabric details etc."
+            />
           </div>
 
           {/* ── Tags ── */}

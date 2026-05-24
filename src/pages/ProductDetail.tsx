@@ -35,6 +35,7 @@ const normalise = (p: any): Product => ({
   stock: Number(p.stock) || 0,
   sku: p.sku || '',
   tags: p.tags || [],
+  customText: p.custom_text || '',
   isFeatured: p.is_featured || false,
   isTrending: p.is_trending || false,
   isNewArrival: p.is_new_arrival || false,
@@ -439,7 +440,7 @@ export const ProductDetailPage: React.FC = () => {
                   <div className="flex flex-wrap gap-2">
                     {product.sizes.map(size => (
                       <button
-                        key={size}
+                        key={String(size)}
                         onClick={() => setSelectedSize(size)}
                         className={`w-14 h-11 rounded-xl text-sm font-medium transition-all ${selectedSize === size
                           ? 'bg-rose-gold text-white shadow-md'
@@ -449,6 +450,15 @@ export const ProductDetailPage: React.FC = () => {
                         {size}
                       </button>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Custom Product Info Box ── */}
+              {product.customText && (
+                <div className="mb-6 rounded-2xl border border-blush/20 bg-blush-light/20 p-4">
+                  <div className="text-sm leading-relaxed text-charcoal whitespace-pre-line">
+                    {product.customText}
                   </div>
                 </div>
               )}

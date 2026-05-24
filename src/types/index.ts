@@ -20,6 +20,7 @@ export interface Product {
   stock: number;
   sku: string;
   tags: string[];
+  customText?: string;
   isFeatured: boolean;
   isTrending: boolean;
   isNewArrival: boolean;
