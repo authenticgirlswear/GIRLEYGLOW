@@ -84,10 +84,22 @@ export const Navbar: React.FC = () => {
   ];
 
   const isActive = (path: string) => {
-    if (path === '/') return location.pathname === '/';
-    const fullPath = location.pathname + location.search;
-    if (fullPath === path) return true;
-    return location.pathname.startsWith(path.split('?')[0]) && path !== '/';
+    const current = location.pathname + location.search;
+
+    // Exact match first
+    if (current === path) return true;
+
+    // Home
+    if (path === '/') {
+      return location.pathname === '/';
+    }
+
+    // Shop should ONLY activate on plain /shop
+    if (path === '/shop') {
+      return location.pathname === '/shop' && location.search === '';
+    }
+
+    return false;
   };
 
   // ── Shared category list renderer — avoids duplicating loading/empty states ──
@@ -188,7 +200,7 @@ export const Navbar: React.FC = () => {
                     key={link.path}
                     to={link.path}
                     className={`
-                      text-[10px] lg:text-[11px] font-semibold tracking-[0.25em] uppercase
+                      text-[13px] lg:text-[14px] font-semibold tracking-[0.25em] uppercase
                       transition-colors duration-300 hover:text-[#B07D6B] relative py-1
                       ${isActive(link.path) ? 'text-[#B07D6B]' : 'text-[#2C2C2C]'}
                     `}
@@ -210,7 +222,7 @@ export const Navbar: React.FC = () => {
                   onMouseEnter={() => setCategoriesOpen(true)}
                   onMouseLeave={() => setCategoriesOpen(false)}
                 >
-                  <button className="text-[10px] lg:text-[11px] font-semibold tracking-[0.25em] uppercase text-[#2C2C2C] hover:text-[#B07D6B] transition-colors duration-300 flex items-center gap-1 py-1">
+                  <button className="text-[12px] lg:text-[13px] font-semibold tracking-[0.25em] uppercase text-[#2C2C2C] hover:text-[#B07D6B] transition-colors duration-300 flex items-center gap-1 py-1">
                     Categories
                     <ChevronDown
                       size={11}

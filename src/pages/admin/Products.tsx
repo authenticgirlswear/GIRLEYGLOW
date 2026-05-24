@@ -330,6 +330,7 @@ export const AdminProducts: React.FC = () => {
           ...form, slug, images: finalImages,
           categorySlug: cat?.slug || form.categorySlug || '',
           videoUrl: finalVideoUrl,
+          customText: form.customText || '',
           updatedAt: new Date().toISOString(),
         } as any);
       } else {
@@ -342,6 +343,7 @@ export const AdminProducts: React.FC = () => {
           ...form, id: data[0].id, slug, images: finalImages,
           categorySlug: cat?.slug || '',
           videoUrl: finalVideoUrl,
+          customText: form.customText || '',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           rating: 0, reviewCount: 0,
@@ -352,7 +354,7 @@ export const AdminProducts: React.FC = () => {
       setVideoFile(null);
       setShowModal(false);
     } catch (err) {
-      console.error('Error saving product:', err);
+      console.error(JSON.stringify(err, null, 2));
       alert('Error saving product. Check browser console (F12) for details.');
       setUploading(false);
     }
@@ -785,7 +787,6 @@ export const AdminProducts: React.FC = () => {
               placeholder="Write custom product information, offer, sizing help, delivery notes, fabric details etc."
             />
           </div>
-
           {/* ── Tags ── */}
           <div>
             <label className="block text-sm font-medium text-warm-gray mb-1.5">Tags (comma separated)</label>
