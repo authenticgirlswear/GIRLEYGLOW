@@ -19,7 +19,7 @@ import {
 import { useCartStore, useOrderStore } from '@/store';
 import { sendOrderToGoogleSheets } from '@/lib/supabase';
 import type { PaymentMethod, Product, } from '@/types';
-import { trackInitiateCheckout } from '@/lib/facebookPixel';
+import { trackInitiateCheckout, trackPurchase } from '@/lib/facebookPixel';
 
 
 interface BuyNowState {
@@ -230,8 +230,8 @@ export const CheckoutPage: React.FC = () => {
     const orderData = {
       id: Date.now().toString(),
       orderNumber: num,
-      status: 'pending',
-      paymentStatus: 'pending',
+      status: 'pending' as const,
+      paymentStatus: 'pending' as const,
       paymentMethod,
       transactionId: transactionId || undefined,
       couponCode: couponApplied ? couponInput.trim().toUpperCase() : undefined,
@@ -263,7 +263,7 @@ export const CheckoutPage: React.FC = () => {
     };
 
     placeOrder(orderData);
-
+    trackPurchase(total);
     // Send to Google Sheets
     try {
       await sendOrderToGoogleSheets(orderData as Record<string, unknown>);

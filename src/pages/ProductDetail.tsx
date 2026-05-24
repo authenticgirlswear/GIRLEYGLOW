@@ -604,7 +604,7 @@ export const ProductDetailPage: React.FC = () => {
             </div>
           </div>
         )}
-
+        {showSizeGuide && <SizeGuidePopup />}
       </div>
     </div>
   );
