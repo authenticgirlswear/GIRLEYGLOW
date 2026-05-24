@@ -158,20 +158,20 @@ export const AdminProducts: React.FC = () => {
   const { products, addProduct, updateProduct, deleteProduct, fetchProducts } = useProductStore();
   const { categories } = useCategoryStore();
 
-  const [showModal, setShowModal]             = useState(false);
-  const [editingId, setEditingId]             = useState<string | null>(null);
-  const [form, setForm] = useState<any>(emptyProduct);  const [searchQuery, setSearchQuery]         = useState('');
-  const [filterCategory, setFilterCategory]   = useState('');
-  const [imageFiles, setImageFiles]           = useState<File[]>([]);
-  const [videoFile, setVideoFile]             = useState<File | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState<any>(emptyProduct); const [searchQuery, setSearchQuery] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string>('');
-  const [uploading, setUploading]             = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   // Color input state
-  const [colorInput, setColorInput]           = useState('');
+  const [colorInput, setColorInput] = useState('');
 
   // Size free-text input state
-  const [sizeInput, setSizeInput]             = useState('');
+  const [sizeInput, setSizeInput] = useState('');
 
   useEffect(() => { fetchProducts(); }, []);
 
@@ -425,13 +425,13 @@ export const AdminProducts: React.FC = () => {
                         {(product.colors || []).length > 0 && (
                           <div className="flex gap-1 mt-1">
                             {(product.colors || []).slice(0, 5).map((color: any) => (
-  <div
-    key={String(color)}
-    className="w-3 h-3 rounded-full border border-white shadow-sm"
-    style={{ backgroundColor: resolveColor(String(color)) }}
-    title={String(color)}
-  />
-))}
+                              <div
+                                key={String(color)}
+                                className="w-3 h-3 rounded-full border border-white shadow-sm"
+                                style={{ backgroundColor: resolveColor(String(color)) }}
+                                title={String(color)}
+                              />
+                            ))}
                             {(product.colors || []).length > 5 && (
                               <span className="text-xs text-warm-gray">+{(product.colors || []).length - 5}</span>
                             )}
@@ -452,10 +452,10 @@ export const AdminProducts: React.FC = () => {
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex gap-1 flex-wrap">
-                      {product.isFeatured  && <Badge variant="featured">Featured</Badge>}
-                      {product.isOnSale    && <Badge variant="sale">Sale</Badge>}
+                      {product.isFeatured && <Badge variant="featured">Featured</Badge>}
+                      {product.isOnSale && <Badge variant="sale">Sale</Badge>}
                       {product.isNewArrival && <Badge variant="new">New</Badge>}
-                      {product.isTrending  && <Badge variant="trending">Trending</Badge>}
+                      {product.isTrending && <Badge variant="trending">Trending</Badge>}
                     </div>
                   </td>
                   <td className="py-3 px-4">
@@ -679,9 +679,9 @@ export const AdminProducts: React.FC = () => {
               <>
                 <p className="text-xs text-warm-gray mb-2">Selected ({(form.colors || []).length}):</p>
                 <div className="flex flex-wrap gap-2">
-                  {(form.colors || []).map((color: boolean | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | Promise<string | number | bigint | boolean | React.ReactPortal | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | null | undefined> | React.Key | null | undefined) => (
+                  {(form.colors || []).map((color: string) => (
                     <div
-                      key={color}
+                      key={String(color)}
                       className="flex items-center gap-1.5 bg-white border border-blush/20 rounded-full px-3 py-1.5 shadow-sm"
                     >
                       <div
@@ -756,7 +756,7 @@ export const AdminProducts: React.FC = () => {
               <>
                 <p className="text-xs text-warm-gray mb-2">Selected ({(form.sizes || []).length}):</p>
                 <div className="flex flex-wrap gap-2">
-                  {(form.sizes || []).map((size: boolean | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | Promise<string | number | bigint | boolean | React.ReactPortal | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | null | undefined> | React.Key | null | undefined) => (
+                  {(form.sizes || []).map((size: string) => (
                     <div key={size} className="flex items-center gap-1 bg-rose-gold/10 text-rose-gold rounded-full px-3 py-1 border border-rose-gold/20">
                       <span className="text-xs font-medium">{size}</span>
                       <button type="button" onClick={() => removeSize(size)} className="hover:text-red-500 ml-1 transition-colors">
