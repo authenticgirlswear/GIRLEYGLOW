@@ -7,13 +7,16 @@
    - Video upload field
    - Categories from useCategoryStore (not mockData)
    =================================================== */
-
+import { uploadToCloudinary } from '@/lib/cloudinary';
 import React, { useEffect, useState } from 'react';
 import { Plus, Edit2, Trash2, Search, X, RefreshCw } from 'lucide-react';
 import { Button, Input, Select, Badge, Modal } from '@/components/ui';
 import { useProductStore, useCategoryStore } from '@/store';
 import type { Product } from '@/types';
 import { supabase } from '@/lib/supabase';
+import { UploadCloud } from 'lucide-react';
+import { GripVertical } from 'lucide-react';
+
 
 const emptyProduct: any = {
   name: '', slug: '', description: '', shortDescription: '',
@@ -167,6 +170,10 @@ export const AdminProducts: React.FC = () => {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string>('');
   const [uploading, setUploading] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+
+
 
   // Color input state
   const [colorInput, setColorInput] = useState('');
@@ -221,31 +228,6 @@ export const AdminProducts: React.FC = () => {
   const removeSize = (size: string) => {
     setForm({ ...form, sizes: (form.sizes || []).filter((s: string) => s !== size) });
   };
-
-  // ── Upload images ──
-  const uploadImages = async (files: File[]): Promise<string[]> => {
-    const urls: string[] = [];
-    for (const file of files) {
-      const ext = file.name.split('.').pop();
-      const path = `products/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const { error } = await supabase.storage.from('product-images').upload(path, file);
-      if (error) { console.error('Image upload error:', error); continue; }
-      const { data } = supabase.storage.from('product-images').getPublicUrl(path);
-      urls.push(data.publicUrl);
-    }
-    return urls;
-  };
-
-  // ── Upload video ──
-  const uploadVideo = async (file: File): Promise<string> => {
-    const ext = file.name.split('.').pop();
-    const path = `product-videos/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    const { error } = await supabase.storage.from('product-images').upload(path, file);
-    if (error) { console.error('Video upload error:', error); return ''; }
-    const { data } = supabase.storage.from('product-images').getPublicUrl(path);
-    return data.publicUrl;
-  };
-
   const filtered = products.filter(p => {
     const matchesSearch = !searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCat = !filterCategory || p.categorySlug === filterCategory;
@@ -282,6 +264,51 @@ export const AdminProducts: React.FC = () => {
     setShowModal(true);
   };
 
+  const uploadImages = async (files: File[]): Promise<string[]> => {
+    const urls: string[] = [];
+
+    for (const file of files) {
+      try {
+        const url = await uploadToCloudinary(file);
+        urls.push(url);
+      } catch (err) {
+        console.error('Cloudinary upload failed:', err);
+      }
+    }
+
+    return urls;
+  };
+
+  const uploadVideo = async (file: File): Promise<string> => {
+    try {
+      const formData = new FormData();
+
+      formData.append('file', file);
+      formData.append(
+        'upload_preset',
+        import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
+      );
+
+      const cloudName =
+        import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`,
+        {
+          method: 'POST',
+          body: formData,
+        }
+      );
+
+      const data = await res.json();
+      console.log(data);
+
+      return data.secure_url;
+    } catch (err) {
+      console.error(err);
+      return '';
+    }
+  };
   const handleSave = async () => {
     try {
       const slug = form.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || '';
@@ -373,7 +400,7 @@ export const AdminProducts: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="heading-serif text-2xl md:text-3xl font-bold text-charcoal">Products</h1>
-          <p className="text-warm-gray text-sm">{products.length} total products</p>
+          <p className="text-[#6B5B55] text-sm">{products.length} total products</p>
         </div>
         <Button onClick={openAdd}><Plus size={16} /> Add Product</Button>
       </div>
@@ -381,7 +408,7 @@ export const AdminProducts: React.FC = () => {
       {/* ── Search & Filter ── */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-warm-gray" />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B5B55]" />
           <input
             type="text"
             placeholder="Search products..."
@@ -404,12 +431,12 @@ export const AdminProducts: React.FC = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-blush/20 bg-blush-light/20">
-                <th className="text-left py-3 px-4 text-warm-gray font-medium">Product</th>
-                <th className="text-left py-3 px-4 text-warm-gray font-medium">Category</th>
-                <th className="text-left py-3 px-4 text-warm-gray font-medium">Price</th>
-                <th className="text-left py-3 px-4 text-warm-gray font-medium">Stock</th>
-                <th className="text-left py-3 px-4 text-warm-gray font-medium">Status</th>
-                <th className="text-right py-3 px-4 text-warm-gray font-medium">Actions</th>
+                <th className="text-left py-3 px-4 text-[#6B5B55] font-medium">Product</th>
+                <th className="text-left py-3 px-4 text-[#6B5B55] font-medium">Category</th>
+                <th className="text-left py-3 px-4 text-[#6B5B55] font-medium">Price</th>
+                <th className="text-left py-3 px-4 text-[#6B5B55] font-medium">Stock</th>
+                <th className="text-left py-3 px-4 text-[#6B5B55] font-medium">Status</th>
+                <th className="text-right py-3 px-4 text-[#6B5B55] font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -424,7 +451,7 @@ export const AdminProducts: React.FC = () => {
                       )}
                       <div>
                         <p className="font-medium text-charcoal line-clamp-1">{product.name}</p>
-                        <p className="text-xs text-warm-gray">{product.sku}</p>
+                        <p className="text-xs text-[#6B5B55]">{product.sku}</p>
                         {/* Color swatches in table row */}
                         {(product.colors || []).length > 0 && (
                           <div className="flex gap-1 mt-1">
@@ -437,18 +464,18 @@ export const AdminProducts: React.FC = () => {
                               />
                             ))}
                             {(product.colors || []).length > 5 && (
-                              <span className="text-xs text-warm-gray">+{(product.colors || []).length - 5}</span>
+                              <span className="text-xs text-[#6B5B55]">+{(product.colors || []).length - 5}</span>
                             )}
                           </div>
                         )}
                       </div>
                     </div>
                   </td>
-                  <td className="py-3 px-4 text-warm-gray">{product.category}</td>
+                  <td className="py-3 px-4 text-[#6B5B55]">{product.category}</td>
                   <td className="py-3 px-4">
                     <span className="font-medium text-charcoal">৳{product.price.toFixed(0)}</span>
                     {product.comparePrice && (
-                      <span className="text-xs text-warm-gray line-through ml-1">৳{product.comparePrice.toFixed(0)}</span>
+                      <span className="text-xs text-[#6B5B55] line-through ml-1">৳{product.comparePrice.toFixed(0)}</span>
                     )}
                   </td>
                   <td className="py-3 px-4">
@@ -464,8 +491,8 @@ export const AdminProducts: React.FC = () => {
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex items-center justify-end gap-1">
-                      <button onClick={() => openEdit(product)} className="p-2 rounded-lg hover:bg-blush-light/50 text-warm-gray hover:text-rose-gold transition-colors"><Edit2 size={15} /></button>
-                      <button onClick={() => handleDelete(product.id)} className="p-2 rounded-lg hover:bg-red-50 text-warm-gray hover:text-red-500 transition-colors"><Trash2 size={15} /></button>
+                      <button onClick={() => openEdit(product)} className="p-2 rounded-lg hover:bg-blush-light/50 text-[#6B5B55] hover:text-rose-gold transition-colors"><Edit2 size={15} /></button>
+                      <button onClick={() => handleDelete(product.id)} className="p-2 rounded-lg hover:bg-red-50 text-[#6B5B55] hover:text-red-500 transition-colors"><Trash2 size={15} /></button>
                     </div>
                   </td>
                 </tr>
@@ -473,7 +500,7 @@ export const AdminProducts: React.FC = () => {
             </tbody>
           </table>
         </div>
-        {filtered.length === 0 && <div className="text-center py-12 text-warm-gray">No products found</div>}
+        {filtered.length === 0 && <div className="text-center py-12 text-[#6B5B55]">No products found</div>}
       </div>
 
       {/* ════════════════════════════════════════
@@ -493,7 +520,7 @@ export const AdminProducts: React.FC = () => {
 
             {/* SKU with refresh */}
             <div>
-              <label className="block text-sm font-medium text-warm-gray mb-1.5">SKU (auto-generated)</label>
+              <label className="block text-sm font-medium text-[#6B5B55] mb-1.5">SKU (auto-generated)</label>
               <div className="flex gap-2">
                 <input
                   value={form.sku || ''}
@@ -507,7 +534,7 @@ export const AdminProducts: React.FC = () => {
                   className="px-3 py-2 rounded-xl bg-blush-light hover:bg-blush transition-colors"
                   title="Regenerate SKU"
                 >
-                  <RefreshCw size={14} className="text-warm-gray" />
+                  <RefreshCw size={14} className="text-[#6B5B55]" />
                 </button>
               </div>
             </div>
@@ -544,7 +571,7 @@ export const AdminProducts: React.FC = () => {
 
           {/* ── Descriptions ── */}
           <div>
-            <label className="block text-sm font-medium text-warm-gray mb-1.5">Short Description</label>
+            <label className="block text-sm font-medium text-[#6B5B55] mb-1.5">Short Description</label>
             <input
               value={form.shortDescription || ''}
               onChange={e => setForm({ ...form, shortDescription: e.target.value })}
@@ -553,7 +580,7 @@ export const AdminProducts: React.FC = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-warm-gray mb-1.5">Full Description</label>
+            <label className="block text-sm font-medium text-[#6B5B55] mb-1.5">Full Description</label>
             <textarea
               value={form.description || ''}
               onChange={e => setForm({ ...form, description: e.target.value })}
@@ -563,50 +590,194 @@ export const AdminProducts: React.FC = () => {
             />
           </div>
 
-          {/* ── Images ── */}
+          {/* ── DRAG & DROP IMAGES ── */}
           <div>
-            <label className="block text-sm font-medium text-warm-gray mb-1.5">Product Images (select multiple)</label>
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={e => { if (e.target.files) setImageFiles(Array.from(e.target.files)); }}
-              className="w-full text-sm text-warm-gray file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:bg-blush-light file:text-charcoal hover:file:bg-blush cursor-pointer"
-            />
-            {(form.images || []).filter((img: string) => img.startsWith('http')).length > 0 && (
-              <div className="flex gap-2 flex-wrap mt-2">
-                {(form.images || []).filter((img: string) => img.startsWith('http')).map((img: string | undefined, i: React.Key | null | undefined) => (
-                  <img key={i} src={img} alt="" className="w-16 h-20 object-cover rounded-lg border border-blush/30" />
-                ))}
-              </div>
-            )}
+            <label className="block text-sm font-medium text-[#6B5B55] mb-2">
+              Product Images
+            </label>
+
+            <div
+              onDragEnter={(e) => {
+                e.preventDefault();
+                setDragActive(true);
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragActive(true);
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                setDragActive(false);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragActive(false);
+
+                const files = Array.from(e.dataTransfer.files).filter(file =>
+                  file.type.startsWith('image/')
+                );
+
+                setImageFiles(prev => [...prev, ...files]);
+              }}
+              className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all
+      ${dragActive
+                  ? 'border-rose-gold bg-blush-light/40'
+                  : 'border-blush/40 bg-white/60'
+                }`}
+            >
+              <UploadCloud className="mx-auto mb-3 text-rose-gold" size={40} />
+
+              <p className="text-sm font-medium text-charcoal mb-1">
+                Drag & Drop Product Images
+              </p>
+
+              <p className="text-xs text-[#6B5B55] mb-4">
+                JPG, PNG, WEBP supported
+              </p>
+
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(e) => {
+                  if (e.target.files) {
+                    setImageFiles(prev => [
+                      ...prev,
+                      ...Array.from(e.target.files || [])
+                    ]);
+                  }
+                }}
+                className="hidden"
+                id="product-image-upload"
+              />
+
+              <label
+                htmlFor="product-image-upload"
+                className="inline-flex items-center px-4 py-2 rounded-xl bg-rose-gold text-white text-sm cursor-pointer hover:opacity-90"
+              >
+                Browse Images
+              </label>
+            </div>
+
             {imageFiles.length > 0 && (
-              <div className="flex gap-2 flex-wrap mt-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
                 {imageFiles.map((file, i) => (
-                  <img key={i} src={URL.createObjectURL(file)} alt="preview" className="w-16 h-20 object-cover rounded-lg border border-blush/30" />
+                  <div
+                    key={i}
+                    draggable
+                    onDragStart={() => setDragIndex(i)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={() => {
+                      if (dragIndex === null) return;
+
+                      const updated = [...imageFiles];
+
+                      const draggedItem = updated[dragIndex];
+
+                      updated.splice(dragIndex, 1);
+
+                      updated.splice(i, 0, draggedItem);
+
+                      setImageFiles(updated);
+
+                      setDragIndex(null);
+                    }}
+                    className="relative group rounded-xl overflow-hidden border border-blush/30 bg-white"
+                  >
+                    {/* Drag Icon */}
+                    <div className="absolute top-2 left-2 z-10 bg-white/80 rounded-full p-1 shadow">
+                      <GripVertical size={14} className="text-charcoal" />
+                    </div>
+
+                    {/* Image */}
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt=""
+                      className="w-full h-32 object-cover"
+                    />
+
+                    {/* Remove Button */}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setImageFiles(prev =>
+                          prev.filter((_, index) => index !== i)
+                        )
+                      }
+                      className="absolute top-2 right-2 bg-black/60 text-white rounded-full w-6 h-6 flex items-center justify-center"
+                    >
+                      ×
+                    </button>
+
+                    {/* Cover Badge */}
+                    {i === 0 && (
+                      <div className="absolute bottom-2 left-2 bg-rose-gold text-white text-[10px] px-2 py-1 rounded-full shadow">
+                        Cover
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             )}
           </div>
-
           {/* ── Video Upload ── */}
+          {/* ── DRAG & DROP VIDEO ── */}
           <div>
-            <label className="block text-sm font-medium text-warm-gray mb-1.5">Product Video (optional)</label>
-            <input
-              type="file"
-              accept="video/*"
-              onChange={e => {
-                const file = e.target.files?.[0] || null;
-                setVideoFile(file);
-                if (file) setVideoPreviewUrl(URL.createObjectURL(file));
+            <label className="block text-sm font-medium text-[#6B5B55] mb-2">
+              Product Video
+            </label>
+
+            <div
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+
+                const file = Array.from(e.dataTransfer.files).find(file =>
+                  file.type.startsWith('video/')
+                );
+
+                if (file) {
+                  setVideoFile(file);
+                  setVideoPreviewUrl(URL.createObjectURL(file));
+                }
               }}
-              className="w-full text-sm text-warm-gray file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:bg-blush-light file:text-charcoal hover:file:bg-blush cursor-pointer"
-            />
+              className="border-2 border-dashed border-blush/40 rounded-2xl p-6 text-center bg-white/60"
+            >
+              <UploadCloud className="mx-auto mb-3 text-rose-gold" size={36} />
+
+              <p className="text-sm font-medium text-charcoal mb-1">
+                Drag & Drop Product Video
+              </p>
+
+              <input
+                type="file"
+                accept="video/*"
+                hidden
+                id="video-upload"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+
+                  if (file) {
+                    setVideoFile(file);
+                    setVideoPreviewUrl(URL.createObjectURL(file));
+                  }
+                }}
+              />
+
+              <label
+                htmlFor="video-upload"
+                className="inline-flex items-center px-4 py-2 rounded-xl bg-rose-gold text-white text-sm cursor-pointer hover:opacity-90 mt-3"
+              >
+                Browse Video
+              </label>
+            </div>
+
             {videoPreviewUrl && (
-              <video src={videoPreviewUrl} controls className="mt-2 w-full max-h-40 rounded-xl border border-blush/30" />
-            )}
-            {!videoFile && (form as any).videoUrl && (
-              <video src={(form as any).videoUrl} controls className="mt-2 w-full max-h-40 rounded-xl border border-blush/30" />
+              <video
+                src={videoPreviewUrl}
+                controls
+                className="mt-4 w-full rounded-2xl border border-blush/30"
+              />
             )}
           </div>
 
@@ -614,10 +785,10 @@ export const AdminProducts: React.FC = () => {
               COLORS — type name or hex, auto-resolved
               ════════════════════════════════════════ */}
           <div>
-            <label className="block text-sm font-medium text-warm-gray mb-0.5">
+            <label className="block text-sm font-medium text-[#6B5B55] mb-0.5">
               Colors
             </label>
-            <p className="text-xs text-warm-gray mb-2">
+            <p className="text-xs text-[#6B5B55] mb-2">
               Type color name (e.g. <span className="text-charcoal font-medium">red, navy, rose gold, maroon</span>) or hex (e.g. <span className="text-charcoal font-medium">#FF5733</span>). Press Enter or click Add. Add multiple colors one by one.
             </p>
 
@@ -681,7 +852,7 @@ export const AdminProducts: React.FC = () => {
             {/* Selected colors */}
             {(form.colors || []).length > 0 && (
               <>
-                <p className="text-xs text-warm-gray mb-2">Selected ({(form.colors || []).length}):</p>
+                <p className="text-xs text-[#6B5B55] mb-2">Selected ({(form.colors || []).length}):</p>
                 <div className="flex flex-wrap gap-2">
                   {(form.colors || []).map((color: string) => (
                     <div
@@ -697,7 +868,7 @@ export const AdminProducts: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => removeColor(String(color))}
-                        className="text-warm-gray hover:text-red-500 ml-0.5 transition-colors"
+                        className="text-[#6B5B55] hover:text-red-500 ml-0.5 transition-colors"
                       >
                         <X size={10} />
                       </button>
@@ -712,10 +883,10 @@ export const AdminProducts: React.FC = () => {
               SIZES — free text input (ALWAYS VISIBLE)
               ════════════════════════════════════════ */}
           <div>
-            <label className="block text-sm font-medium text-warm-gray mb-0.5">
+            <label className="block text-sm font-medium text-[#6B5B55] mb-0.5">
               Sizes
             </label>
-            <p className="text-xs text-warm-gray mb-2">
+            <p className="text-xs text-[#6B5B55] mb-2">
               Type any sizes separated by commas (e.g. <span className="text-charcoal font-medium">XS, S, M, L, XL</span> or <span className="text-charcoal font-medium">Free Size</span> or <span className="text-charcoal font-medium">32, 34, 36, 38</span>) then click Add.
             </p>
 
@@ -748,7 +919,7 @@ export const AdminProducts: React.FC = () => {
                     const existing = form.sizes || [];
                     setForm({ ...form, sizes: [...new Set([...existing, ...preset.sizes])] });
                   }}
-                  className="text-xs px-2.5 py-1 rounded-lg bg-blush-light/60 text-warm-gray hover:bg-blush-light transition-colors border border-blush/20"
+                  className="text-xs px-2.5 py-1 rounded-lg bg-blush-light/60 text-[#6B5B55] hover:bg-blush-light transition-colors border border-blush/20"
                 >
                   + {preset.label}
                 </button>
@@ -758,7 +929,7 @@ export const AdminProducts: React.FC = () => {
             {/* Selected sizes as tags */}
             {(form.sizes || []).length > 0 && (
               <>
-                <p className="text-xs text-warm-gray mb-2">Selected ({(form.sizes || []).length}):</p>
+                <p className="text-xs text-[#6B5B55] mb-2">Selected ({(form.sizes || []).length}):</p>
                 <div className="flex flex-wrap gap-2">
                   {(form.sizes || []).map((size: string) => (
                     <div key={String(size)} className="flex items-center gap-1 bg-rose-gold/10 text-rose-gold rounded-full px-3 py-1 border border-rose-gold/20">
@@ -775,7 +946,7 @@ export const AdminProducts: React.FC = () => {
 
           {/* ── Custom Product Detail Text ── */}
           <div>
-            <label className="block text-sm font-medium text-warm-gray mb-1.5">
+            <label className="block text-sm font-medium text-[#6B5B55] mb-1.5">
               Custom Product Detail Text
             </label>
 
@@ -787,9 +958,52 @@ export const AdminProducts: React.FC = () => {
               placeholder="Write custom product information, offer, sizing help, delivery notes, fabric details etc."
             />
           </div>
+          {/* ── CUSTOM PRODUCT ASSEMBLY ── */}
+          <div className="space-y-3">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={form.isCustomAssembly || false}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    isCustomAssembly: e.target.checked,
+                  })
+                }
+              />
+
+              <span className="text-sm font-medium text-charcoal">
+                Enable Product Assembly
+              </span>
+            </label>
+
+            {form.isCustomAssembly && (
+              <div>
+                <p className="text-xs text-[#6B5B55] mb-2">
+                  Add related products separated by commas
+                </p>
+
+                <input
+                  type="text"
+                  placeholder="e.g. Hijab, Bag, Shoes"
+                  value={(form.assembledProducts || []).join(', ')}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      assembledProducts: e.target.value
+                        .split(',')
+                        .map(item => item.trim())
+                        .filter(Boolean),
+                    })
+                  }
+                  className="w-full px-4 py-2.5 rounded-xl border border-blush/30 bg-white/80 text-sm"
+                />
+              </div>
+            )}
+          </div>
           {/* ── Tags ── */}
           <div>
-            <label className="block text-sm font-medium text-warm-gray mb-1.5">Tags (comma separated)</label>
+            <label className="block text-sm font-medium text-[#6B5B55] mb-1.5">Tags (comma separated)</label>
             <input
               value={(form.tags || []).join(', ')}
               onChange={e => setForm({ ...form, tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean) })}
@@ -800,7 +1014,7 @@ export const AdminProducts: React.FC = () => {
 
           {/* ── Labels / Badges ── */}
           <div>
-            <label className="block text-sm font-medium text-warm-gray mb-2">Product Labels</label>
+            <label className="block text-sm font-medium text-[#6B5B55] mb-2">Product Labels</label>
             <div className="flex flex-wrap gap-4">
               {(['isFeatured', 'isTrending', 'isNewArrival', 'isOnSale'] as const).map(key => (
                 <label key={key} className="flex items-center gap-2 cursor-pointer select-none">

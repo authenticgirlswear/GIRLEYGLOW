@@ -48,7 +48,7 @@ export const AdminCoupons: React.FC = () => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="heading-serif text-2xl md:text-3xl font-bold text-charcoal">Coupons</h1>
-          <p className="text-warm-gray text-sm">{coupons.length} coupons</p>
+          <p className="text-[#6B5B55] text-sm">{coupons.length} coupons</p>
         </div>
         <Button onClick={() => setShowModal(true)}><Plus size={16} /> Create Coupon</Button>
       </div>
@@ -56,7 +56,7 @@ export const AdminCoupons: React.FC = () => {
       {coupons.length === 0 ? (
         <div className="glass-card rounded-2xl p-12 text-center">
           <p className="text-charcoal font-medium">No coupons yet</p>
-          <p className="text-warm-gray text-sm mt-1">Create your first discount coupon above</p>
+          <p className="text-[#6B5B55] text-sm mt-1">Create your first discount coupon above</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -70,9 +70,9 @@ export const AdminCoupons: React.FC = () => {
                 <p className="text-charcoal font-medium">
                   {coupon.type === 'percentage' ? `${coupon.discount}% off` : `$${coupon.discount} off`}
                 </p>
-                <p className="text-warm-gray">Min order: ${coupon.minOrderAmount}</p>
-                <p className="text-warm-gray">Used: {coupon.usedCount}/{coupon.maxUses}</p>
-                <p className="text-warm-gray">Expires: {coupon.expiresAt}</p>
+                <p className="text-[#6B5B55]">Min order: ${coupon.minOrderAmount}</p>
+                <p className="text-[#6B5B55]">Used: {coupon.usedCount}/{coupon.maxUses}</p>
+                <p className="text-[#6B5B55]">Expires: {coupon.expiresAt}</p>
               </div>
               <div className="flex gap-2 mt-4">
                 <Button size="sm" variant="ghost" onClick={() => toggleCoupon(coupon.id)}>
@@ -135,7 +135,7 @@ export const AdminInventory: React.FC = () => {
     <div>
       <div className="mb-6">
         <h1 className="heading-serif text-2xl md:text-3xl font-bold text-charcoal">Inventory</h1>
-        <p className="text-warm-gray text-sm">Track and manage real product stock levels</p>
+        <p className="text-[#6B5B55] text-sm">Track and manage real product stock levels</p>
       </div>
 
       {/* Summary Cards */}
@@ -143,17 +143,17 @@ export const AdminInventory: React.FC = () => {
         <div className="glass-card rounded-2xl p-5 stat-gradient-2">
           <AlertTriangle size={20} className="text-red-500 mb-2" />
           <p className="heading-serif text-2xl font-bold text-charcoal">{outOfStock.length}</p>
-          <p className="text-sm text-warm-gray">Out of Stock</p>
+          <p className="text-sm text-[#6B5B55]">Out of Stock</p>
         </div>
         <div className="glass-card rounded-2xl p-5 stat-gradient-1">
           <AlertTriangle size={20} className="text-yellow-500 mb-2" />
           <p className="heading-serif text-2xl font-bold text-charcoal">{lowStock.length}</p>
-          <p className="text-sm text-warm-gray">Low Stock (≤10)</p>
+          <p className="text-sm text-[#6B5B55]">Low Stock (≤10)</p>
         </div>
         <div className="glass-card rounded-2xl p-5 stat-gradient-3">
           <BarChart3 size={20} className="text-green-500 mb-2" />
           <p className="heading-serif text-2xl font-bold text-charcoal">{healthy.length}</p>
-          <p className="text-sm text-warm-gray">Healthy Stock</p>
+          <p className="text-sm text-[#6B5B55]">Healthy Stock</p>
         </div>
       </div>
 
@@ -174,11 +174,11 @@ export const AdminInventory: React.FC = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-blush/20 bg-blush-light/20">
-                <th className="text-left py-3 px-4 text-warm-gray font-medium">Product</th>
-                <th className="text-left py-3 px-4 text-warm-gray font-medium">SKU</th>
-                <th className="text-left py-3 px-4 text-warm-gray font-medium">Stock</th>
-                <th className="text-left py-3 px-4 text-warm-gray font-medium">Status</th>
-                <th className="text-right py-3 px-4 text-warm-gray font-medium">Actions</th>
+                <th className="text-left py-3 px-4 text-[#6B5B55] font-medium">Product</th>
+                <th className="text-left py-3 px-4 text-[#6B5B55] font-medium">SKU</th>
+                <th className="text-left py-3 px-4 text-[#6B5B55] font-medium">Stock</th>
+                <th className="text-left py-3 px-4 text-[#6B5B55] font-medium">Status</th>
+                <th className="text-right py-3 px-4 text-[#6B5B55] font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -195,7 +195,7 @@ export const AdminInventory: React.FC = () => {
                       <span className="font-medium text-charcoal">{product.name}</span>
                     </div>
                   </td>
-                  <td className="py-3 px-4 text-warm-gray font-mono text-xs">{product.sku || '—'}</td>
+                  <td className="py-3 px-4 text-[#6B5B55] font-mono text-xs">{product.sku || '—'}</td>
                   <td className="py-3 px-4">
                     <input
                       type="number"
@@ -203,8 +203,8 @@ export const AdminInventory: React.FC = () => {
                       value={product.stock}
                       onChange={e => updateStock(product.id, parseInt(e.target.value) || 0)}
                       className={`w-20 px-2 py-1 rounded-lg border text-sm text-center focus:outline-none focus:ring-2 focus:ring-rose-gold/30 ${product.stock === 0 ? 'border-red-300 bg-red-50 text-red-600' :
-                          product.stock <= 10 ? 'border-yellow-300 bg-yellow-50 text-yellow-700' :
-                            'border-blush/30 bg-white'
+                        product.stock <= 10 ? 'border-yellow-300 bg-yellow-50 text-yellow-700' :
+                          'border-blush/30 bg-white'
                         }`}
                     />
                   </td>
@@ -227,7 +227,7 @@ export const AdminInventory: React.FC = () => {
           </table>
         </div>
         {filtered.length === 0 && (
-          <div className="text-center py-12 text-warm-gray">
+          <div className="text-center py-12 text-[#6B5B55]">
             {products.length === 0 ? 'No products added yet' : 'No products match your search'}
           </div>
         )}
@@ -296,7 +296,7 @@ export const AdminReports: React.FC = () => {
     <div>
       <div className="mb-6">
         <h1 className="heading-serif text-2xl md:text-3xl font-bold text-charcoal">Reports & Analytics</h1>
-        <p className="text-warm-gray text-sm">Real data from your store</p>
+        <p className="text-[#6B5B55] text-sm">Real data from your store</p>
       </div>
 
       {/* Key Metrics — all real */}
@@ -310,7 +310,7 @@ export const AdminReports: React.FC = () => {
           <div key={metric.label} className="glass-card rounded-2xl p-5">
             <metric.icon size={20} className={`${metric.color} mb-2`} />
             <p className="heading-serif text-xl font-bold text-charcoal">{metric.value}</p>
-            <p className="text-sm text-warm-gray">{metric.label}</p>
+            <p className="text-sm text-[#6B5B55]">{metric.label}</p>
           </div>
         ))}
       </div>
@@ -322,15 +322,15 @@ export const AdminReports: React.FC = () => {
           <div className="flex items-end gap-3 h-48">
             {salesData.map(data => (
               <div key={data.month} className="flex-1 flex flex-col items-center gap-1">
-                <span className="text-[10px] text-warm-gray">{data.revenue > 0 ? `$${(data.revenue / 1000).toFixed(1)}k` : '$0'}</span>
+                <span className="text-[10px] text-[#6B5B55]">{data.revenue > 0 ? `$${(data.revenue / 1000).toFixed(1)}k` : '$0'}</span>
                 <div className="w-full flex items-end" style={{ height: '100%' }}>
                   <div className="w-full rounded-t-md" style={{ height: `${Math.max((data.revenue / maxRevenue) * 100, data.revenue > 0 ? 4 : 0)}%`, background: 'linear-gradient(to top, #B76E79, #F4C2C2)', minHeight: data.revenue > 0 ? 4 : 0 }} />
                 </div>
-                <span className="text-xs text-warm-gray">{data.month}</span>
+                <span className="text-xs text-[#6B5B55]">{data.month}</span>
               </div>
             ))}
           </div>
-          {orders.length === 0 && <p className="text-center text-warm-gray text-sm mt-2">Place orders to see revenue chart</p>}
+          {orders.length === 0 && <p className="text-center text-[#6B5B55] text-sm mt-2">Place orders to see revenue chart</p>}
         </div>
 
         {/* Orders Chart */}
@@ -339,11 +339,11 @@ export const AdminReports: React.FC = () => {
           <div className="flex items-end gap-3 h-48">
             {salesData.map(data => (
               <div key={data.month} className="flex-1 flex flex-col items-center gap-1">
-                <span className="text-[10px] text-warm-gray">{data.orders}</span>
+                <span className="text-[10px] text-[#6B5B55]">{data.orders}</span>
                 <div className="w-full flex items-end" style={{ height: '100%' }}>
                   <div className="w-full rounded-t-md" style={{ height: `${Math.max((data.orders / maxOrders) * 100, data.orders > 0 ? 4 : 0)}%`, background: 'linear-gradient(to top, #E6E6FA, #D4949E)', minHeight: data.orders > 0 ? 4 : 0 }} />
                 </div>
-                <span className="text-xs text-warm-gray">{data.month}</span>
+                <span className="text-xs text-[#6B5B55]">{data.month}</span>
               </div>
             ))}
           </div>
@@ -354,7 +354,7 @@ export const AdminReports: React.FC = () => {
       <div className="glass-card rounded-2xl p-6 mb-6">
         <h3 className="font-semibold text-charcoal mb-4">Top Selling Products</h3>
         {topProducts.length === 0 ? (
-          <p className="text-warm-gray text-sm">No sales data yet</p>
+          <p className="text-[#6B5B55] text-sm">No sales data yet</p>
         ) : (
           <div className="space-y-3">
             {topProducts.map((product, index) => (
@@ -368,7 +368,7 @@ export const AdminReports: React.FC = () => {
                   <div className="w-full h-2 bg-blush-light rounded-full overflow-hidden">
                     <div className="h-full rounded-full bg-gradient-to-r from-rose-gold to-blush" style={{ width: `${(product.sold / (topProducts[0]?.sold || 1)) * 100}%` }} />
                   </div>
-                  <span className="text-xs text-warm-gray">{product.sold} units sold</span>
+                  <span className="text-xs text-[#6B5B55]">{product.sold} units sold</span>
                 </div>
               </div>
             ))}
@@ -380,32 +380,32 @@ export const AdminReports: React.FC = () => {
       <div className="glass-card rounded-2xl p-6">
         <h3 className="font-semibold text-charcoal mb-4">All Orders — Cancel Option</h3>
         {orders.length === 0 ? (
-          <p className="text-warm-gray text-sm">No orders yet</p>
+          <p className="text-[#6B5B55] text-sm">No orders yet</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-blush/20">
-                  <th className="text-left py-3 text-warm-gray font-medium">Order</th>
-                  <th className="text-left py-3 text-warm-gray font-medium">Customer</th>
-                  <th className="text-left py-3 text-warm-gray font-medium">Total</th>
-                  <th className="text-left py-3 text-warm-gray font-medium">Status</th>
-                  <th className="text-right py-3 text-warm-gray font-medium">Action</th>
+                  <th className="text-left py-3 text-[#6B5B55] font-medium">Order</th>
+                  <th className="text-left py-3 text-[#6B5B55] font-medium">Customer</th>
+                  <th className="text-left py-3 text-[#6B5B55] font-medium">Total</th>
+                  <th className="text-left py-3 text-[#6B5B55] font-medium">Status</th>
+                  <th className="text-right py-3 text-[#6B5B55] font-medium">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {orders.map(order => (
                   <tr key={order.id} className={`border-b border-blush/10 last:border-0 ${order.status === 'cancelled' ? 'opacity-50' : ''}`}>
                     <td className="py-3 font-medium text-charcoal">{order.orderNumber}</td>
-                    <td className="py-3 text-warm-gray">{order.customer.firstName} {order.customer.lastName}</td>
-                    <td className={`py-3 font-medium ${order.status === 'cancelled' ? 'line-through text-warm-gray' : 'text-charcoal'}`}>
+                    <td className="py-3 text-[#6B5B55]">{order.customer.firstName} {order.customer.lastName}</td>
+                    <td className={`py-3 font-medium ${order.status === 'cancelled' ? 'line-through text-[#6B5B55]' : 'text-charcoal'}`}>
                       ${order.total.toFixed(2)}
                     </td>
                     <td className="py-3">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${order.status === 'delivered' ? 'bg-green-100 text-green-700' :
-                          order.status === 'cancelled' ? 'bg-red-100 text-red-600' :
-                            order.status === 'shipped' ? 'bg-indigo-100 text-indigo-700' :
-                              'bg-yellow-100 text-yellow-700'
+                        order.status === 'cancelled' ? 'bg-red-100 text-red-600' :
+                          order.status === 'shipped' ? 'bg-indigo-100 text-indigo-700' :
+                            'bg-yellow-100 text-yellow-700'
                         }`}>
                         {order.status}
                       </span>

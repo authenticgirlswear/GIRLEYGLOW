@@ -107,7 +107,7 @@ export const CategoryPage: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-warm-gray mb-6">
+        <nav className="flex items-center gap-2 text-sm text-[#6B5B55] mb-6">
           <Link to="/" className="hover:text-rose-gold transition-colors">
             Home
           </Link>
@@ -129,10 +129,10 @@ export const CategoryPage: React.FC = () => {
               <h1 className="heading-serif text-3xl md:text-5xl font-bold text-charcoal mb-3">
                 {category.name}
               </h1>
-              <p className="text-warm-gray max-w-xl leading-relaxed">
+              <p className="text-[#6B5B55] max-w-xl leading-relaxed">
                 {category.description}
               </p>
-              <p className="text-sm text-warm-gray mt-4">
+              <p className="text-sm text-[#6B5B55] mt-4">
                 {loading ? 'Loading...' : `${normalisedProducts.length} products`}
               </p>
             </div>
@@ -142,14 +142,14 @@ export const CategoryPage: React.FC = () => {
         {/* Products */}
         {loading ? (
           <div className="text-center py-16">
-            <p className="text-warm-gray">Loading products...</p>
+            <p className="text-[#6B5B55]">Loading products...</p>
           </div>
         ) : normalisedProducts.length === 0 ? (
           <div className="text-center py-16">
             <h3 className="heading-serif text-2xl font-semibold text-charcoal mb-3">
               No Products Found
             </h3>
-            <p className="text-warm-gray mb-6">
+            <p className="text-[#6B5B55] mb-6">
               Products for this category will appear here.
             </p>
             <Link to="/shop">

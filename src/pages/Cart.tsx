@@ -33,7 +33,7 @@ export const CartPage: React.FC = () => {
     <div className="min-h-screen pt-24 pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h1 className="heading-serif text-3xl md:text-4xl font-bold text-charcoal mb-2">Shopping Bag</h1>
-        <p className="text-warm-gray mb-8">{items.length} {items.length === 1 ? 'item' : 'items'}</p>
+        <p className="text-[#6B5B55] mb-8">{items.length} {items.length === 1 ? 'item' : 'items'}</p>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Cart Items */}
@@ -59,13 +59,13 @@ export const CartPage: React.FC = () => {
                           <Link to={`/product/${item.product.slug}`} className="font-medium text-charcoal hover:text-rose-gold transition-colors">
                             {item.product.name}
                           </Link>
-                          <p className="text-sm text-warm-gray mt-0.5">
+                          <p className="text-sm text-[#6B5B55] mt-0.5">
                             Size: {item.selectedSize} • Color: {item.selectedColor}
                           </p>
                         </div>
                         <button
                           onClick={() => removeItem(item.product.id, item.selectedSize, item.selectedColor)}
-                          className="p-1.5 rounded-lg hover:bg-red-50 text-warm-gray hover:text-red-500 transition-colors"
+                          className="p-1.5 rounded-lg hover:bg-red-50 text-[#6B5B55] hover:text-red-500 transition-colors"
                         >
                           <Trash2 size={16} />
                         </button>
@@ -105,7 +105,7 @@ export const CartPage: React.FC = () => {
               <div className="mb-6">
                 <div className="flex gap-2">
                   <div className="relative flex-1">
-                    <Tag size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-warm-gray" />
+                    <Tag size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B5B55]" />
                     <input
                       type="text"
                       placeholder="Coupon code"
@@ -127,7 +127,7 @@ export const CartPage: React.FC = () => {
 
               <div className="space-y-3 mb-4">
                 <div className="flex justify-between text-sm">
-                  <span className="text-warm-gray">Subtotal</span>
+                  <span className="text-[#6B5B55]">Subtotal</span>
                   <span className="font-medium">${getSubtotal().toFixed(2)}</span>
                 </div>
                 {getDiscount() > 0 && (
@@ -137,7 +137,7 @@ export const CartPage: React.FC = () => {
                   </div>
                 )}
                 <div className="flex justify-between text-sm">
-                  <span className="text-warm-gray">Shipping</span>
+                  <span className="text-[#6B5B55]">Shipping</span>
                   <span className="font-medium">{getSubtotal() >= 150 ? 'Free' : '$10.00'}</span>
                 </div>
               </div>

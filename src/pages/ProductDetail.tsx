@@ -9,14 +9,14 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShoppingBag, Heart, ArrowLeft, ArrowRight,
-  Minus, Plus, ChevronRight, X,
+  Minus, Plus, ChevronRight,
 } from 'lucide-react';
 import { Button, Badge, PriceDisplay, FadeIn } from '@/components/ui';
 import { ProductCard } from '@/components/home';
 import { supabase } from '@/lib/supabase';
 import { useCartStore, useRecentlyViewedStore } from '@/store';
 import type { Product } from '@/types';
-import { trackViewContent } from '@/lib/facebookPixel';
+import { trackViewContent } from '../lib/facebookPixel';
 
 /* ─── normalise snake_case Supabase row → Product shape ─── */
 const normalise = (p: any): Product => ({
@@ -64,7 +64,6 @@ export const ProductDetailPage: React.FC = () => {
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'description' | 'reviews' | 'shipping'>('description');
   const [addedToCart, setAddedToCart] = useState(false);
-  const [showSizeGuide, setShowSizeGuide] = useState(false);
   const [similarPage, setSimilarPage] = useState(0);
 
   /* ── Fetch product by slug from Supabase ── */
@@ -128,7 +127,7 @@ export const ProductDetailPage: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen pt-24 flex items-center justify-center">
-        <p className="text-warm-gray">Loading product...</p>
+        <p className="text-[#6B5B55]">Loading product...</p>
       </div>
     );
   }
@@ -146,98 +145,7 @@ export const ProductDetailPage: React.FC = () => {
       </div>
     );
   }
-  const SizeGuidePopup = () => {
-    const [band, setBand] = useState('');
-    const [bust, setBust] = useState('');
-    const [result, setResult] = useState('');
-    const [celebrate, setCelebrate] = useState(false);
-    const calculate = () => {
-      const bandValue = parseFloat(band);
-      const bustValue = parseFloat(bust);
 
-      if (!bandValue || !bustValue) {
-        alert('সঠিক মাপ দিন');
-        return;
-      }
-
-      // nearest even band size
-      const roundedBand = Math.round(bandValue / 2) * 2;
-
-      // cup difference
-      const difference = bustValue - bandValue;
-
-      const cupSizes = [
-        'AA',
-        'A',
-        'B',
-        'C',
-        'D',
-        'DD',
-        'E',
-        'F',
-        'G'
-      ];
-
-      const cupIndex = Math.max(
-        0,
-        Math.min(Math.round(difference), cupSizes.length - 1)
-      );
-
-      const cup = cupSizes[cupIndex];
-
-      setResult(`${roundedBand}${cup}`);
-
-      setCelebrate(true);
-
-      setTimeout(() => setCelebrate(false), 2500);
-    };
-    return (
-      <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-        <div className="absolute inset-0 bg-black/50" onClick={() => setShowSizeGuide(false)} />
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-          className="relative bg-white rounded-3xl p-6 max-w-sm w-full z-10 max-h-[90vh] overflow-y-auto">
-          <button onClick={() => setShowSizeGuide(false)} className="absolute top-4 right-4 p-1 rounded-full hover:bg-blush-light">
-            <X size={18} />
-          </button>
-          <h3 className="heading-serif text-xl font-semibold text-charcoal mb-1">সাইজ গাইড</h3>
-          <p className="text-xs text-warm-gray mb-4">আপনার সঠিক ব্রা সাইজ জানুন</p>
-          <div className="bg-blush-light/40 rounded-2xl p-4 mb-4 space-y-3">
-            <div>
-              <p className="text-sm font-semibold text-charcoal mb-1">📏 ব্যান্ড সাইজ কীভাবে মাপবেন?</p>
-              <p className="text-xs text-warm-gray leading-relaxed">বুকের ঠিক নিচে টেপ মেজার দিয়ে শ্বাস ছেড়ে আঁটোভাবে মাপুন।</p>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-charcoal mb-1">📏 বাস্ট সাইজ কীভাবে মাপবেন?</p>
-              <p className="text-xs text-warm-gray leading-relaxed">বুকের সবচেয়ে পূর্ণ অংশের উপর দিয়ে আলগাভাবে মাপুন।</p>
-            </div>
-          </div>
-          <div className="space-y-3 mb-4">
-            <div>
-              <label className="text-xs text-warm-gray mb-1 block">Band Size (Inch)</label>
-              <input type="number" value={band} onChange={e => setBand(e.target.value)} placeholder="যেমন: 32"
-                className="w-full px-4 py-2.5 rounded-xl border border-blush/30 text-sm focus:outline-none focus:ring-2 focus:ring-rose-gold/30" />
-            </div>
-            <div>
-              <label className="text-xs text-warm-gray mb-1 block">Bust Size (Inch)</label>
-              <input type="number" value={bust} onChange={e => setBust(e.target.value)} placeholder="যেমন: 36"
-                className="w-full px-4 py-2.5 rounded-xl border border-blush/30 text-sm focus:outline-none focus:ring-2 focus:ring-rose-gold/30" />
-            </div>
-          </div>
-          <button onClick={calculate} className="w-full py-3 bg-rose-gold text-white rounded-xl text-sm font-medium hover:bg-deep-rose transition-colors">
-            Find My Size
-          </button>
-          {result && (
-            <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: celebrate ? 1.05 : 1 }}
-              className="mt-4 text-center bg-blush-light/60 rounded-2xl p-4">
-              <p className="text-xs text-warm-gray mb-1">Your perfect bra size</p>
-              <p className="text-4xl font-bold text-rose-gold">{result}</p>
-              <p className="text-sm text-charcoal mt-2">🎉 Congratulations!</p>
-            </motion.div>
-          )}
-        </motion.div>
-      </div>
-    );
-  };
   const handleAddToCart = () => {
     if (!selectedSize) return;
     addItem(product, selectedSize, selectedColor, quantity);
@@ -250,7 +158,7 @@ export const ProductDetailPage: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-warm-gray mb-8">
+        <nav className="flex items-center gap-1 text-sm text-[#6B5B55] mb-8">
           <Link to="/" className="hover:text-rose-gold">Home</Link>
           <ChevronRight size={14} />
           <Link to="/shop" className="hover:text-rose-gold">Shop</Link>
@@ -262,7 +170,7 @@ export const ProductDetailPage: React.FC = () => {
           <span className="text-charcoal">{product.name}</span>
         </nav>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-16">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-10">
 
           {/* ── Image Gallery ── */}
           <FadeIn>
@@ -304,7 +212,7 @@ export const ProductDetailPage: React.FC = () => {
                   {product.isTrending && <Badge variant="trending">Trending</Badge>}
                 </div>
 
-                <button className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors">
+                <button className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors">
                   <Heart size={18} className="text-rose-gold" />
                 </button>
                 {selectedImage > 0 && (
@@ -378,20 +286,20 @@ export const ProductDetailPage: React.FC = () => {
               <h1 className="heading-serif text-3xl md:text-4xl font-bold text-charcoal mb-3">
                 {product.name}
               </h1>
-              <div className="mb-6">
+              <div className="mb-4">
                 <PriceDisplay price={product.price} comparePrice={product.comparePrice} size="lg" />
               </div>
 
-              <p className="text-warm-gray leading-relaxed mb-6">{product.description}</p>
+              <p className="text-[#6B5B55] leading-relaxed mb-0">{product.description}</p>
 
-              <div className="luxury-line mb-6" />
+              <div className="luxury-line mb-3" />
 
               {/* Color Selection */}
               {/* Color Selection */}
               {product.colors.length > 0 && (
-                <div className="mb-6">
+                <div className="mb-4">
                   <p className="text-sm font-medium text-charcoal mb-3">
-                    Color: <span className="text-warm-gray font-normal">{selectedColor}</span>
+                    Color: <span className="text-[#6B5B55] font-normal">{selectedColor}</span>
                   </p>
                   <div className="flex flex-wrap gap-3">
                     {product.colors.map((color: any) => {
@@ -408,8 +316,8 @@ export const ProductDetailPage: React.FC = () => {
                           title={colorName}
                           className="relative flex-shrink-0 transition-all duration-200"
                           style={{
-                            width: 36,
-                            height: 36,
+                            width: 32,
+                            height: 32,
                             borderRadius: '50%',
                             backgroundColor: colorValue,
                             border: isSelected
@@ -430,21 +338,20 @@ export const ProductDetailPage: React.FC = () => {
               )}
               {/* Size Selection */}
               {product.sizes.length > 0 && (
-                <div className="mb-6">
-                  <div className="flex items-center justify-between mb-3">
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-2">
                     <p className="text-sm font-medium text-charcoal">
-                      Size: <span className="text-warm-gray font-normal">{selectedSize}</span>
+                      Size: <span className="text-[#6B5B55] font-normal">{selectedSize}</span>
                     </p>
-                    <button onClick={() => setShowSizeGuide(true)} className="text-xs px-3 py-1.5 rounded-lg border border-rose-gold text-rose-gold hover:bg-rose-gold hover:text-white transition-all duration-200">📏 Size Guide</button>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {product.sizes.map(size => (
                       <button
                         key={String(size)}
                         onClick={() => setSelectedSize(size)}
-                        className={`w-14 h-11 rounded-xl text-sm font-medium transition-all ${selectedSize === size
+                        className={`min-w-[70px] h-9 px-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${selectedSize === size
                           ? 'bg-rose-gold text-white shadow-md'
-                          : 'bg-blush-light/50 text-warm-gray hover:bg-blush-light'
+                          : 'bg-blush-light/50 text-[#6B5B55] hover:bg-blush-light'
                           }`}
                       >
                         {size}
@@ -456,7 +363,7 @@ export const ProductDetailPage: React.FC = () => {
 
               {/* ── Custom Product Info Box ── */}
               {product.customText && (
-                <div className="mb-6 rounded-2xl border border-blush/20 bg-blush-light/20 p-4">
+                <div className="mb-4 rounded-2xl border border-blush/20 bg-blush-light/20 p-4">
                   <div className="text-sm leading-relaxed text-charcoal whitespace-pre-line">
                     {product.customText}
                   </div>
@@ -464,19 +371,19 @@ export const ProductDetailPage: React.FC = () => {
               )}
 
               {/* Quantity */}
-              <div className="mb-8">
+              <div className="mb-4">
                 <p className="text-sm font-medium text-charcoal mb-3">Quantity</p>
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="w-10 h-10 rounded-xl bg-blush-light/50 flex items-center justify-center hover:bg-blush-light transition-colors"
+                    className="w-9 h-9 rounded-xl bg-blush-light/50 flex items-center justify-center hover:bg-blush-light transition-colors"
                   >
                     <Minus size={16} />
                   </button>
                   <span className="w-12 text-center font-medium text-charcoal">{quantity}</span>
                   <button
                     onClick={() => setQuantity(Math.min(product.stock || 99, quantity + 1))}
-                    className="w-10 h-10 rounded-xl bg-blush-light/50 flex items-center justify-center hover:bg-blush-light transition-colors"
+                    className="w-9 h-9 rounded-xl bg-blush-light/50 flex items-center justify-center hover:bg-blush-light transition-colors"
                   >
                     <Plus size={16} />
                   </button>
@@ -489,32 +396,40 @@ export const ProductDetailPage: React.FC = () => {
               </div>
 
               {/* Add to Cart */}
-              <div className="flex gap-3 mb-8">
+              <div className="flex gap-2 mb-6">
+
+                {/* BUY NOW */}
                 <Button
                   size="lg"
-                  fullWidth
                   onClick={() => {
                     if (!selectedSize && product.sizes.length > 0) return;
                     addItem(product, selectedSize, selectedColor, quantity);
                     navigate('/checkout');
                   }}
                   disabled={product.stock === 0}
+                  className="flex-[3] h-12 <text-25></text-25>px font-semibold rounded-xl border-0"
+                  style={{
+                    background: 'linear-gradient(135deg, #1eff77 0%, #1eff77 100%)',
+                    color: 'Black',
+                  }}
                 >
-                  <ShoppingBag size={18} />
+                  <ShoppingBag size={17} />
                   {product.stock === 0 ? 'Out of Stock' : 'Buy Now'}
                 </Button>
+
+                {/* ADD TO BAG */}
                 <Button
                   variant="outline"
                   size="lg"
-                  fullWidth
                   onClick={handleAddToCart}
                   disabled={product.stock === 0}
-                  className={addedToCart ? '!border-green-500 !text-green-500' : ''}
+                  className={`flex-1 h-12 text-sm rounded-xl ${addedToCart ? '!border-green-500 !text-green-500' : ''
+                    }`}
                 >
                   {addedToCart ? '✓ Added' : 'Add to Bag'}
                 </Button>
-              </div>
 
+              </div>
               {/* Trust Badges */}
               <div className="grid grid-cols-3 gap-3">
                 {[
@@ -524,7 +439,7 @@ export const ProductDetailPage: React.FC = () => {
                 ].map(item => (
                   <div key={item.label} className="flex flex-col items-center gap-1.5 text-center p-3 rounded-xl bg-blush-light/30">
                     <span className="text-xl">{item.icon}</span>
-                    <span className="text-xs text-warm-gray">{item.label}</span>
+                    <span className="text-xs text-[#6B5B55]">{item.label}</span>
                   </div>
                 ))}
               </div>
@@ -541,7 +456,7 @@ export const ProductDetailPage: React.FC = () => {
                 onClick={() => setActiveTab(tab)}
                 className={`pb-3 text-sm font-medium capitalize transition-colors ${activeTab === tab
                   ? 'text-rose-gold border-b-2 border-rose-gold'
-                  : 'text-warm-gray hover:text-charcoal'
+                  : 'text-[#6B5B55] hover:text-charcoal'
                   }`}
               >
                 {tab === 'description' ? 'Description' : tab === 'shipping' ? 'Shipping Info' : ''}
@@ -557,7 +472,7 @@ export const ProductDetailPage: React.FC = () => {
               exit={{ opacity: 0, y: -10 }}
             >
               {activeTab === 'description' && (
-                <div className="prose max-w-none text-warm-gray">
+                <div className="prose max-w-none text-[#6B5B55]">
                   <p className="leading-relaxed">{product.description}</p>
                   <div className="mt-4 grid grid-cols-2 gap-4">
                     <div>
@@ -571,7 +486,7 @@ export const ProductDetailPage: React.FC = () => {
                 </div>
               )}
               {activeTab === 'shipping' && (
-                <div className="space-y-4 text-warm-gray">
+                <div className="space-y-4 text-[#6B5B55]">
                   <div className="glass-card rounded-2xl p-5">
                     <h4 className="font-medium text-charcoal mb-2">Shipping Information</h4>
                     <p className="mt-2">Inside Dhaka City  delivery: Max 48 Hour </p>
@@ -614,7 +529,6 @@ export const ProductDetailPage: React.FC = () => {
             </div>
           </div>
         )}
-        {showSizeGuide && <SizeGuidePopup />}
       </div>
     </div>
   );

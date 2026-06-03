@@ -8,27 +8,13 @@ import React, { useState, useRef } from 'react';
 import { Plus, Edit2, Trash2, Upload, X } from 'lucide-react';
 import { Button, Input, Modal } from '@/components/ui';
 import { useCategoryStore } from '@/store';
-import { supabase } from '@/lib/supabase';
 import type { Category } from '@/types';
+import { uploadToCloudinary } from '@/lib/cloudinary';
 
 // ── Upload a single image to Supabase Storage ──────────────────────────────
-async function uploadCategoryImage(file: File): Promise<string> {
-  const ext = file.name.split('.').pop();
-  const path = `categories/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-
-  const { error } = await supabase.storage
-    .from('product-images')   // reuse your existing bucket
-    .upload(path, file, { upsert: true });
-
-  if (error) throw new Error(error.message);
-
-  const { data } = supabase.storage
-    .from('product-images')
-    .getPublicUrl(path);
-
-  return data.publicUrl;
-}
-
+const uploadCategoryImage = async (file: File): Promise<string> => {
+  return uploadToCloudinary(file);
+};
 // ── Image picker (single image, uploads to Supabase) ──────────────────────
 const ImagePicker: React.FC<{
   currentUrl: string;
@@ -60,7 +46,7 @@ const ImagePicker: React.FC<{
 
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-medium text-warm-gray mb-1.5">
+      <label className="block text-sm font-medium text-[#6B5B55] mb-1.5">
         Category Image
       </label>
 
@@ -89,8 +75,8 @@ const ImagePicker: React.FC<{
           onClick={() => inputRef.current?.click()}
           className="flex flex-col items-center justify-center gap-2 h-24 rounded-2xl border-2 border-dashed border-blush/50 bg-white/50 cursor-pointer hover:bg-rose-50/50 hover:border-rose-gold/50 transition-all"
         >
-          <Upload size={20} className="text-warm-gray/60" />
-          <p className="text-xs text-warm-gray/60 text-center px-4">
+          <Upload size={20} className="text-[#6B5B55]/60" />
+          <p className="text-xs text-[#6B5B55]/60 text-center px-4">
             Click to upload a category image
           </p>
         </div>
@@ -112,7 +98,7 @@ const ImagePicker: React.FC<{
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="w-full py-2 rounded-xl border border-blush/30 bg-white/60 text-sm text-warm-gray hover:bg-white/80 transition-colors"
+          className="w-full py-2 rounded-xl border border-blush/30 bg-white/60 text-sm text-[#6B5B55] hover:bg-white/80 transition-colors"
         >
           Browse image
         </button>
@@ -220,7 +206,7 @@ export const AdminCategories: React.FC = () => {
           <h1 className="heading-serif text-2xl md:text-3xl font-bold text-charcoal">
             Categories
           </h1>
-          <p className="text-warm-gray text-sm">{categories.length} categories</p>
+          <p className="text-[#6B5B55] text-sm">{categories.length} categories</p>
         </div>
         <Button onClick={openAdd}>
           <Plus size={16} /> Add Category
@@ -243,8 +229,8 @@ export const AdminCategories: React.FC = () => {
 
             <div className="p-4">
               <h3 className="font-semibold text-charcoal">{cat.name}</h3>
-              <p className="text-sm text-warm-gray mt-1 line-clamp-2">{cat.description}</p>
-              <p className="text-xs text-warm-gray mt-2">{cat.productCount} products</p>
+              <p className="text-sm text-[#6B5B55] mt-1 line-clamp-2">{cat.description}</p>
+              <p className="text-xs text-[#6B5B55] mt-2">{cat.productCount} products</p>
               <div className="flex gap-2 mt-3">
                 <Button size="sm" variant="ghost" onClick={() => openEdit(cat)}>
                   <Edit2 size={14} /> Edit
@@ -278,7 +264,7 @@ export const AdminCategories: React.FC = () => {
           />
 
           <div>
-            <label className="block text-sm font-medium text-warm-gray mb-1.5">Description</label>
+            <label className="block text-sm font-medium text-[#6B5B55] mb-1.5">Description</label>
             <textarea
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -295,9 +281,9 @@ export const AdminCategories: React.FC = () => {
 
           {/* Gradient picker */}
           <div>
-            <label className="block text-sm font-medium text-warm-gray mb-1.5">
+            <label className="block text-sm font-medium text-[#6B5B55] mb-1.5">
               Fallback Gradient{' '}
-              <span className="text-warm-gray/60 font-normal">(used when no image uploaded)</span>
+              <span className="text-[#6B5B55]/60 font-normal">(used when no image uploaded)</span>
             </label>
             <div className="grid grid-cols-4 gap-2">
               {gradients.map((g) => (

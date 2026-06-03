@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
 
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface Banner {
@@ -35,6 +36,12 @@ export interface ContentData {
   // Banners
   banners: Banner[];
 
+  // New Arrival Banners
+  newArrivalBanners: Banner[];
+
+  // Sale Banners
+  saleBanners: Banner[];
+
   // Announcement bar
   announcement: AnnouncementSettings;
 
@@ -57,7 +64,8 @@ export const defaultContent: ContentData = {
   heroImageUrl: '',
 
   banners: [],
-
+  newArrivalBanners: [],
+  saleBanners: [],
   announcement: {
     enabled: true,
     messages: ['Free shipping on orders over $50!'],
@@ -108,6 +116,10 @@ function mergeWithDefaults(loaded: Partial<ContentData>): ContentData {
           : defaultContent.announcement.messages,
     },
     banners: Array.isArray(loaded.banners) ? loaded.banners : [],
+    newArrivalBanners: Array.isArray(loaded.newArrivalBanners) ? loaded.newArrivalBanners : [],
+    saleBanners: Array.isArray(loaded.saleBanners)
+      ? loaded.saleBanners
+      : [],
   };
 }
 

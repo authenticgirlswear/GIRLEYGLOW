@@ -58,7 +58,7 @@ export const AdminDashboard: React.FC = () => {
       {/* Page Header */}
       <div className="mb-8">
         <h1 className="heading-serif text-2xl md:text-3xl font-bold text-charcoal">Dashboard</h1>
-        <p className="text-warm-gray mt-1">Welcome back! Here's your store overview.</p>
+        <p className="text-[#6B5B55] mt-1">Welcome back! Here's your store overview.</p>
       </div>
 
       {/* Stats Grid — all from real data */}
@@ -99,12 +99,12 @@ export const AdminDashboard: React.FC = () => {
                 <div className="w-10 h-10 rounded-xl bg-white/60 flex items-center justify-center">
                   <stat.icon size={20} className="text-rose-gold" />
                 </div>
-                <span className="flex items-center gap-1 text-xs font-medium text-warm-gray">
+                <span className="flex items-center gap-1 text-xs font-medium text-[#6B5B55]">
                   {stat.sub}
                 </span>
               </div>
               <p className="heading-serif text-2xl font-bold text-charcoal">{stat.value}</p>
-              <p className="text-sm text-warm-gray mt-0.5">{stat.label}</p>
+              <p className="text-sm text-[#6B5B55] mt-0.5">{stat.label}</p>
             </div>
           </FadeIn>
         ))}
@@ -117,14 +117,14 @@ export const AdminDashboard: React.FC = () => {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="font-semibold text-charcoal">Revenue Overview</h3>
-                <p className="text-sm text-warm-gray">Monthly revenue (last 6 months)</p>
+                <p className="text-sm text-[#6B5B55]">Monthly revenue (last 6 months)</p>
               </div>
               <TrendingUp size={20} className="text-rose-gold" />
             </div>
             <div className="flex items-end gap-2 md:gap-4 h-48">
               {salesData.map((data, index) => (
                 <div key={data.month} className="flex-1 flex flex-col items-center gap-2">
-                  <span className="text-xs text-warm-gray">
+                  <span className="text-xs text-[#6B5B55]">
                     {data.revenue > 0 ? `$${(data.revenue / 1000).toFixed(1)}k` : '$0'}
                   </span>
                   <div className="w-full flex items-end" style={{ height: '100%' }}>
@@ -135,12 +135,12 @@ export const AdminDashboard: React.FC = () => {
                       className="w-full chart-bar rounded-t-lg min-h-[4px]"
                     />
                   </div>
-                  <span className="text-xs text-warm-gray">{data.month}</span>
+                  <span className="text-xs text-[#6B5B55]">{data.month}</span>
                 </div>
               ))}
             </div>
             {orders.length === 0 && (
-              <p className="text-center text-warm-gray text-sm mt-4">
+              <p className="text-center text-[#6B5B55] text-sm mt-4">
                 No orders yet — chart will fill as customers order
               </p>
             )}
@@ -155,7 +155,7 @@ export const AdminDashboard: React.FC = () => {
               Alerts
             </h3>
             {pendingOrders.length === 0 && lowStock.length === 0 ? (
-              <div className="text-center py-8 text-warm-gray">
+              <div className="text-center py-8 text-[#6B5B55]">
                 <p className="text-sm">All clear! No alerts.</p>
               </div>
             ) : (
@@ -201,7 +201,7 @@ export const AdminDashboard: React.FC = () => {
             <div className="text-center py-12">
               <ShoppingBag size={36} className="mx-auto text-blush mb-3" />
               <p className="text-charcoal font-medium">No orders yet</p>
-              <p className="text-warm-gray text-sm mt-1">
+              <p className="text-[#6B5B55] text-sm mt-1">
                 When customers place orders, they'll appear here
               </p>
             </div>
@@ -210,22 +210,22 @@ export const AdminDashboard: React.FC = () => {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-blush/20">
-                    <th className="text-left py-3 text-warm-gray font-medium">Order</th>
-                    <th className="text-left py-3 text-warm-gray font-medium">Customer</th>
-                    <th className="text-left py-3 text-warm-gray font-medium">Phone</th>
-                    <th className="text-left py-3 text-warm-gray font-medium">Total</th>
-                    <th className="text-left py-3 text-warm-gray font-medium">Status</th>
-                    <th className="text-left py-3 text-warm-gray font-medium">Payment</th>
+                    <th className="text-left py-3 text-[#6B5B55] font-medium">Order</th>
+                    <th className="text-left py-3 text-[#6B5B55] font-medium">Customer</th>
+                    <th className="text-left py-3 text-[#6B5B55] font-medium">Phone</th>
+                    <th className="text-left py-3 text-[#6B5B55] font-medium">Total</th>
+                    <th className="text-left py-3 text-[#6B5B55] font-medium">Status</th>
+                    <th className="text-left py-3 text-[#6B5B55] font-medium">Payment</th>
                   </tr>
                 </thead>
                 <tbody>
                   {recentOrders.map(order => (
                     <tr key={order.id} className="border-b border-blush/10 last:border-0">
                       <td className="py-3 font-medium text-charcoal">{order.orderNumber}</td>
-                      <td className="py-3 text-warm-gray">
+                      <td className="py-3 text-[#6B5B55]">
                         {order.customer.firstName} {order.customer.lastName}
                       </td>
-                      <td className="py-3 text-warm-gray">{order.customer.phone}</td>
+                      <td className="py-3 text-[#6B5B55]">{order.customer.phone}</td>
                       <td className="py-3 font-medium text-charcoal">${order.total.toFixed(2)}</td>
                       <td className="py-3">
                         <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${statusColors[order.status]}`}>
@@ -234,11 +234,10 @@ export const AdminDashboard: React.FC = () => {
                       </td>
                       <td className="py-3">
                         <span
-                          className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${
-                            order.paymentStatus === 'verified'
+                          className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${order.paymentStatus === 'verified'
                               ? 'bg-green-100 text-green-700'
                               : 'bg-yellow-100 text-yellow-700'
-                          }`}
+                            }`}
                         >
                           {order.paymentStatus}
                         </span>

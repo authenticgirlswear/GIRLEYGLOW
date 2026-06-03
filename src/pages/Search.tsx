@@ -54,7 +54,7 @@ export const SearchPage: React.FC = () => {
         <div className="max-w-2xl mx-auto mb-12">
           <form onSubmit={handleSearch}>
             <div className="relative">
-              <SearchIcon size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-warm-gray" />
+              <SearchIcon size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6B5B55]" />
               <input
                 type="text"
                 value={inputValue}
@@ -102,7 +102,7 @@ export const SearchPage: React.FC = () => {
         {!query && (
           <div className="text-center py-12">
             <h2 className="heading-serif text-3xl font-bold text-charcoal mb-4">What are you looking for?</h2>
-            <p className="text-warm-gray">Search for products by name, category, or style</p>
+            <p className="text-[#6B5B55]">Search for products by name, category, or style</p>
           </div>
         )}
       </div>

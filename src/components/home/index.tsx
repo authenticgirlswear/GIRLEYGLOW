@@ -165,7 +165,7 @@ export const Hero: React.FC = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.3 }}
-            className={`text-sm md:text-base max-w-lg mb-6 leading-relaxed ${hasImage ? 'text-white/90 drop-shadow' : 'text-warm-gray'
+            className={`text-sm md:text-base max-w-lg mb-6 leading-relaxed ${hasImage ? 'text-white/90 drop-shadow' : 'text-[#6B5B55]'
               }`}
           >
             {content.heroSubtitle}
@@ -250,7 +250,7 @@ export const BannerSlider: React.FC = () => {
                   {banner.title}
                 </h3>
                 <p
-                  className={`text-sm md:text-base mb-6 ${banner.imageUrl ? 'text-white/90 drop-shadow' : 'text-warm-gray'
+                  className={`text-sm md:text-base mb-6 ${banner.imageUrl ? 'text-white/90 drop-shadow' : 'text-[#6B5B55]'
                     }`}
                 >
                   {banner.subtitle}
@@ -397,7 +397,7 @@ export const FeaturedCollection: React.FC = () => {
     </div>
 
       {featured.length === 0 ? (
-        <div className="text-center py-16 text-warm-gray">
+        <div className="text-center py-16 text-[#6B5B55]">
           <p>No featured products yet. Mark products as "Featured" in the admin panel.</p>
         </div>
       ) : (
@@ -549,7 +549,7 @@ export const CategoryShowcase: React.FC = () => {
       </div>
 
       {categories.length === 0 ? (
-        <div className="text-center py-16 text-warm-gray">
+        <div className="text-center py-16 text-[#6B5B55]">
           <p>No categories yet.</p>
         </div>
       ) : (
@@ -676,7 +676,7 @@ export const TrendingProducts: React.FC = () => {
       </div>
 
       {trending.length === 0 ? (
-        <div className="text-center py-16 text-warm-gray">
+        <div className="text-center py-16 text-[#6B5B55]">
           <p>No trending products yet. Mark products as "Trending" in the admin panel.</p>
         </div>
       ) : (
@@ -800,7 +800,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       </div>
 
       <div>
-        <p className="text-xs text-warm-gray mb-0.5">{product.category}</p>
+        <p className="text-xs text-[#6B5B55] mb-0.5">{product.category}</p>
         <h3 className="text-sm font-medium text-charcoal mb-1 line-clamp-1 group-hover:text-rose-gold transition-colors">
           {product.name}
         </h3>
@@ -891,7 +891,7 @@ export const NewArrivals: React.FC = () => {
       </div>
 
       {newItems.length === 0 ? (
-        <div className="text-center py-16 text-warm-gray">
+        <div className="text-center py-16 text-[#6B5B55]">
           <p>No new arrivals yet. Mark products as "New Arrival" in the admin panel.</p>
         </div>
       ) : (
@@ -922,7 +922,7 @@ export const NewArrivals: React.FC = () => {
                   <div className="p-5">
                     <Badge variant="new" className="mb-2">New Arrival</Badge>
                     <h3 className="heading-serif text-xl font-semibold text-charcoal mb-1 group-hover:text-rose-gold transition-colors">{product.name}</h3>
-                    <p className="text-sm text-warm-gray mb-3">{product.shortDescription}</p>
+                    <p className="text-sm text-[#6B5B55] mb-3">{product.shortDescription}</p>
                     <PriceDisplay price={product.price} comparePrice={product.comparePrice} />
                   </div>
                 </motion.div>

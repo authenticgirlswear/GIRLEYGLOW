@@ -11,7 +11,6 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, Search, Menu, X, ChevronDown } from 'lucide-react';
 import { useCartStore, useUIStore, useCategoryStore } from '@/store';
-import { AnnouncementBar } from './AnnouncementBar';
 
 export const Navbar: React.FC = () => {
   const [hidden, setHidden] = useState(false);
@@ -145,14 +144,6 @@ export const Navbar: React.FC = () => {
       */}
       <div className="fixed top-0 left-0 right-0 z-50 pointer-events-none">
 
-        {/* ── Announcement Bar ── */}
-        <motion.div
-          className="pointer-events-auto"
-          animate={{ y: hidden ? '-100%' : 0, opacity: hidden ? 0 : 1 }}
-          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <AnnouncementBar />
-        </motion.div>
 
         {/* ── Pill Navbar ── */}
         <motion.div
@@ -167,7 +158,7 @@ export const Navbar: React.FC = () => {
             mt-2 = gap between announcement bar and pill.
             Everything outside the pill is transparent.
           */
-          className="px-3 md:px-4 mt-2"
+          className="px-3 md:px-4 mt-1"
         >
           <nav
             className={`

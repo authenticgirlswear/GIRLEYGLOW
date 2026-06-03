@@ -198,13 +198,13 @@ export const AdminOrders: React.FC = () => {
     <div>
       <div className="mb-6">
         <h1 className="heading-serif text-2xl md:text-3xl font-bold text-charcoal">Orders</h1>
-        <p className="text-warm-gray text-sm">{orders.length} total orders</p>
+        <p className="text-[#6B5B55] text-sm">{orders.length} total orders</p>
       </div>
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-warm-gray" />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B5B55]" />
           <input
             type="text"
             placeholder="Search by order #, name, or phone..."
@@ -227,13 +227,13 @@ export const AdminOrders: React.FC = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-blush/20 bg-blush-light/20">
-                <th className="text-left py-3 px-4 text-warm-gray font-medium">Order #</th>
-                <th className="text-left py-3 px-4 text-warm-gray font-medium">Customer</th>
-                <th className="text-left py-3 px-4 text-warm-gray font-medium">Items</th>
-                <th className="text-left py-3 px-4 text-warm-gray font-medium">Total</th>
-                <th className="text-left py-3 px-4 text-warm-gray font-medium">Status</th>
-                <th className="text-left py-3 px-4 text-warm-gray font-medium">Payment</th>
-                <th className="text-right py-3 px-4 text-warm-gray font-medium">Actions</th>
+                <th className="text-left py-3 px-4 text-[#6B5B55] font-medium">Order #</th>
+                <th className="text-left py-3 px-4 text-[#6B5B55] font-medium">Customer</th>
+                <th className="text-left py-3 px-4 text-[#6B5B55] font-medium">Items</th>
+                <th className="text-left py-3 px-4 text-[#6B5B55] font-medium">Total</th>
+                <th className="text-left py-3 px-4 text-[#6B5B55] font-medium">Status</th>
+                <th className="text-left py-3 px-4 text-[#6B5B55] font-medium">Payment</th>
+                <th className="text-right py-3 px-4 text-[#6B5B55] font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -245,10 +245,10 @@ export const AdminOrders: React.FC = () => {
                   <td className="py-3 px-4 font-medium text-charcoal">{order.orderNumber}</td>
                   <td className="py-3 px-4">
                     <p className="text-charcoal">{order.customer.firstName} {order.customer.lastName}</p>
-                    <p className="text-xs text-warm-gray">{order.customer.phone}</p>
+                    <p className="text-xs text-[#6B5B55]">{order.customer.phone}</p>
                   </td>
-                  <td className="py-3 px-4 text-warm-gray">{order.items.length} items</td>
-                  <td className={`py-3 px-4 font-medium ${order.status === 'cancelled' ? 'line-through text-warm-gray' : 'text-charcoal'}`}>
+                  <td className="py-3 px-4 text-[#6B5B55]">{order.items.length} items</td>
+                  <td className={`py-3 px-4 font-medium ${order.status === 'cancelled' ? 'line-through text-[#6B5B55]' : 'text-charcoal'}`}>
                     ${order.total.toFixed(2)}
                   </td>
                   <td className="py-3 px-4">
@@ -264,13 +264,12 @@ export const AdminOrders: React.FC = () => {
                   </td>
                   <td className="py-3 px-4">
                     <span
-                      className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${
-                        order.paymentStatus === 'verified'
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${order.paymentStatus === 'verified'
                           ? 'bg-green-100 text-green-700'
                           : order.paymentStatus === 'failed'
-                          ? 'bg-red-100 text-red-600'
-                          : 'bg-yellow-100 text-yellow-700'
-                      }`}
+                            ? 'bg-red-100 text-red-600'
+                            : 'bg-yellow-100 text-yellow-700'
+                        }`}
                     >
                       {order.paymentMethod.toUpperCase()} — {order.paymentStatus}
                     </span>
@@ -279,7 +278,7 @@ export const AdminOrders: React.FC = () => {
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => setSelectedOrder(order)}
-                        className="p-2 rounded-lg hover:bg-blush-light/50 text-warm-gray hover:text-rose-gold transition-colors"
+                        className="p-2 rounded-lg hover:bg-blush-light/50 text-[#6B5B55] hover:text-rose-gold transition-colors"
                         title="View details"
                       >
                         <Eye size={16} />
@@ -308,7 +307,7 @@ export const AdminOrders: React.FC = () => {
           <div className="text-center py-16">
             <ShoppingBag size={40} className="mx-auto text-blush mb-3" />
             <p className="text-charcoal font-medium">No orders yet</p>
-            <p className="text-warm-gray text-sm mt-1">
+            <p className="text-[#6B5B55] text-sm mt-1">
               {searchQuery || filterStatus
                 ? 'No orders match your search'
                 : 'Orders placed by customers will appear here'}
@@ -334,9 +333,9 @@ export const AdminOrders: React.FC = () => {
                   <p className="text-sm text-charcoal font-medium">
                     {selectedOrder.customer.firstName} {selectedOrder.customer.lastName}
                   </p>
-                  <p className="text-sm text-warm-gray">{selectedOrder.customer.email}</p>
-                  <p className="text-sm text-warm-gray">{selectedOrder.customer.phone}</p>
-                  <p className="text-sm text-warm-gray">
+                  <p className="text-sm text-[#6B5B55]">{selectedOrder.customer.email}</p>
+                  <p className="text-sm text-[#6B5B55]">{selectedOrder.customer.phone}</p>
+                  <p className="text-sm text-[#6B5B55]">
                     {selectedOrder.customer.address}, {selectedOrder.customer.city}
                     {(selectedOrder.customer as any).district ? `, ${(selectedOrder.customer as any).district}` : ''}
                   </p>
@@ -345,19 +344,19 @@ export const AdminOrders: React.FC = () => {
               <div className="glass-card rounded-xl p-4">
                 <h4 className="text-sm font-semibold text-charcoal mb-3">Payment Info</h4>
                 <div className="space-y-1">
-                  <p className="text-sm text-warm-gray capitalize">
+                  <p className="text-sm text-[#6B5B55] capitalize">
                     Method: <span className="text-charcoal">{selectedOrder.paymentMethod}</span>
                   </p>
-                  <p className="text-sm text-warm-gray">
+                  <p className="text-sm text-[#6B5B55]">
                     Status: <span className="capitalize text-charcoal">{selectedOrder.paymentStatus}</span>
                   </p>
                   {selectedOrder.transactionId && (
-                    <p className="text-sm text-warm-gray">
+                    <p className="text-sm text-[#6B5B55]">
                       TXN: <span className="text-charcoal">{selectedOrder.transactionId}</span>
                     </p>
                   )}
                   {selectedOrder.couponCode && (
-                    <p className="text-sm text-warm-gray">
+                    <p className="text-sm text-[#6B5B55]">
                       Coupon: <span className="text-charcoal">{selectedOrder.couponCode}</span>
                     </p>
                   )}
@@ -401,7 +400,7 @@ export const AdminOrders: React.FC = () => {
                     />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-charcoal">{item.productName}</p>
-                      <p className="text-xs text-warm-gray mt-0.5">
+                      <p className="text-xs text-[#6B5B55] mt-0.5">
                         Size: <span className="text-charcoal">{item.size}</span>
                         {' • '}
                         Color: <span className="text-charcoal">{item.color}</span>
@@ -416,7 +415,7 @@ export const AdminOrders: React.FC = () => {
                     {selectedOrder.status !== 'cancelled' && (
                       <button
                         onClick={() => handleRemoveItem(idx)}
-                        className="p-1 rounded-md text-warm-gray hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
+                        className="p-1 rounded-md text-[#6B5B55] hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
                         title="Remove item"
                       >
                         <Minus size={14} />
@@ -432,7 +431,7 @@ export const AdminOrders: React.FC = () => {
                   <p className="text-xs font-semibold text-charcoal uppercase tracking-wide">New Item</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div>
-                      <label className="text-xs text-warm-gray mb-1 block">Product Name *</label>
+                      <label className="text-xs text-[#6B5B55] mb-1 block">Product Name *</label>
                       <input
                         type="text"
                         placeholder="e.g. Floral Frock"
@@ -442,7 +441,7 @@ export const AdminOrders: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-warm-gray mb-1 block">Image URL (optional)</label>
+                      <label className="text-xs text-[#6B5B55] mb-1 block">Image URL (optional)</label>
                       <input
                         type="text"
                         placeholder="https://..."
@@ -452,7 +451,7 @@ export const AdminOrders: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-warm-gray mb-1 block">Size</label>
+                      <label className="text-xs text-[#6B5B55] mb-1 block">Size</label>
                       <input
                         type="text"
                         placeholder="e.g. S / 2Y / 28"
@@ -462,7 +461,7 @@ export const AdminOrders: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-warm-gray mb-1 block">Color</label>
+                      <label className="text-xs text-[#6B5B55] mb-1 block">Color</label>
                       <input
                         type="text"
                         placeholder="e.g. Pink"
@@ -472,7 +471,7 @@ export const AdminOrders: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-warm-gray mb-1 block">Unit Price ($) *</label>
+                      <label className="text-xs text-[#6B5B55] mb-1 block">Unit Price ($) *</label>
                       <input
                         type="number"
                         min="0"
@@ -484,7 +483,7 @@ export const AdminOrders: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-warm-gray mb-1 block">Quantity *</label>
+                      <label className="text-xs text-[#6B5B55] mb-1 block">Quantity *</label>
                       <input
                         type="number"
                         min="1"
@@ -511,7 +510,7 @@ export const AdminOrders: React.FC = () => {
             {/* ── FIX 2: Totals with inline total edit ─────────────────────── */}
             <div className="border-t border-blush/20 pt-4 space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-warm-gray">Subtotal</span>
+                <span className="text-[#6B5B55]">Subtotal</span>
                 <span>${selectedOrder.subtotal.toFixed(2)}</span>
               </div>
               {selectedOrder.discount > 0 && (
@@ -520,16 +519,15 @@ export const AdminOrders: React.FC = () => {
                   <span>-${selectedOrder.discount.toFixed(2)}</span>
                 </div>
               )}
-              <div className={`flex justify-between items-center text-base font-semibold pt-1 border-t border-blush/10 ${
-                selectedOrder.status === 'cancelled' ? 'text-warm-gray line-through' : 'text-charcoal'
-              }`}>
+              <div className={`flex justify-between items-center text-base font-semibold pt-1 border-t border-blush/10 ${selectedOrder.status === 'cancelled' ? 'text-[#6B5B55] line-through' : 'text-charcoal'
+                }`}>
                 <span>Total</span>
 
                 {/* Inline total editor */}
                 {selectedOrder.status !== 'cancelled' ? (
                   editingTotal ? (
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-warm-gray">$</span>
+                      <span className="text-sm text-[#6B5B55]">$</span>
                       <input
                         type="number"
                         min="0"
@@ -549,7 +547,7 @@ export const AdminOrders: React.FC = () => {
                       </button>
                       <button
                         onClick={() => setEditingTotal(false)}
-                        className="p-1 rounded-md text-warm-gray hover:bg-blush-light/40 transition-colors"
+                        className="p-1 rounded-md text-[#6B5B55] hover:bg-blush-light/40 transition-colors"
                         title="Discard"
                       >
                         <X size={15} />
@@ -560,7 +558,7 @@ export const AdminOrders: React.FC = () => {
                       <span className="heading-serif text-lg">${selectedOrder.total.toFixed(2)}</span>
                       <button
                         onClick={handleTotalEditStart}
-                        className="p-1 rounded-md text-warm-gray hover:text-rose-gold hover:bg-blush-light/40 transition-colors"
+                        className="p-1 rounded-md text-[#6B5B55] hover:text-rose-gold hover:bg-blush-light/40 transition-colors"
                         title="Edit total"
                       >
                         <Edit2 size={13} />
@@ -577,12 +575,12 @@ export const AdminOrders: React.FC = () => {
             {selectedOrder.notes && (
               <div className="p-3 bg-champagne/30 rounded-xl">
                 <p className="text-xs font-medium text-charcoal mb-1">Order Notes</p>
-                <p className="text-sm text-warm-gray">{selectedOrder.notes}</p>
+                <p className="text-sm text-[#6B5B55]">{selectedOrder.notes}</p>
               </div>
             )}
 
             {/* Timestamp */}
-            <p className="text-xs text-warm-gray text-right">
+            <p className="text-xs text-[#6B5B55] text-right">
               Placed: {new Date(selectedOrder.createdAt).toLocaleString()}
             </p>
           </div>

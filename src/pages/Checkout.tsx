@@ -89,7 +89,7 @@ const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { hasError?:
 }) => (
   <input
     {...props}
-    className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
+    className="w-full px-4 py-2 rounded-xl text-sm outline-none transition-all"
     style={{
       background: hasError ? 'rgba(192,80,77,0.04)' : 'rgba(255,255,255,0.8)',
       border: `1.5px solid ${hasError ? 'rgba(192,80,77,0.4)' : 'rgba(176,125,107,0.2)'}`,
@@ -330,19 +330,19 @@ export const CheckoutPage: React.FC = () => {
       <div className="max-w-2xl mx-auto px-4 sm:px-6">
 
         {/* Header */}
-        <div className="flex items-center gap-3 mb-8">
+        <div className="flex items-center gap-3 mb-5">
           <button onClick={() => navigate(-1)}
             className="p-2 rounded-xl" style={{ background: 'rgba(176,125,107,0.1)', color: '#B07D6B' }}>
             <ArrowLeft size={18} />
           </button>
           <div>
             <h1 className="heading-serif text-2xl font-bold text-charcoal">চেকআউট</h1>
-            <p className="text-xs text-warm-gray">আপনার অর্ডার সম্পন্ন করুন</p>
+            <p className="text-xs text-[#6B5B55]">আপনার অর্ডার সম্পন্ন করুন</p>
           </div>
         </div>
 
         {/* Main Card */}
-        <div className="rounded-3xl p-6 md:p-8 space-y-6"
+        <div className="rounded-3xl p-5 md:p-5 space-y-3"
           style={{ background: 'rgba(255,255,255,0.75)', backdropFilter: 'blur(12px)', border: '1px solid rgba(176,125,107,0.15)' }}>
 
           {/* ── Order Summary (top) ── */}
@@ -354,18 +354,18 @@ export const CheckoutPage: React.FC = () => {
             <div className="space-y-2">
               {checkoutItems.map(item => (
                 <div key={`${item.product.id}-${item.selectedSize}`}
-                  className="flex items-center gap-3 p-3 rounded-xl"
+                  className="flex items-center gap-2 p-2.5 rounded-xl"
                   style={{ background: 'rgba(176,125,107,0.05)' }}>
                   {item.product.images?.[0]?.startsWith('http') ? (
                     <img src={item.product.images[0]} alt={item.product.name}
-                      className="w-12 h-14 rounded-lg object-cover flex-shrink-0" />
+                      className="w-11 h-12 rounded-lg object-cover flex-shrink-0" />
                   ) : (
-                    <div className="w-12 h-14 rounded-lg flex-shrink-0"
+                    <div className="w-11 h-12 rounded-lg flex-shrink-0"
                       style={{ background: 'linear-gradient(135deg, #F0E0D6, #E8D0C4)' }} />
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-charcoal truncate">{item.product.name}</p>
-                    <p className="text-xs text-warm-gray">{item.selectedSize} • {item.selectedColor} × {item.quantity}</p>
+                    <p className="text-xs text-[#6B5B55]">{item.selectedSize} • {item.selectedColor} × {item.quantity}</p>
                   </div>
                   <p className="text-sm font-bold flex-shrink-0" style={{ color: '#B07D6B' }}>
                     ৳{(item.product.price * item.quantity).toFixed(0)}
@@ -378,14 +378,14 @@ export const CheckoutPage: React.FC = () => {
           <div className="h-px" style={{ background: 'rgba(176,125,107,0.15)' }} />
 
           {/* ── Shipping Info ── */}
-          <div className="space-y-4">
-            <p className="text-sm font-semibold text-charcoal">📦 ডেলিভারি তথ্য</p>
+          <div className="space-y-2">
+            <p className="text-[15px] font-bold text-[#2B2B2B]">📦 ডেলিভারি তথ্য</p>
 
             <Field label="পুরো নাম" required error={errors.fullName}>
               <Input
                 value={form.fullName}
                 onChange={e => updateForm('fullName', e.target.value)}
-                placeholder="আপনার সম্পূর্ণ নাম"
+                placeholder="আপনার  নাম"
                 hasError={!!errors.fullName}
               />
             </Field>
@@ -411,14 +411,14 @@ export const CheckoutPage: React.FC = () => {
             {/* Delivery Zone */}
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: '#8C7269' }}>
-                ডেলিভারি এলাকা <span style={{ color: '#B07D6B' }}>*</span>
+                ডেলিভারি এলাকা <span style={{ color: '#e87c55' }}>*</span>
               </p>
               <div className="grid grid-cols-2 gap-3">
                 {DELIVERY_ZONES.map(zone => (
                   <motion.button key={zone.id} type="button"
                     whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
                     onClick={() => { setDeliveryZone(zone.id); setErrors(p => ({ ...p, deliveryZone: '' })); }}
-                    className="text-left p-4 rounded-2xl transition-all"
+                    className="text-left p-3 rounded-2xl transition-all"
                     style={{
                       border: deliveryZone === zone.id ? '2px solid #B07D6B' : '1.5px solid rgba(176,125,107,0.2)',
                       background: deliveryZone === zone.id ? 'rgba(176,125,107,0.08)' : 'rgba(255,255,255,0.6)',
@@ -455,24 +455,30 @@ export const CheckoutPage: React.FC = () => {
               {paymentMethods.map(method => (
                 <motion.button key={method.id} whileTap={{ scale: 0.99 }}
                   onClick={() => setPaymentMethod(method.id)}
-                  className="w-full flex items-center gap-4 p-4 rounded-2xl text-left transition-all"
+                  className="w-full flex items-center gap-3 p-3 rounded-2xl text-left transition-all"
                   style={{
-                    border: paymentMethod === method.id ? '2px solid #B07D6B' : '1.5px solid rgba(176,125,107,0.2)',
-                    background: paymentMethod === method.id ? 'rgba(176,125,107,0.07)' : 'rgba(255,255,255,0.5)',
+                    border: paymentMethod === method.id
+                      ? '2px solid #B07D6B'
+                      : '1.5px solid rgba(176,125,107,0.35)',
+                    background: paymentMethod === method.id
+                      ? 'rgba(176,125,107,0.14)'
+                      : 'rgba(255,255,255,0.85)',
                   }}>
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                     style={{
-                      background: paymentMethod === method.id ? 'linear-gradient(135deg, #B07D6B, #C4956A)' : 'rgba(176,125,107,0.1)',
-                      color: paymentMethod === method.id ? 'white' : '#B07D6B',
+                      background: paymentMethod === method.id
+                        ? 'linear-gradient(135deg, #B07D6B, #C4956A)'
+                        : 'rgba(176,125,107,0.18)',
+                      color: paymentMethod === method.id ? 'Black' : '#B07D6B',
                     }}>
                     {method.icon}
                   </div>
                   <div className="flex-1">
-                    <p className="font-semibold text-sm text-charcoal">{method.label}</p>
-                    <p className="text-xs text-warm-gray">{method.desc}</p>
+                    <p className="font-semibold text-[14px] text-[#2A2A2A]">{method.label}</p>
+                    <p className="text-xs text-[#6B5B55]">{method.desc}</p>
                   </div>
                   {paymentMethod === method.id && (
-                    <CheckCircle size={18} style={{ color: '#B07D6B' }} />
+                    <CheckCircle size={18} style={{ color: '#1be904' }} />
                   )}
                 </motion.button>
               ))}
@@ -492,14 +498,14 @@ export const CheckoutPage: React.FC = () => {
                     </ol>
                     <CopyNumber />
                     <ol className="text-sm space-y-1.5" style={{ color: '#6C5A54' }}>
-                      <li>২. ট্রানজেকশন আইডি নিচে লিখুন</li>
+                      <li>২. আপনার বিকাশ/নগদ নাম্বারের শেষ ৪ ডিজিট লেখুন</li>
                       <li>৩. আমরা ২৪ ঘণ্টার মধ্যে যাচাই করব</li>
                     </ol>
-                    <Field label="ট্রানজেকশন আইডি" required error={errors.transactionId}>
+                    <Field label="শেষের ৪ সংখা" required error={errors.transactionId}>
                       <Input
                         value={transactionId}
                         onChange={e => { setTransactionId(e.target.value); setErrors(p => ({ ...p, transactionId: '' })); }}
-                        placeholder="যেমন: 8A9B7C6D"
+                        placeholder="যেমন : 3060"
                         hasError={!!errors.transactionId}
                       />
                     </Field>
@@ -646,7 +652,7 @@ export const CheckoutPage: React.FC = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-medium text-charcoal truncate">{item.product.name}</p>
-                          <p className="text-xs text-warm-gray">{item.selectedSize} • x{item.quantity}</p>
+                          <p className="text-xs text-[#6B5B55]">{item.selectedSize} • x{item.quantity}</p>
                         </div>
                         <p className="text-sm font-bold flex-shrink-0" style={{ color: '#B07D6B' }}>
                           ৳{(item.product.price * item.quantity).toFixed(0)}

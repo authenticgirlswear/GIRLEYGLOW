@@ -19,6 +19,7 @@
     "@types/react-dom": "19.2.3",
     "@vercel/analytics": "^2.0.1",
     "@vitejs/plugin-react": "5.1.1",
+    "browser-image-compression": "^2.0.2",
     "browserslist": "^4.28.2",
     "caniuse-lite": "^1.0.30001793",
     "clsx": "2.1.1",

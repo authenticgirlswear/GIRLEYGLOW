@@ -43,7 +43,7 @@ export const AdminLayout: React.FC = () => {
             AUTHENTIC
             <span className="block text-[9px] font-sans font-normal tracking-[0.25em] text-rose-gold">GIRLSWEAR</span>
           </h2>
-          <p className="text-[10px] text-warm-gray mt-1 uppercase tracking-wider">Admin Panel</p>
+          <p className="text-[10px] text-[#6B5B55] mt-1 uppercase tracking-wider">Admin Panel</p>
         </Link>
       </div>
 
@@ -57,11 +57,10 @@ export const AdminLayout: React.FC = () => {
               key={item.path}
               to={item.path}
               onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-                isActive
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${isActive
                   ? 'bg-rose-gold text-white shadow-md shadow-rose-gold/20'
-                  : 'text-warm-gray hover:bg-blush-light/50 hover:text-charcoal'
-              }`}
+                  : 'text-[#6B5B55] hover:bg-blush-light/50 hover:text-charcoal'
+                }`}
             >
               <Icon size={18} />
               <span>{item.label}</span>
@@ -80,9 +79,9 @@ export const AdminLayout: React.FC = () => {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-charcoal truncate">{admin?.name || 'Admin'}</p>
-            <p className="text-xs text-warm-gray truncate">{admin?.role || 'super_admin'}</p>
+            <p className="text-xs text-[#6B5B55] truncate">{admin?.role || 'super_admin'}</p>
           </div>
-          <button onClick={handleLogout} className="p-1.5 rounded-lg hover:bg-blush-light/50 text-warm-gray hover:text-deep-rose transition-colors" title="Logout">
+          <button onClick={handleLogout} className="p-1.5 rounded-lg hover:bg-blush-light/50 text-[#6B5B55] hover:text-deep-rose transition-colors" title="Logout">
             <LogOut size={16} />
           </button>
         </div>

@@ -17,7 +17,7 @@ export const AdminLoginPage: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-const { setAuthenticated } = useAdminAuthStore();
+  const { setAuthenticated } = useAdminAuthStore();
 
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,7 +49,7 @@ const { setAuthenticated } = useAdminAuthStore();
               AUTHENTIC
               <span className="block text-[10px] font-sans font-normal tracking-[0.3em] text-rose-gold">GIRLSWEAR</span>
             </h1>
-            <p className="text-sm text-warm-gray mt-2">Admin Panel — Sign in to manage your store</p>
+            <p className="text-sm text-[#6B5B55] mt-2">Admin Panel — Sign in to manage your store</p>
           </div>
 
           {error && (
@@ -61,9 +61,9 @@ const { setAuthenticated } = useAdminAuthStore();
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-warm-gray mb-1.5">Email</label>
+              <label className="block text-sm font-medium text-[#6B5B55] mb-1.5">Email</label>
               <div className="relative">
-                <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-warm-gray" />
+                <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6B5B55]" />
                 <input
                   type="email"
                   value={email}
@@ -76,9 +76,9 @@ const { setAuthenticated } = useAdminAuthStore();
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-warm-gray mb-1.5">Password</label>
+              <label className="block text-sm font-medium text-[#6B5B55] mb-1.5">Password</label>
               <div className="relative">
-                <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-warm-gray" />
+                <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6B5B55]" />
                 <input
                   type="password"
                   value={password}
@@ -99,7 +99,7 @@ const { setAuthenticated } = useAdminAuthStore();
         </div>
 
         <div className="text-center mt-6">
-          <a href="/" className="text-sm text-warm-gray hover:text-rose-gold transition-colors">
+          <a href="/" className="text-sm text-[#6B5B55] hover:text-rose-gold transition-colors">
             ← Back to store
           </a>
         </div>

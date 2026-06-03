@@ -6,25 +6,30 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Grid3X3, Grid2X2, SlidersHorizontal, Sparkles, Tag } from 'lucide-react';
+import { Grid3X3, Grid2X2, SlidersHorizontal, Sparkles } from 'lucide-react';
 
 import { ProductCard } from '@/components/home';
 import { FadeIn, Button, Select } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 import { useCategoryStore } from '@/store';
-
+import { useContentStore } from '@/store/contentStore';
 
 /* ─────────────────────────────────────────────
    NEW ARRIVALS HERO BANNER
-   Warm blush gradient, serif headline, shimmer
 ───────────────────────────────────────────── */
-const NewArrivalsHero: React.FC = () => (
+const NewArrivalsHero: React.FC<{
+  banner?: { title?: string; subtitle?: string; imageUrl?: string; gradient?: string };
+}> = ({ banner }) => (
   <motion.div
     initial={{ opacity: 0, y: -16 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
     className="relative mb-10 rounded-3xl overflow-hidden"
-    style={{ background: 'linear-gradient(135deg, #F5E6DC 0%, #EDD5C5 40%, #E8C9B8 100%)' }}
+    style={
+      banner?.imageUrl
+        ? { backgroundImage: `url(${banner.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+        : { background: banner?.gradient || 'linear-gradient(135deg, #F5E6DC 0%, #EDD5C5 40%, #E8C9B8 100%)' }
+    }
   >
     {/* Decorative circles */}
     <div
@@ -36,19 +41,15 @@ const NewArrivalsHero: React.FC = () => (
       style={{ background: 'radial-gradient(circle, #C4956A 0%, transparent 70%)' }}
     />
 
-    {/* Thin horizontal rule decoration */}
+    {/* Top rule */}
     <div className="absolute top-0 left-0 right-0 h-px opacity-30" style={{ background: '#B07D6B' }} />
 
-    <div className="relative z-10 px-8 md:px-16 py-12 md:py-16 flex flex-col md:flex-row items-center gap-8">
+    <div className="relative z-10 px-8 md:px-16 py-8 md:py-10 flex flex-col md:flex-row items-center gap-8">
       {/* Left: text */}
       <div className="flex-1 text-center md:text-left">
-        {/* Eyebrow */}
         <div className="inline-flex items-center gap-2 mb-4">
           <div className="h-px w-8" style={{ background: '#B07D6B' }} />
-          <span
-            className="text-[10px] font-semibold tracking-[0.35em] uppercase"
-            style={{ color: '#B07D6B' }}
-          >
+          <span className="text-[10px] font-semibold tracking-[0.35em] uppercase" style={{ color: '#B07D6B' }}>
             Just Arrived
           </span>
           <div className="h-px w-8" style={{ background: '#B07D6B' }} />
@@ -58,16 +59,15 @@ const NewArrivalsHero: React.FC = () => (
           className="font-serif text-4xl md:text-5xl lg:text-6xl font-light mb-4 leading-tight"
           style={{ color: '#2C2C2C' }}
         >
-          New<br />
-          <em style={{ color: '#B07D6B', fontStyle: 'italic' }}>Arrivals</em>
+          {banner?.title || 'New Arrivals'}
         </h1>
 
         <p className="text-sm md:text-base mb-0 max-w-xs md:max-w-sm" style={{ color: '#8C7269', lineHeight: '1.7' }}>
-          Fresh pieces, curated with love. Be the first to wear what's new this season.
+          {banner?.subtitle || 'Fresh pieces, curated with love. Be the first to wear what\'s new this season.'}
         </p>
       </div>
 
-      {/* Right: decorative tag/icon cluster */}
+      {/* Right: decorative icon */}
       <div className="flex-shrink-0 hidden md:flex flex-col items-center gap-3">
         <motion.div
           animate={{ rotate: [0, 3, -3, 0] }}
@@ -77,92 +77,75 @@ const NewArrivalsHero: React.FC = () => (
         >
           <Sparkles size={36} style={{ color: '#B07D6B' }} />
         </motion.div>
-        <span className="text-[9px] tracking-[0.3em] uppercase" style={{ color: '#B07D6B' }}>
-          New Season
-        </span>
+        <span className="text-[9px] tracking-[0.3em] uppercase" style={{ color: '#B07D6B' }}>New Season</span>
       </div>
     </div>
 
+    {/* Bottom rule */}
     <div className="absolute bottom-0 left-0 right-0 h-px opacity-30" style={{ background: '#B07D6B' }} />
   </motion.div>
 );
 
-
 /* ─────────────────────────────────────────────
    SALE HERO BANNER
-   Deep warm tone, bold serif, urgency feel
 ───────────────────────────────────────────── */
-const SaleHero: React.FC = () => (
+const SaleHero: React.FC<{
+  banner?: { title?: string; subtitle?: string; imageUrl?: string; gradient?: string };
+}> = ({ banner }) => (
   <motion.div
     initial={{ opacity: 0, y: -16 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
     className="relative mb-10 rounded-3xl overflow-hidden"
-    style={{ background: 'linear-gradient(135deg, #2C1F1A 0%, #3D2820 50%, #4A3028 100%)' }}
+    style={
+      banner?.imageUrl
+        ? { backgroundImage: `url(${banner.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+        : { background: banner?.gradient || 'linear-gradient(135deg, #2C1F1A 0%, #3D2820 50%, #4A3028 100%)' }
+    }
   >
-    {/* Warm glow top right */}
+    {/* Decorative circle */}
     <div
       className="absolute -top-20 -right-20 w-80 h-80 rounded-full opacity-25"
       style={{ background: 'radial-gradient(circle, #B07D6B 0%, transparent 65%)' }}
     />
-    {/* Subtle bottom left */}
-    <div
-      className="absolute -bottom-12 -left-12 w-56 h-56 rounded-full opacity-15"
-      style={{ background: 'radial-gradient(circle, #C4956A 0%, transparent 65%)' }}
-    />
 
-    {/* Top accent line */}
-    <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: 'linear-gradient(90deg, transparent, #B07D6B, transparent)' }} />
+    <div className="absolute inset-0 bg-black/30" />
 
-    <div className="relative z-10 px-8 md:px-16 py-12 md:py-16 flex flex-col md:flex-row items-center gap-8">
+    <div className="relative z-10 px-8 md:px-16 py-8 md:py-10 flex flex-col md:flex-row items-center gap-8">
       {/* Left: text */}
       <div className="flex-1 text-center md:text-left">
-        {/* Eyebrow */}
         <div className="inline-flex items-center gap-2 mb-4">
           <div className="h-px w-8" style={{ background: '#B07D6B' }} />
-          <span
-            className="text-[10px] font-semibold tracking-[0.35em] uppercase"
-            style={{ color: '#B07D6B' }}
-          >
+          <span className="text-[10px] font-semibold tracking-[0.35em] uppercase" style={{ color: '#B07D6B' }}>
             Limited Time
           </span>
           <div className="h-px w-8" style={{ background: '#B07D6B' }} />
         </div>
 
-        <h1
-          className="font-serif text-4xl md:text-5xl lg:text-6xl font-light mb-4 leading-tight"
-          style={{ color: '#F5E6DC' }}
-        >
-          The<br />
-          <em style={{ color: '#B07D6B', fontStyle: 'italic' }}>Sale Edit</em>
+        <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-light mb-4 leading-tight text-white">
+          {banner?.title || 'Sale Collection'}
         </h1>
 
-        <p className="text-sm md:text-base max-w-xs md:max-w-sm" style={{ color: '#C4A898', lineHeight: '1.7' }}>
-          Luxury pieces, exceptional value. Curated offers on your favourite styles — while they last.
+        <p className="text-sm md:text-base mb-0 max-w-xs md:max-w-sm text-white/80" style={{ lineHeight: '1.7' }}>
+          {banner?.subtitle || 'Luxury pieces, exceptional value. Limited time offers.'}
         </p>
       </div>
 
-      {/* Right: tag icon */}
+      {/* Right: decorative icon */}
       <div className="flex-shrink-0 hidden md:flex flex-col items-center gap-3">
         <motion.div
-          animate={{ scale: [1, 1.05, 1] }}
-          transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+          animate={{ rotate: [0, 3, -3, 0] }}
+          transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
           className="w-24 h-24 rounded-full flex items-center justify-center"
-          style={{ background: 'rgba(176, 125, 107, 0.2)', border: '1px solid rgba(176, 125, 107, 0.4)' }}
+          style={{ background: 'rgba(176, 125, 107, 0.15)', border: '1px solid rgba(176, 125, 107, 0.3)' }}
         >
-          <Tag size={36} style={{ color: '#B07D6B' }} />
+          <Sparkles size={36} style={{ color: '#B07D6B' }} />
         </motion.div>
-        <span className="text-[9px] tracking-[0.3em] uppercase" style={{ color: '#B07D6B' }}>
-          Exclusive Offers
-        </span>
+        <span className="text-[9px] tracking-[0.3em] uppercase" style={{ color: '#B07D6B' }}>Sale Season</span>
       </div>
     </div>
-
-    {/* Bottom accent line */}
-    <div className="absolute bottom-0 left-0 right-0 h-0.5" style={{ background: 'linear-gradient(90deg, transparent, #B07D6B, transparent)' }} />
   </motion.div>
 );
-
 
 /* ─────────────────────────────────────────────
    MAIN SHOP PAGE
@@ -170,6 +153,7 @@ const SaleHero: React.FC = () => (
 export const ShopPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { categories } = useCategoryStore();
+  const { content } = useContentStore();
 
   const [showFilters, setShowFilters] = useState(false);
   const [gridCols, setGridCols] = useState<3 | 4>(4);
@@ -220,20 +204,20 @@ export const ShopPage: React.FC = () => {
     }
 
     if (saleFilter) {
-  filtered = filtered.filter(
-    product =>
-      product.isOnSale === true ||
-      product.is_on_sale === true ||
-      product.comparePrice != null ||
-      product.compare_price != null
-  );
-}
+      filtered = filtered.filter(
+        product =>
+          product.isOnSale === true ||
+          product.is_on_sale === true ||
+          product.comparePrice != null ||
+          product.compare_price != null
+      );
+    }
 
     if (newArrivalsFilter) {
-  filtered = filtered.filter(
-    product => product.isNewArrival === true || product.is_new_arrival === true
-  );
-}
+      filtered = filtered.filter(
+        product => product.isNewArrival === true || product.is_new_arrival === true
+      );
+    }
 
     filtered = filtered.filter(product => {
       const price = Number(product.price) || 0;
@@ -280,24 +264,23 @@ export const ShopPage: React.FC = () => {
     searchQuery,
   ].filter(Boolean).length;
 
-  /* Page title for the standard (non-hero) header */
   const pageTitle = saleFilter
     ? 'Sale Collection'
     : newArrivalsFilter
-    ? 'New Arrivals'
-    : searchQuery
-    ? `Search: "${searchQuery}"`
-    : categoryFilter
-    ? currentCategoryName || 'Shop'
-    : 'Our Collection';
+      ? 'New Arrivals'
+      : searchQuery
+        ? `Search: "${searchQuery}"`
+        : categoryFilter
+          ? currentCategoryName || 'Shop'
+          : 'Our Collection';
 
   return (
     <div className="min-h-screen pt-24 pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* ── Special Hero Banners ── */}
-        {newArrivalsFilter && <NewArrivalsHero />}
-        {saleFilter && <SaleHero />}
+        {newArrivalsFilter && <NewArrivalsHero banner={content.newArrivalBanners?.[0]} />}
+        {saleFilter && <SaleHero banner={content.saleBanners?.[0]} />}
 
         {/* ── Standard Header (shown when NOT in special mode) ── */}
         {!newArrivalsFilter && !saleFilter && (
@@ -306,7 +289,7 @@ export const ShopPage: React.FC = () => {
               <h1 className="heading-serif text-3xl md:text-4xl lg:text-5xl font-bold text-charcoal mb-2">
                 {pageTitle}
               </h1>
-              <p className="text-warm-gray">
+              <p className="text-[#6B5B55]">
                 {filteredProducts.length}{' '}
                 {filteredProducts.length === 1 ? 'piece' : 'pieces'} found
               </p>
@@ -318,7 +301,7 @@ export const ShopPage: React.FC = () => {
         {/* ── Piece count under hero banners ── */}
         {(newArrivalsFilter || saleFilter) && (
           <FadeIn>
-            <p className="text-warm-gray text-sm mb-6 -mt-4">
+            <p className="text-[#6B5B55] text-sm mb-6 -mt-4">
               {filteredProducts.length}{' '}
               {filteredProducts.length === 1 ? 'piece' : 'pieces'} found
             </p>
@@ -402,11 +385,10 @@ export const ShopPage: React.FC = () => {
                           p.delete('category');
                           setSearchParams(p);
                         }}
-                        className={`block text-sm w-full text-left px-3 py-1.5 rounded-lg transition-colors ${
-                          !categoryFilter
-                            ? 'bg-blush-light text-charcoal font-medium'
-                            : 'text-warm-gray hover:text-charcoal'
-                        }`}
+                        className={`block text-sm w-full text-left px-3 py-1.5 rounded-lg transition-colors ${!categoryFilter
+                          ? 'bg-blush-light text-charcoal font-medium'
+                          : 'text-[#6B5B55] hover:text-charcoal'
+                          }`}
                       >
                         All Categories
                       </button>
@@ -419,11 +401,10 @@ export const ShopPage: React.FC = () => {
                             p.set('category', cat.slug);
                             setSearchParams(p);
                           }}
-                          className={`block text-sm w-full text-left px-3 py-1.5 rounded-lg transition-colors ${
-                            categoryFilter === cat.slug
-                              ? 'bg-blush-light text-charcoal font-medium'
-                              : 'text-warm-gray hover:text-charcoal'
-                          }`}
+                          className={`block text-sm w-full text-left px-3 py-1.5 rounded-lg transition-colors ${categoryFilter === cat.slug
+                            ? 'bg-blush-light text-charcoal font-medium'
+                            : 'text-[#6B5B55] hover:text-charcoal'
+                            }`}
                         >
                           {cat.name}
                         </button>
@@ -446,7 +427,7 @@ export const ShopPage: React.FC = () => {
                         onChange={e => setPriceRange([299, parseInt(e.target.value)])}
                         className="w-full accent-rose-gold"
                       />
-                      <div className="flex justify-between text-sm text-warm-gray">
+                      <div className="flex justify-between text-sm text-[#6B5B55]">
                         <span>৳299</span>
                         <span>{priceRange[1] >= 10000 ? 'No limit' : `৳${priceRange[1]}`}</span>
                       </div>
@@ -461,7 +442,7 @@ export const ShopPage: React.FC = () => {
                       onChange={e => setInStockOnly(e.target.checked)}
                       className="w-4 h-4 rounded accent-rose-gold"
                     />
-                    <span className="text-sm text-warm-gray">In stock only</span>
+                    <span className="text-sm text-[#6B5B55]">In stock only</span>
                   </label>
 
                 </div>
@@ -473,30 +454,29 @@ export const ShopPage: React.FC = () => {
           <div className="flex-1">
             {loading ? (
               <div className="text-center py-20">
-                <p className="text-warm-gray">Loading products...</p>
+                <p className="text-[#6B5B55]">Loading products...</p>
               </div>
             ) : filteredProducts.length === 0 ? (
               <div className="text-center py-20">
                 <h3 className="heading-serif text-2xl font-semibold text-charcoal mb-2">
                   No products found
                 </h3>
-                <p className="text-warm-gray mb-6">
+                <p className="text-[#6B5B55] mb-6">
                   {newArrivalsFilter
                     ? 'No new arrivals in the last 30 days. Check back soon!'
                     : saleFilter
-                    ? 'No sale items at the moment. Check back soon!'
-                    : 'Try adjusting your filters or search terms'}
+                      ? 'No sale items at the moment. Check back soon!'
+                      : 'Try adjusting your filters or search terms'}
                 </p>
                 <Button variant="outline" onClick={clearFilters}>Clear Filters</Button>
               </div>
             ) : (
               <motion.div
                 layout
-                className={`grid gap-4 md:gap-6 ${
-                  gridCols === 3
-                    ? 'grid-cols-2 md:grid-cols-3'
-                    : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
-                }`}
+                className={`grid gap-4 md:gap-6 ${gridCols === 3
+                  ? 'grid-cols-2 md:grid-cols-3'
+                  : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
+                  }`}
               >
                 {filteredProducts.map((product, index) => (
                   <motion.div

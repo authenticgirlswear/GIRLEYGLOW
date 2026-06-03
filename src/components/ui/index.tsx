@@ -67,13 +67,13 @@ export const Input: React.FC<InputProps> = ({ label, error, className = '', id, 
   return (
     <div className="w-full">
       {label && (
-        <label htmlFor={id} className="block text-sm font-medium text-warm-gray mb-1.5">
+        <label htmlFor={id} className="block text-sm font-medium text-[#6B5B55] mb-1.5">
           {label}
         </label>
       )}
       <input
         id={id}
-        className={`w-full px-4 py-2.5 rounded-xl border bg-white/80 text-charcoal placeholder:text-warm-gray/50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-rose-gold/30 focus:border-rose-gold ${error ? 'border-red-400' : 'border-blush/30'
+        className={`w-full px-4 py-2.5 rounded-xl border bg-white/80 text-charcoal placeholder:text-[#6B5B55]/50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-rose-gold/30 focus:border-rose-gold ${error ? 'border-red-400' : 'border-blush/30'
           } ${className}`}
         {...props}
       />
@@ -92,13 +92,13 @@ export const Textarea: React.FC<TextareaProps> = ({ label, error, className = ''
   return (
     <div className="w-full">
       {label && (
-        <label htmlFor={id} className="block text-sm font-medium text-warm-gray mb-1.5">
+        <label htmlFor={id} className="block text-sm font-medium text-[#6B5B55] mb-1.5">
           {label}
         </label>
       )}
       <textarea
         id={id}
-        className={`w-full px-4 py-2.5 rounded-xl border bg-white/80 text-charcoal placeholder:text-warm-gray/50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-rose-gold/30 focus:border-rose-gold resize-none ${error ? 'border-red-400' : 'border-blush/30'
+        className={`w-full px-4 py-2.5 rounded-xl border bg-white/80 text-charcoal placeholder:text-[#6B5B55]/50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-rose-gold/30 focus:border-rose-gold resize-none ${error ? 'border-red-400' : 'border-blush/30'
           } ${className}`}
         rows={4}
         {...props}
@@ -118,7 +118,7 @@ export const Select: React.FC<SelectProps> = ({ label, options, className = '', 
   return (
     <div className="w-full">
       {label && (
-        <label htmlFor={id} className="block text-sm font-medium text-warm-gray mb-1.5">
+        <label htmlFor={id} className="block text-sm font-medium text-[#6B5B55] mb-1.5">
           {label}
         </label>
       )}
@@ -199,7 +199,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
           <div className="flex items-center justify-between mb-4">
             <h3 className="heading-serif text-xl font-semibold text-charcoal">{title}</h3>
             <button onClick={onClose} className="p-1 rounded-lg hover:bg-blush-light transition-colors">
-              <X size={20} className="text-warm-gray" />
+              <X size={20} className="text-[#6B5B55]" />
             </button>
           </div>
         )}
@@ -253,7 +253,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({ title, subtitle, c
         {title}
       </h2>
       {subtitle && (
-        <p className={`text-base md:text-lg max-w-2xl ${center ? 'mx-auto' : ''} ${light ? 'text-white/80' : 'text-warm-gray'}`}>
+        <p className={`text-base md:text-lg max-w-2xl ${center ? 'mx-auto' : ''} ${light ? 'text-white/80' : 'text-[#6B5B55]'}`}>
           {subtitle}
         </p>
       )}
@@ -275,7 +275,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ icon, title, description
     <div className="flex flex-col items-center justify-center py-16 text-center">
       {icon && <div className="text-blush mb-4">{icon}</div>}
       <h3 className="heading-serif text-2xl font-semibold text-charcoal mb-2">{title}</h3>
-      <p className="text-warm-gray max-w-md mb-6">{description}</p>
+      <p className="text-[#6B5B55] max-w-md mb-6">{description}</p>
       {action}
     </div>
   );
@@ -298,7 +298,7 @@ export const PriceDisplay: React.FC<PriceDisplayProps> = ({ price, comparePrice,
         ৳{price.toFixed(2)}
       </span>
       {comparePrice && comparePrice > price && (
-        <span className={`${saleSizes[size]} text-warm-gray line-through`}>
+        <span className={`${saleSizes[size]} text-[#6B5B55] line-through`}>
           ৳{comparePrice.toFixed(2)}
         </span>
       )}
@@ -334,7 +334,7 @@ export const StarRating: React.FC<StarRatingProps> = ({ rating, count, size = 16
         </svg>
       ))}
       {count !== undefined && (
-        <span className="text-sm text-warm-gray ml-1">({count})</span>
+        <span className="text-sm text-[#6B5B55] ml-1">({count})</span>
       )}
     </div>
   );

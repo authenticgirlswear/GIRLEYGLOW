@@ -1,7 +1,18 @@
+import imageCompression from 'browser-image-compression';
+
 export const uploadToCloudinary = async (file: File) => {
+
+    const compressedFile = await imageCompression(file, {
+        maxSizeMB: 0.8,
+        maxWidthOrHeight: 1600,
+        useWebWorker: true,
+        fileType: 'image/webp',
+    });
+
     const formData = new FormData();
 
-    formData.append('file', file);
+    formData.append('file', compressedFile);
+
     formData.append(
         'upload_preset',
         import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET

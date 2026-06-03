@@ -95,6 +95,7 @@ const App: React.FC = () => {
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/category/:slug" element={<CategoryPage />} />
+          <Route path="/sale" element={<Navigate to="/shop?sale=true" replace />} />
         </Route>
 
         {/* ========================
