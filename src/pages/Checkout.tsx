@@ -20,6 +20,7 @@ import { useCartStore, useOrderStore } from '@/store';
 import { sendOrderToGoogleSheets } from '@/lib/supabase';
 import type { PaymentMethod, Product, } from '@/types';
 import { trackInitiateCheckout, trackPurchase } from '@/lib/facebookPixel';
+import { validateCoupon } from '@/lib/supabase';
 
 
 interface BuyNowState {
@@ -175,18 +176,16 @@ export const CheckoutPage: React.FC = () => {
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [couponError, setCouponError] = useState('');
 
-  const applyCoupon = () => {
+  const applyCoupon = async () => {
     setCouponError('');
-    if (couponInput.trim().toUpperCase() === 'WELCOME10') {
-      setCouponDiscount(Math.round(subtotal * 0.1));
-      setCouponApplied(true);
-    } else if (!couponInput.trim()) {
-      setCouponError('কুপন কোড দিন।');
-    } else {
-      setCouponError('ভুল কুপন কোড।');
-      setCouponDiscount(0);
-      setCouponApplied(false);
-    }
+    if (!couponInput.trim()) { setCouponError('কুপন কোড দিন।'); return; }
+    const coupon = await validateCoupon(couponInput.trim());
+    if (!coupon) { setCouponError('ভুল কুপন কোড।'); return; }
+    if (new Date(coupon.expires_at) < new Date()) { setCouponError('এই কুপনের মেয়াদ শেষ।'); return; }
+    setCouponDiscount(
+      coupon.type === 'percentage' ? Math.round(subtotal * coupon.discount / 100) : coupon.discount
+    );
+    setCouponApplied(true);
   };
 
   const total = subtotal - discount - couponDiscount + shippingCharge;
@@ -262,7 +261,7 @@ export const CheckoutPage: React.FC = () => {
       })),
     };
 
-    placeOrder(orderData);
+    await placeOrder(orderData);
     trackPurchase(total);
     // Send to Google Sheets
     try {

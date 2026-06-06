@@ -10,10 +10,10 @@ export const HomePage: React.FC = () => {
     <div>
       <Hero />
       <BannerSlider />
+      <NewArrivals />
+      <TrendingProducts />
       <FeaturedCollection />
       <CategoryShowcase />
-      <TrendingProducts />
-      <NewArrivals />
     </div>
   );
 };

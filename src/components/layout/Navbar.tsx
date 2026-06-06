@@ -12,7 +12,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, Search, Menu, X, ChevronDown } from 'lucide-react';
 import { useCartStore, useUIStore, useCategoryStore } from '@/store';
 
-export const Navbar: React.FC = () => {
+interface NavbarProps {
+  barVisible?: boolean;
+}
+
+export const Navbar: React.FC<NavbarProps> = ({ barVisible = false }) => {
   const [hidden, setHidden] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -24,12 +28,10 @@ export const Navbar: React.FC = () => {
   const { mobileMenuOpen, setMobileMenuOpen } = useUIStore();
   const getItemCount = useCartStore(s => s.getItemCount);
 
-  // ── Pull both categories AND the Supabase loader from the store ──
   const { categories, loadCategories, loading: categoriesLoading } = useCategoryStore();
 
   const itemCount = getItemCount();
 
-  // ── Fetch from Supabase on mount — bypasses any stale localStorage data ──
   useEffect(() => {
     loadCategories();
   }, [loadCategories]);
@@ -85,15 +87,12 @@ export const Navbar: React.FC = () => {
   const isActive = (path: string) => {
     const current = location.pathname + location.search;
 
-    // Exact match first
     if (current === path) return true;
 
-    // Home
     if (path === '/') {
       return location.pathname === '/';
     }
 
-    // Shop should ONLY activate on plain /shop
     if (path === '/shop') {
       return location.pathname === '/shop' && location.search === '';
     }
@@ -101,7 +100,6 @@ export const Navbar: React.FC = () => {
     return false;
   };
 
-  // ── Shared category list renderer — avoids duplicating loading/empty states ──
   const renderCategoryLinks = (onClick?: () => void) => {
     if (categoriesLoading) {
       return (
@@ -131,20 +129,11 @@ export const Navbar: React.FC = () => {
 
   return (
     <>
-      {/*
-        ═══════════════════════════════════════════════
-        ENTIRE HEADER: fixed, full-width, zero height
-        in the document flow — floats over everything.
-
-        • position: fixed, top-0, left-0, right-0
-        • NO height on this wrapper → takes ZERO space
-        • pointer-events-none so hero clicks pass through
-          the transparent gaps
-        ═══════════════════════════════════════════════
-      */}
-      <div className="fixed top-0 left-0 right-0 z-50 pointer-events-none">
-
-
+      {/* ── Outer fixed wrapper: shifts down by 10 when announcement bar is visible ── */}
+      <div
+        className={`fixed left-0 right-0 z-50 pointer-events-none ${barVisible ? 'top-10' : 'top-0'
+          }`}
+      >
         {/* ── Pill Navbar ── */}
         <motion.div
           initial={{ y: -80, opacity: 0 }}
@@ -153,11 +142,6 @@ export const Navbar: React.FC = () => {
             opacity: hidden ? 0 : 1,
           }}
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          /*
-            px-3 md:px-4 = tiny gap so pill doesn't touch screen edges.
-            mt-2 = gap between announcement bar and pill.
-            Everything outside the pill is transparent.
-          */
           className="px-3 md:px-4 mt-1"
         >
           <nav
@@ -310,7 +294,6 @@ export const Navbar: React.FC = () => {
             </AnimatePresence>
           </nav>
         </motion.div>
-
       </div>
       {/* ═══ END FIXED HEADER — zero layout space taken ═══ */}
 
@@ -374,11 +357,6 @@ export const Navbar: React.FC = () => {
 
                 <p className="px-4 text-[9px] font-semibold text-[#9A8880] uppercase tracking-[0.3em] mb-2">Categories</p>
                 <div className="space-y-0.5 mb-5">
-                  {/*
-                    Mobile drawer uses the same renderCategoryLinks() helper.
-                    Pass setMobileMenuOpen(false) as the onClick so the drawer
-                    closes when the user taps a category — matching original behaviour.
-                  */}
                   {renderCategoryLinks(() => setMobileMenuOpen(false))}
                 </div>
 

@@ -61,7 +61,7 @@ export const AnnouncementBar: React.FC = () => {
 
   return (
     <div
-      className="relative z-[95] w-full overflow-hidden"
+      className="fixed top-0 left-0 right-0 z-[100] w-full overflow-hidden"
       style={{
         backgroundColor: announcement.bgColor || '#B76E79',
         color: announcement.textColor || '#FFFFFF',

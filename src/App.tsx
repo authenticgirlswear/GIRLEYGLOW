@@ -8,6 +8,9 @@ import { HashRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { AdminLayout } from '@/components/layout/AdminLayout';
+import { AnnouncementBar } from '@/components/layout/AnnouncementBar';
+import { useContentStore } from '@/store/contentStore';
+
 
 // Store
 import { useAdminAuthStore } from '@/store';
@@ -56,16 +59,22 @@ const ScrollToTop: React.FC = () => {
 };
 
 // ===== Customer Layout (Navbar + Footer) =====
-const CustomerLayout: React.FC = () => (
-  <>
-    <Navbar />
-    <main className="min-h-screen">
-      <Outlet />
-    </main>
-    <Footer />
-  </>
-);
+const CustomerLayout: React.FC = () => {
+  const announcement = useContentStore(s => s.content.announcement);
+  const barVisible = announcement?.enabled &&
+    announcement?.messages?.some((m: string) => m?.trim());
 
+  return (
+    <>
+      <AnnouncementBar />
+      <Navbar barVisible={barVisible} />
+      <main className={`min-h-screen ${barVisible ? 'pt-10' : ''}`}>
+        <Outlet />
+      </main>
+      <Footer />
+    </>
+  );
+};
 // ===== Admin Protected Route =====
 const AdminProtectedRoute: React.FC = () => {
   const isAuthenticated = useAdminAuthStore(s => s.isAuthenticated);
