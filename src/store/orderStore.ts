@@ -75,7 +75,7 @@ function rowToOrder(row: any): RealOrder {
 
 function orderToRow(order: RealOrder): Record<string, unknown> {
   return {
-    id: order.id,
+    id: undefined,
     order_number: order.orderNumber,
     status: order.status,
     payment_status: order.paymentStatus,
@@ -110,6 +110,7 @@ interface OrderStore {
   updateOrderStatus: (id: string, status: OrderStatus) => Promise<void>;
   updatePaymentStatus: (id: string, status: PaymentStatus) => Promise<void>;
   updateOrder: (order: RealOrder) => Promise<void>;
+  deleteOrder: (id: string) => Promise<void>;
 }
 
 export const useOrderStore = create<OrderStore>()((set, get) => ({
@@ -148,9 +149,12 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
   // ── Place new order — insert into Supabase first ────────────────────────────
   placeOrder: async (order) => {
     try {
+      const row = orderToRow(order);
+      delete row.id;
+
       const { data, error } = await supabase
         .from('orders')
-        .insert(orderToRow(order))
+        .insert(row)
         .select()
         .single();
 
@@ -185,7 +189,23 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
       ),
     });
   },
+  // ── Delete order ────────────────────────────────────────────────────────────
+  deleteOrder: async (id) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', id);
 
+      if (error) throw error;
+    } catch (err) {
+      console.error('[OrderStore] deleteOrder:', err);
+    }
+    // Optimistic local removal regardless
+    set({
+      orders: get().orders.filter((o) => o.id !== id),
+    });
+  },
   // ── Update payment status ───────────────────────────────────────────────────
   updatePaymentStatus: async (id, status) => {
     try {

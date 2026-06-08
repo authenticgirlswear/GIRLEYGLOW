@@ -3,6 +3,7 @@
    Enhanced: Custom hero layouts for New Arrivals & Sale
    =================================================== */
 
+declare global { interface Window { dataLayer: any[]; } }
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -273,6 +274,25 @@ export const ShopPage: React.FC = () => {
         : categoryFilter
           ? currentCategoryName || 'Shop'
           : 'Our Collection';
+  /* GTM DATA LAYER — view_item_list */
+  useEffect(() => {
+    if (filteredProducts.length === 0) return;
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({ ecommerce: null });
+    window.dataLayer.push({
+      event: 'view_item_list',
+      ecommerce: {
+        item_list_name: pageTitle,
+        items: filteredProducts.slice(0, 20).map((product, index) => ({
+          item_id: product.id,
+          item_name: product.name,
+          item_category: product.category || product.category_name || '',
+          price: Number(product.price) || 0,
+          index: index,
+        })),
+      },
+    });
+  }, [filteredProducts, pageTitle]);
 
   return (
     <div className="min-h-screen pt-24 pb-16">

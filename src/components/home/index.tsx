@@ -191,21 +191,21 @@ export const Hero: React.FC = () => {
   );
 };
 // ==========================================
-// NEW ARRIVALS
+// NEW ARRIVALS  ← Text below photo card
 // ==========================================
 export const NewArrivals: React.FC = () => {
   const { products, fetchProducts } = useProductStore();
   const navigate = useNavigate();
 
-  const CARD_WIDTH = 380 + 24;
+  const CARD_WIDTH = 280 + 20;
   const newItems = products.filter((p) => p.isNewArrival);
   const allSlides = [...newItems, ...newItems, ...newItems];
 
   const { trackRef, isPausedRef, handlePrev, handleNext } = useAutoScroll(
     newItems.length,
     CARD_WIDTH,
-    1.2,   // ← speed
-    true   // ← true = left to right
+    1.2,
+    true
   );
 
   useEffect(() => { fetchProducts(); }, []);
@@ -214,7 +214,10 @@ export const NewArrivals: React.FC = () => {
     <section className="py-8 md:py-12 overflow-hidden" style={{ backgroundColor: '#FAF7F3' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <FadeIn>
-          <SectionHeader title="New Arrivals" subtitle="Fresh styles just landed — be the first to discover them" />
+          <SectionHeader
+            title="New Arrivals"
+            subtitle="Fresh styles just landed — be the first to discover them"
+          />
         </FadeIn>
       </div>
 
@@ -231,29 +234,41 @@ export const NewArrivals: React.FC = () => {
             onTouchStart={() => { isPausedRef.current = true; }}
             onTouchEnd={() => { isPausedRef.current = false; }}
           >
-            <div ref={trackRef} className="flex gap-6 will-change-transform" style={{ width: 'max-content' }}>
+            <div ref={trackRef} className="flex gap-5 will-change-transform" style={{ width: 'max-content' }}>
               {allSlides.map((product, idx) => (
-                <motion.div
+                <div
                   key={`${product.id}-${idx}`}
-                  whileHover={{ y: -4 }}
+                  className="flex-shrink-0 w-[280px] cursor-pointer group"
                   onClick={() => navigate(`/product/${product.slug}`)}
-                  className="flex-shrink-0 w-[380px] group cursor-pointer rounded-2xl overflow-hidden transition-all duration-300"
-                  style={{ backgroundColor: '#FFFFFF' }}
                 >
-                  <div className="relative aspect-[4/3] overflow-hidden bg-blush-light/30">
+                  {/* Photo Card */}
+                  <div className="relative rounded-2xl overflow-hidden aspect-[3/4] bg-blush-light/30">
                     {product.images?.[0]?.startsWith('http') ? (
-                      <img src={product.images[0]} alt={product.name} loading={idx < 6 ? 'eager' : 'lazy'} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                      <img
+                        src={product.images[0]}
+                        alt={product.name}
+                        loading={idx < 6 ? 'eager' : 'lazy'}
+                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                      />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-blush via-lavender to-champagne" />
+                      <div className="absolute inset-0 bg-gradient-to-br from-blush via-lavender to-champagne" />
                     )}
+                    <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
+                      {product.isOnSale && <Badge variant="sale">Sale</Badge>}
+                      {product.isNewArrival && <Badge variant="new">New</Badge>}
+                      {product.isTrending && <Badge variant="trending">Trending</Badge>}
+                    </div>
                   </div>
-                  <div className="p-5">
-                    <Badge variant="new" className="mb-2">New Arrival</Badge>
-                    <h3 className="heading-serif text-xl font-semibold text-charcoal mb-1 group-hover:text-rose-gold transition-colors">{product.name}</h3>
-                    <p className="text-sm text-[#6B5B55] mb-3">{product.shortDescription}</p>
-                    <PriceDisplay price={product.price} comparePrice={product.comparePrice} />
+
+                  {/* Text BELOW Photo */}
+                  <div className="pt-3 px-1">
+                    <p className="text-xs text-[#6B5B55] mb-0.5">{product.category}</p>
+                    <h3 className="text-sm font-medium text-charcoal mb-1 line-clamp-1 group-hover:text-rose-gold transition-colors">
+                      {product.name}
+                    </h3>
+                    <PriceDisplay price={product.price} comparePrice={product.comparePrice} size="sm" />
                   </div>
-                </motion.div>
+                </div>
               ))}
             </div>
           </div>
@@ -263,8 +278,8 @@ export const NewArrivals: React.FC = () => {
           <button onClick={handleNext} aria-label="Next" className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm shadow-md flex items-center justify-center hover:bg-white hover:scale-110 transition-all duration-200">
             <ArrowRight size={18} className="text-charcoal" />
           </button>
-          <div className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-blush-light/60 to-transparent z-[5]" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-champagne/60 to-transparent z-[5]" />
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-white/60 to-transparent z-[5]" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-white/60 to-transparent z-[5]" />
         </div>
       )}
     </section>
@@ -383,15 +398,130 @@ export const BannerSlider: React.FC = () => {
 
 
 // ==========================================
-// CATEGORY SHOWCASE
+// CATEGORY SHOWCASE  ← Text below photo card
+// ==========================================
+export const CategoryShowcase: React.FC = () => {
+  const navigate = useNavigate();
+  const { categories } = useCategoryStore();
+
+  const CARD_WIDTH = 260 + 16;
+
+  const allSlides = [...categories, ...categories, ...categories];
+
+  const { trackRef, isPausedRef, handlePrev, handleNext } = useAutoScroll(
+    categories.length,
+    CARD_WIDTH,
+    1.2,
+    true
+  );
+
+  return (
+    <section
+      className="py-8 md:py-12 overflow-hidden"
+      style={{ backgroundColor: '#EFE7E2' }}
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <FadeIn>
+          <SectionHeader
+            title="Shop by Category"
+            subtitle="Find your perfect piece in our curated collections"
+          />
+        </FadeIn>
+      </div>
+
+      {categories.length === 0 ? (
+        <div className="text-center py-16 text-[#6B5B55]">
+          <p>No categories yet.</p>
+        </div>
+      ) : (
+        <div className="relative mt-10">
+          <div
+            className="overflow-hidden"
+            onMouseEnter={() => { isPausedRef.current = true; }}
+            onMouseLeave={() => { isPausedRef.current = false; }}
+            onTouchStart={() => { isPausedRef.current = true; }}
+            onTouchEnd={() => { isPausedRef.current = false; }}
+          >
+            <div
+              ref={trackRef}
+              className="flex gap-4 will-change-transform"
+              style={{ width: 'max-content' }}
+            >
+              {allSlides.map((category, idx) => (
+                <div
+                  key={`${category.slug}-${idx}`}
+                  onClick={() =>
+                    navigate(`/shop?category=${encodeURIComponent(category.name)}`)
+                  }
+                  className="flex-shrink-0 w-[260px] cursor-pointer group"
+                >
+                  {/* Photo Card */}
+                  <div
+                    className="relative rounded-2xl overflow-hidden aspect-[3/4]"
+                    style={{ background: category.gradient }}
+                  >
+                    {category.image && (
+                      <img
+                        src={category.image}
+                        alt={category.name}
+                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                      />
+                    )}
+
+                    {/* Arrow on hover */}
+                    <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                      <ArrowRight size={14} className="text-white" />
+                    </div>
+                  </div>
+
+                  {/* Text BELOW Photo */}
+                  <div className="pt-3 px-1 text-center">
+                    <h3 className="heading-serif text-base md:text-lg font-semibold text-charcoal mb-0.5 group-hover:text-rose-gold transition-colors">
+                      {category.name}
+                    </h3>
+                    <p className="text-xs text-[#6B5B55]">
+                      {category.productCount || 0} products
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Prev */}
+          <button
+            onClick={handlePrev}
+            aria-label="Previous"
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm shadow-md flex items-center justify-center hover:bg-white hover:scale-110 transition-all duration-200"
+          >
+            <ArrowLeft size={18} className="text-charcoal" />
+          </button>
+
+          {/* Next */}
+          <button
+            onClick={handleNext}
+            aria-label="Next"
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm shadow-md flex items-center justify-center hover:bg-white hover:scale-110 transition-all duration-200"
+          >
+            <ArrowRight size={18} className="text-charcoal" />
+          </button>
+
+          {/* Fade */}
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-white/60 to-transparent z-[5]" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-white/60 to-transparent z-[5]" />
+        </div>
+      )}
+    </section>
+  );
+};
 // ==========================================
 // ==========================================
-// CATEGORY SHOWCASE  ← reads from useProductStore (real data)
+// CATEGORY  reads from useProductStore (real data)
 // ==========================================
 
 // Soft gradient palette — cycles through for each unique category
 
-export const CategoryShowcase: React.FC = () => {
+export const Category: React.FC = () => {
   const navigate = useNavigate();
   const { categories } = useCategoryStore();
 
@@ -523,7 +653,7 @@ export const CategoryShowcase: React.FC = () => {
 };
 
 // ==========================================
-// TRENDING PRODUCTS
+// TRENDING PRODUCTS  ← Text below photo card
 // ==========================================
 export const TrendingProducts: React.FC = () => {
   const { products, fetchProducts } = useProductStore();
@@ -537,8 +667,8 @@ export const TrendingProducts: React.FC = () => {
   const { trackRef, isPausedRef, handlePrev, handleNext } = useAutoScroll(
     trending.length,
     CARD_WIDTH,
-    1.2,    // ← speed
-    false   // ← false = right to left
+    1.2,
+    false
   );
 
   useEffect(() => { fetchProducts(); }, []);
@@ -568,28 +698,35 @@ export const TrendingProducts: React.FC = () => {
               {allSlides.map((product, idx) => (
                 <div
                   key={`${product.id}-${idx}`}
-                  className="relative flex-shrink-0 w-[280px] rounded-2xl overflow-hidden aspect-[3/4] cursor-pointer group"
-                  style={{ backgroundColor: '#FFFFFF' }}
+                  className="flex-shrink-0 w-[280px] cursor-pointer group"
                   onClick={() => navigate(`/product/${product.slug}`)}
                 >
-                  {product.images?.[0]?.startsWith('http') ? (
-                    <img src={product.images[0]} alt={product.name} loading={idx < 6 ? 'eager' : 'lazy'} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                  ) : (
-                    <div className="absolute inset-0 bg-gradient-to-br from-blush via-lavender to-champagne" />
-                  )}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
-                  <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
-                    {product.isOnSale && <Badge variant="sale">Sale</Badge>}
-                    {product.isNewArrival && <Badge variant="new">New</Badge>}
-                    {product.isTrending && <Badge variant="trending">Trending</Badge>}
-                  </div>
-                  <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 via-black/30 to-transparent translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-                    <p className="text-white/70 text-xs mb-0.5">{product.category}</p>
-                    <h3 className="text-white text-sm font-medium line-clamp-1 mb-1">{product.name}</h3>
-                    <div className="flex items-center justify-between">
-                      <PriceDisplay price={product.price} comparePrice={product.comparePrice} size="sm" />
-                      <span className="text-white/80 text-xs flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">View <ArrowRight size={12} /></span>
+                  {/* Photo Card */}
+                  <div className="relative rounded-2xl overflow-hidden aspect-[3/4] bg-blush-light/30">
+                    {product.images?.[0]?.startsWith('http') ? (
+                      <img
+                        src={product.images[0]}
+                        alt={product.name}
+                        loading={idx < 6 ? 'eager' : 'lazy'}
+                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 bg-gradient-to-br from-blush via-lavender to-champagne" />
+                    )}
+                    <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
+                      {product.isOnSale && <Badge variant="sale">Sale</Badge>}
+                      {product.isNewArrival && <Badge variant="new">New</Badge>}
+                      {product.isTrending && <Badge variant="trending">Trending</Badge>}
                     </div>
+                  </div>
+
+                  {/* Text BELOW Photo */}
+                  <div className="pt-3 px-1">
+                    <p className="text-xs text-[#6B5B55] mb-0.5">{product.category}</p>
+                    <h3 className="text-sm font-medium text-charcoal mb-1 line-clamp-1 group-hover:text-rose-gold transition-colors">
+                      {product.name}
+                    </h3>
+                    <PriceDisplay price={product.price} comparePrice={product.comparePrice} size="sm" />
                   </div>
                 </div>
               ))}
@@ -608,7 +745,6 @@ export const TrendingProducts: React.FC = () => {
     </section>
   );
 };
-
 // ==========================================
 // PRODUCT CARD
 // ==========================================
@@ -855,47 +991,35 @@ export const FeaturedCollection: React.FC = () => {
               {allSlides.map((product, idx) => (
                 <div
                   key={`${product.id}-${idx}`}
-                  className="relative flex-shrink-0 w-[280px] rounded-2xl overflow-hidden aspect-[3/4] cursor-pointer group bg-blush-light/30"
+                  className="flex-shrink-0 w-[280px] cursor-pointer group"
                   onClick={() => navigate(`/product/${product.slug}`)}
                 >
-                  {/* Product Image */}
-                  {product.images?.[0]?.startsWith('http') ? (
-                    <img
-                      src={product.images[0]}
-                      alt={product.name}
-                      loading={idx < 6 ? 'eager' : 'lazy'}
-                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 group-hover:scale-105 transition-transform duration-700" style={{ backgroundColor: '#E8D5CC' }} />
-                  )}
-
-                  {/* Dark overlay on hover */}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
-
-                  {/* Badges */}
-                  <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
-                    {product.isOnSale && <Badge variant="sale">Sale</Badge>}
-                    {product.isNewArrival && <Badge variant="new">New</Badge>}
-                    {product.isTrending && <Badge variant="trending">Trending</Badge>}
+                  {/* Photo Card */}
+                  <div className="relative rounded-2xl overflow-hidden aspect-[3/4] bg-blush-light/30">
+                    {product.images?.[0]?.startsWith('http') ? (
+                      <img
+                        src={product.images[0]}
+                        alt={product.name}
+                        loading={idx < 6 ? 'eager' : 'lazy'}
+                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                      />
+                    ) : (
+                      <div className="absolute inset-0" style={{ backgroundColor: '#E8D5CC' }} />
+                    )}
+                    <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
+                      {product.isOnSale && <Badge variant="sale">Sale</Badge>}
+                      {product.isNewArrival && <Badge variant="new">New</Badge>}
+                      {product.isTrending && <Badge variant="trending">Trending</Badge>}
+                    </div>
                   </div>
 
-                  {/* Product Info Overlay */}
-                  <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 via-black/30 to-transparent translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-                    <p className="text-white/70 text-xs mb-0.5">{product.category}</p>
-                    <h3 className="text-sm font-medium line-clamp-1 mb-1" style={{ color: '#5C3A2E' }}>
+                  {/* Text BELOW Photo */}
+                  <div className="pt-3 px-1">
+                    <p className="text-xs text-[#6B5B55] mb-0.5">{product.category}</p>
+                    <h3 className="text-sm font-medium text-charcoal mb-1 line-clamp-1 group-hover:text-rose-gold transition-colors">
                       {product.name}
                     </h3>
-                    <div className="flex items-center justify-between">
-                      <PriceDisplay
-                        price={product.price}
-                        comparePrice={product.comparePrice}
-                        size="sm"
-                      />
-                      <span className="text-white/80 text-xs flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        View <ArrowRight size={12} />
-                      </span>
-                    </div>
+                    <PriceDisplay price={product.price} comparePrice={product.comparePrice} size="sm" />
                   </div>
                 </div>
               ))}

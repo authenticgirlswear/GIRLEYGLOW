@@ -4,6 +4,7 @@
    filters by category_slug column (matches admin upload)
    =================================================== */
 
+declare global { interface Window { dataLayer: any[]; } }
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
@@ -85,6 +86,26 @@ export const CategoryPage: React.FC = () => {
       updatedAt: p.updated_at || '',
     }));
   }, [products]);
+
+  /* GTM DATA LAYER — view_item_list */
+  useEffect(() => {
+    if (normalisedProducts.length === 0) return;
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({ ecommerce: null });
+    window.dataLayer.push({
+      event: 'view_item_list',
+      ecommerce: {
+        item_list_name: category?.name || slug || 'Category',
+        items: normalisedProducts.slice(0, 20).map((product, index) => ({
+          item_id: product.id,
+          item_name: product.name,
+          item_category: product.category,
+          price: product.price,
+          index: index,
+        })),
+      },
+    });
+  }, [normalisedProducts]);
 
   // Category not found in mockData (bad slug in URL)
   if (!category) {

@@ -1,10 +1,13 @@
 /* ===================================================
    AUTHENTIC GIRLSWEAR - Product Detail Page
-   FIXED: Fetches product from Supabase by slug,
-   so admin-uploaded products display correctly.
+   FIXED:
+   1. Thumbnails in a single horizontal scrollable row
+      with left/right arrow navigation buttons.
+   2. Color circles now correctly render ALL CSS color
+      names (blue, red, purple, etc.) AND hex values.
    =================================================== */
-
-import React, { useState, useEffect } from 'react';
+declare global { interface Window { dataLayer: any[]; } }
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -47,6 +50,115 @@ const normalise = (p: any): Product => ({
   updatedAt: p.updated_at || '',
 });
 
+/* ─── Resolve any color name/value → valid CSS color ─── */
+/**
+ * 3-step resolution:
+ * 1. Direct hex → use as-is
+ * 2. Custom name lookup table → covers admin-typed names like "Baby Pink", "Sky Blue" etc.
+ * 3. Canvas browser-parse → catches all standard CSS named colors (blue, red, purple…)
+ * Falls back to #cccccc only if none of the above work.
+ */
+const COLOR_NAME_MAP: Record<string, string> = {
+  // ── Reds & Pinks ──
+  'red': '#FF0000', 'dark red': '#8B0000', 'crimson': '#DC143C',
+  'maroon': '#800000', 'burgundy': '#800020', 'wine': '#722F37',
+  'rose': '#FF007F', 'hot pink': '#FF69B4', 'deep pink': '#FF1493',
+  'light pink': '#FFB6C1', 'baby pink': '#F4C2C2', 'blush pink': '#FEC5BB',
+  'dusty rose': '#DCAE96', 'mauve': '#E0B0FF', 'salmon': '#FA8072',
+  'coral': '#FF6B6B', 'peach': '#FFCBA4', 'pink': '#FF69B4',
+  'rose gold': '#B76E79', 'flamingo': '#FC8EAC',
+  // ── Oranges ──
+  'orange': '#FF8C00', 'dark orange': '#FF8C00', 'light orange': '#FFB347',
+  'amber': '#FFBF00', 'burnt orange': '#CC5500', 'tangerine': '#F28500',
+  // ── Yellows ──
+  'yellow': '#FFD700', 'light yellow': '#FFFFE0', 'gold': '#FFD700',
+  'dark yellow': '#C9A800', 'mustard': '#FFDB58', 'lemon': '#FFF44F',
+  'cream': '#FFFDD0', 'ivory': '#FFFFF0', 'champagne': '#F7E7CE',
+  'vanilla': '#F3E5AB', 'butter': '#FFFAA0',
+  // ── Greens ──
+  'green': '#008000', 'dark green': '#006400', 'light green': '#90EE90',
+  'lime green': '#32CD32', 'mint green': '#98FF98', 'mint': '#3EB489',
+  'sage': '#B2AC88', 'olive': '#808000', 'forest green': '#228B22',
+  'emerald': '#50C878', 'teal': '#008080', 'turquoise': '#40E0D0',
+  'seafoam': '#93E9BE', 'lime': '#00FF00', 'moss': '#8A9A5B',
+  'hunter green': '#355E3B', 'jade': '#00A86B', 'bottle green': '#006A4E',
+  // ── Blues ──
+  'blue': '#0000FF', 'dark blue': '#00008B', 'light blue': '#ADD8E6',
+  'sky blue': '#87CEEB', 'baby blue': '#89CFF0', 'navy': '#000080',
+  'navy blue': '#000080', 'royal blue': '#4169E1', 'cobalt': '#0047AB',
+  'powder blue': '#B0E0E6', 'steel blue': '#4682B4', 'denim': '#1560BD',
+  'cerulean': '#007BA7', 'aqua': '#00FFFF', 'cyan': '#00FFFF',
+  'electric blue': '#7DF9FF', 'indigo': '#4B0082', 'periwinkle': '#CCCCFF',
+  'slate blue': '#6A5ACD', 'cadet blue': '#5F9EA0',
+  // ── Purples & Violets ──
+  'purple': '#800080', 'light purple': '#DA70D6', 'dark purple': '#4B0082',
+  'violet': '#EE82EE', 'lavender': '#E6E6FA', 'lilac': '#C8A2C8',
+  'plum': '#DDA0DD', 'magenta': '#FF00FF', 'fuchsia': '#FF00FF',
+  'orchid': '#DA70D6', 'wisteria': '#C9A0DC', 'grape': '#6F2DA8',
+  'eggplant': '#614051', 'amethyst': '#9966CC',
+  // ── Browns & Neutrals ──
+  'brown': '#A52A2A', 'dark brown': '#654321', 'light brown': '#C4A882',
+  'tan': '#D2B48C', 'beige': '#F5F5DC', 'khaki': '#C3B091',
+  'camel': '#C19A6B', 'sand': '#C2B280', 'taupe': '#483C32',
+  'mocha': '#967259', 'coffee': '#6F4E37', 'chocolate': '#7B3F00',
+  'chestnut': '#954535', 'walnut': '#773F1A', 'nude': '#E3BC9A',
+  'skin': '#FFDBAC', 'bronze': '#CD7F32', 'copper': '#B87333',
+  // ── Whites & Greys ──
+  'white': '#FFFFFF', 'off white': '#FAF9F6', 'off-white': '#FAF9F6',
+  'snow': '#FFFAFA', 'pearl': '#F0EAD6', 'linen': '#FAF0E6',
+  'grey': '#808080', 'gray': '#808080', 'light grey': '#D3D3D3',
+  'light gray': '#D3D3D3', 'dark grey': '#A9A9A9', 'dark gray': '#A9A9A9',
+  'charcoal': '#36454F', 'silver': '#C0C0C0', 'ash': '#B2BEB5',
+  'slate': '#708090', 'smoke': '#738276',
+  // ── Blacks ──
+  'black': '#000000', 'jet black': '#343434', 'off black': '#0F0F0F',
+  'onyx': '#353839',
+  // ── Multicolor / Special ──
+  'multicolor': 'linear-gradient(135deg,#FF6B6B,#FFD700,#6BCB77,#4D96FF,#C77DFF)',
+  'multi': 'linear-gradient(135deg,#FF6B6B,#FFD700,#6BCB77,#4D96FF,#C77DFF)',
+  'rainbow': 'linear-gradient(135deg,red,orange,yellow,green,blue,violet)',
+  'tie dye': 'linear-gradient(135deg,#FF6B6B,#FFD700,#6BCB77,#4D96FF)',
+  'printed': 'linear-gradient(135deg,#f8cdda,#1d2b64)',
+  'floral': 'linear-gradient(135deg,#ff9a9e,#fecfef)',
+};
+
+const resolveColor = (() => {
+  const cache: Record<string, string> = {};
+  return (raw: string): string => {
+    if (!raw) return '#cccccc';
+    const key = raw.trim().toLowerCase();
+    if (cache[key]) return cache[key];
+
+    // Step 1: direct hex value — trust it immediately
+    if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(raw.trim())) {
+      cache[key] = raw.trim();
+      return raw.trim();
+    }
+
+    // Step 2: lookup table — handles admin-typed descriptive names
+    if (COLOR_NAME_MAP[key]) {
+      cache[key] = COLOR_NAME_MAP[key];
+      return COLOR_NAME_MAP[key];
+    }
+
+    // Step 3: canvas browser-parse — handles all standard CSS color names
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1; canvas.height = 1;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('no ctx');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = key;
+      const result = ctx.fillStyle !== '#ffffff' ? ctx.fillStyle : '#cccccc';
+      cache[key] = result;
+      return result;
+    } catch {
+      cache[key] = '#cccccc';
+      return '#cccccc';
+    }
+  };
+})();
+
 export const ProductDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
@@ -65,6 +177,9 @@ export const ProductDetailPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'description' | 'reviews' | 'shipping'>('description');
   const [addedToCart, setAddedToCart] = useState(false);
   const [similarPage, setSimilarPage] = useState(0);
+
+  /* ── FIX 1: ref for the thumbnail scroll container ── */
+  const thumbsRef = useRef<HTMLDivElement>(null);
 
   /* ── Fetch product by slug from Supabase ── */
   useEffect(() => {
@@ -88,16 +203,32 @@ export const ProductDetailPage: React.FC = () => {
       }
 
       const normalised = normalise(data);
-
       setProduct(normalised);
 
       /* FACEBOOK PIXEL VIEW CONTENT */
       trackViewContent(normalised.name, normalised.price);
 
+      /* GTM DATA LAYER — view_item */
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({ ecommerce: null });
+      window.dataLayer.push({
+        event: 'view_item',
+        ecommerce: {
+          currency: 'BDT',
+          value: normalised.price,
+          items: [{
+            item_id: normalised.id,
+            item_name: normalised.name,
+            item_category: normalised.category,
+            price: normalised.price,
+            quantity: 1,
+          }],
+        },
+      });
+
       setSelectedSize(normalised.sizes[0] || '');
 
       const firstColor = normalised.colors[0];
-
       setSelectedColor(
         typeof firstColor === 'string'
           ? firstColor
@@ -105,7 +236,7 @@ export const ProductDetailPage: React.FC = () => {
       );
       addRecentlyViewed(normalised.id);
 
-      /* ── Fetch related products (same category, excluding this one) ── */
+      /* ── Fetch related products ── */
       if (normalised.categorySlug) {
         const { data: relatedData } = await supabase
           .from('products')
@@ -122,6 +253,16 @@ export const ProductDetailPage: React.FC = () => {
 
     fetchProduct();
   }, [slug, addRecentlyViewed]);
+
+  /* ── FIX 1: scroll the thumbnail strip to keep the active thumb visible ── */
+  useEffect(() => {
+    if (!thumbsRef.current) return;
+    const strip = thumbsRef.current;
+    const activeThumb = strip.children[selectedImage === -1 ? strip.children.length - 1 : selectedImage] as HTMLElement;
+    if (activeThumb) {
+      activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, [selectedImage]);
 
   /* ── Loading state ── */
   if (loading) {
@@ -145,6 +286,11 @@ export const ProductDetailPage: React.FC = () => {
       </div>
     );
   }
+
+  /* ── Total thumbnail count (images + optional video) ── */
+  const totalThumbs = product.images.length + (product.videoUrl ? 1 : 0);
+  /* selectedImage uses -1 for video; map to strip index */
+  const activeStripIndex = selectedImage === -1 ? product.images.length : selectedImage;
 
   const handleAddToCart = () => {
     if (!selectedSize) return;
@@ -229,51 +375,85 @@ export const ProductDetailPage: React.FC = () => {
                 )}
               </motion.div>
 
-              {/* Thumbnails */}
-              {(product.images.length > 1 || product.videoUrl) && (
-                <div className="flex gap-3 mt-4 flex-wrap">
-                  {product.images.map((img, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setSelectedImage(i)}
-                      className={`w-20 h-24 rounded-xl overflow-hidden bg-blush-light/30 transition-all duration-200 flex-shrink-0 ${i === selectedImage
-                        ? 'ring-2 ring-rose-gold ring-offset-2'
-                        : 'opacity-60 hover:opacity-100'
-                        }`}
-                    >
-                      {img.startsWith('http') ? (
-                        <img src={img} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-blush via-lavender to-champagne" />
-                      )}
-                    </button>
-                  ))}
+              {/* ── FIX 1: Thumbnails — single horizontal row with arrow buttons ── */}
+              {totalThumbs > 1 && (
+                <div className="flex items-center gap-2 mt-4">
 
-                  {/* Video thumbnail */}
-                  {product.videoUrl && (
-                    <button
-                      onClick={() => setSelectedImage(-1)}
-                      className={`w-20 h-24 rounded-xl overflow-hidden bg-blush-light/30 transition-all duration-200 flex-shrink-0 relative ${selectedImage === -1
-                        ? 'ring-2 ring-rose-gold ring-offset-2'
-                        : 'opacity-60 hover:opacity-100'
-                        }`}
-                    >
-                      <video
-                        src={product.videoUrl}
-                        className="w-full h-full object-cover pointer-events-none"
-                        muted
-                        playsInline
-                      />
-                      {/* Play icon overlay */}
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                        <div className="w-8 h-8 rounded-full bg-white/80 flex items-center justify-center">
-                          <svg width="12" height="14" viewBox="0 0 12 14" fill="none">
-                            <path d="M1 1l10 6-10 6V1z" fill="#B07D6B" />
-                          </svg>
+                  {/* Left arrow */}
+                  <button
+                    onClick={() => setSelectedImage(i => {
+                      const prev = i === -1 ? product.images.length - 1 : Math.max(0, i - 1);
+                      return prev;
+                    })}
+                    disabled={activeStripIndex === 0}
+                    className="flex-shrink-0 w-8 h-8 rounded-full border border-blush/40 flex items-center justify-center disabled:opacity-30 hover:border-rose-gold transition-colors bg-white/70"
+                  >
+                    <ArrowLeft size={14} />
+                  </button>
+
+                  {/* Scrollable strip — no scrollbar visible */}
+                  <div
+                    ref={thumbsRef}
+                    className="flex gap-2 overflow-x-auto flex-1"
+                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                  >
+                    {/* Image thumbnails */}
+                    {product.images.map((img, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setSelectedImage(i)}
+                        className={`flex-shrink-0 w-[72px] h-[86px] rounded-xl overflow-hidden bg-blush-light/30 transition-all duration-200 ${i === selectedImage
+                          ? 'ring-2 ring-rose-gold ring-offset-2'
+                          : 'opacity-60 hover:opacity-100'
+                          }`}
+                      >
+                        {img.startsWith('http') ? (
+                          <img src={img} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-blush via-lavender to-champagne" />
+                        )}
+                      </button>
+                    ))}
+
+                    {/* Video thumbnail */}
+                    {product.videoUrl && (
+                      <button
+                        onClick={() => setSelectedImage(-1)}
+                        className={`flex-shrink-0 w-[72px] h-[86px] rounded-xl overflow-hidden bg-blush-light/30 transition-all duration-200 relative ${selectedImage === -1
+                          ? 'ring-2 ring-rose-gold ring-offset-2'
+                          : 'opacity-60 hover:opacity-100'
+                          }`}
+                      >
+                        <video
+                          src={product.videoUrl}
+                          className="w-full h-full object-cover pointer-events-none"
+                          muted
+                          playsInline
+                        />
+                        {/* Play icon overlay */}
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                          <div className="w-8 h-8 rounded-full bg-white/80 flex items-center justify-center">
+                            <svg width="12" height="14" viewBox="0 0 12 14" fill="none">
+                              <path d="M1 1l10 6-10 6V1z" fill="#B07D6B" />
+                            </svg>
+                          </div>
                         </div>
-                      </div>
-                    </button>
-                  )}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Right arrow */}
+                  <button
+                    onClick={() => setSelectedImage(i => {
+                      if (product.videoUrl && i === product.images.length - 1) return -1;
+                      return Math.min(product.images.length - 1, i + 1);
+                    })}
+                    disabled={activeStripIndex === totalThumbs - 1}
+                    className="flex-shrink-0 w-8 h-8 rounded-full border border-blush/40 flex items-center justify-center disabled:opacity-30 hover:border-rose-gold transition-colors bg-white/70"
+                  >
+                    <ArrowRight size={14} />
+                  </button>
+
                 </div>
               )}
             </div>
@@ -294,8 +474,7 @@ export const ProductDetailPage: React.FC = () => {
 
               <div className="luxury-line mb-3" />
 
-              {/* Color Selection */}
-              {/* Color Selection */}
+              {/* ── FIX 2: Color Selection — resolves ALL CSS color names & hex values ── */}
               {product.colors.length > 0 && (
                 <div className="mb-4">
                   <p className="text-sm font-medium text-charcoal mb-3">
@@ -303,10 +482,21 @@ export const ProductDetailPage: React.FC = () => {
                   </p>
                   <div className="flex flex-wrap gap-3">
                     {product.colors.map((color: any) => {
-                      // Handle all possible shapes from admin panel:
-                      // { name, hex } or { name, value } or { name, color } or just a plain string
-                      const colorName = typeof color === 'string' ? color : (color.name || color.label || String(color));
-                      const colorValue = typeof color === 'string' ? color : (color.hex || color.value || color.color || color.code || '#cccccc');
+                      // Support all shapes: plain string, { name, hex }, { name, value },
+                      // { name, color }, { name, code }, { label, hex }, etc.
+                      const colorName =
+                        typeof color === 'string'
+                          ? color
+                          : color.name || color.label || String(color);
+
+                      const rawValue =
+                        typeof color === 'string'
+                          ? color
+                          : color.hex || color.value || color.color || color.code || color.name || color.label || '';
+
+                      // resolveColor uses a canvas to validate & normalise any CSS color string
+                      const resolvedBg = resolveColor(rawValue.trim());
+
                       const isSelected = selectedColor === colorName;
 
                       return (
@@ -319,7 +509,7 @@ export const ProductDetailPage: React.FC = () => {
                             width: 32,
                             height: 32,
                             borderRadius: '50%',
-                            backgroundColor: colorValue,
+                            backgroundColor: resolvedBg,
                             border: isSelected
                               ? '3px solid #B07D6B'
                               : '2px solid rgba(0,0,0,0.12)',
@@ -336,6 +526,7 @@ export const ProductDetailPage: React.FC = () => {
                   </div>
                 </div>
               )}
+
               {/* Size Selection */}
               {product.sizes.length > 0 && (
                 <div className="mb-4">
@@ -397,7 +588,6 @@ export const ProductDetailPage: React.FC = () => {
 
               {/* Add to Cart */}
               <div className="flex gap-2 mb-6">
-
                 {/* BUY NOW */}
                 <Button
                   size="lg"
@@ -407,7 +597,7 @@ export const ProductDetailPage: React.FC = () => {
                     navigate('/checkout');
                   }}
                   disabled={product.stock === 0}
-                  className="flex-[3] h-12 <text-25></text-25>px font-semibold rounded-xl border-0"
+                  className="flex-[3] h-12 text-base font-semibold rounded-xl border-0"
                   style={{
                     background: 'linear-gradient(135deg, #1eff77 0%, #1eff77 100%)',
                     color: 'Black',
@@ -428,13 +618,13 @@ export const ProductDetailPage: React.FC = () => {
                 >
                   {addedToCart ? '✓ Added' : 'Add to Bag'}
                 </Button>
-
               </div>
+
               {/* Trust Badges */}
               <div className="grid grid-cols-3 gap-3">
                 {[
                   { icon: '🚚', label: 'Fast Delivery' },
-                  { icon: '✅', label: '100% Authentic%' },
+                  { icon: '✅', label: '100% Authentic' },
                   { icon: '🔒', label: 'Secure Payment' },
                 ].map(item => (
                   <div key={item.label} className="flex flex-col items-center gap-1.5 text-center p-3 rounded-xl bg-blush-light/30">
@@ -459,7 +649,7 @@ export const ProductDetailPage: React.FC = () => {
                   : 'text-[#6B5B55] hover:text-charcoal'
                   }`}
               >
-                {tab === 'description' ? 'Description' : tab === 'shipping' ? 'Shipping Info' : ''}
+                {tab === 'description' ? 'Description' : 'Shipping Info'}
               </button>
             ))}
           </div>
@@ -489,12 +679,12 @@ export const ProductDetailPage: React.FC = () => {
                 <div className="space-y-4 text-[#6B5B55]">
                   <div className="glass-card rounded-2xl p-5">
                     <h4 className="font-medium text-charcoal mb-2">Shipping Information</h4>
-                    <p className="mt-2">Inside Dhaka City  delivery: Max 48 Hour </p>
-                    <p className="mt-2">Out Size Dhaka City  delivery: Max 86 Hour </p>
+                    <p className="mt-2">Inside Dhaka City delivery: Max 48 Hours</p>
+                    <p className="mt-2">Outside Dhaka City delivery: Max 86 Hours</p>
                   </div>
                   <div className="glass-card rounded-2xl p-5">
                     <h4 className="font-medium text-charcoal mb-2">Returns & Exchanges</h4>
-                    <p>We accept Exchanges within 3 days of delivery. Items must be Intacked and unworn.</p>
+                    <p>We accept Exchanges within 3 days of delivery. Items must be intact and unworn.</p>
                   </div>
                 </div>
               )}

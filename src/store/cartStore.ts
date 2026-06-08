@@ -1,3 +1,4 @@
+declare global { interface Window { dataLayer: any[]; } }
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { CartItem, Product, Coupon } from '@/types';
@@ -66,7 +67,25 @@ export const useCartStore = create<CartStore>()(
 
         // FACEBOOK PIXEL TRACKING
         trackAddToCart(product.name, product.price);
+        /* GTM DATA LAYER — add_to_cart */
+        window.dataLayer = window.dataLayer || [];
+        window.dataLayer.push({ ecommerce: null });
+        window.dataLayer.push({
+          event: 'add_to_cart',
+          ecommerce: {
+            currency: 'BDT',
+            value: product.price * quantity,
+            items: [{
+              item_id: product.id,
+              item_name: product.name,
+              item_category: product.category,
+              price: product.price,
+              quantity: quantity,
+            }],
+          },
+        });
       },
+
 
       removeItem: (productId, size, color) => {
         set({

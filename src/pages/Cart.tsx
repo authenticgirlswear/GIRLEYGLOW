@@ -2,6 +2,7 @@
    AUTHENTIC GIRLSWEAR - Cart Page
    =================================================== */
 
+declare global { interface Window { dataLayer: any[]; } }
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,6 +14,27 @@ export const CartPage: React.FC = () => {
   const navigate = useNavigate();
   const { items, coupon, couponError, removeItem, updateQuantity, applyCoupon, removeCoupon, getSubtotal, getDiscount, getTotal } = useCartStore();
   const [couponCode, setCouponCode] = React.useState('');
+
+  /* GTM DATA LAYER — view_cart */
+  React.useEffect(() => {
+    if (items.length === 0) return;
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({ ecommerce: null });
+    window.dataLayer.push({
+      event: 'view_cart',
+      ecommerce: {
+        currency: 'BDT',
+        value: getTotal(),
+        items: items.map(item => ({
+          item_id: item.product.id,
+          item_name: item.product.name,
+          item_category: item.product.category,
+          price: item.product.price,
+          quantity: item.quantity,
+        })),
+      },
+    });
+  }, []);
 
   if (items.length === 0) {
     return (

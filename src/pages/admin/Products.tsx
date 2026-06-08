@@ -1,6 +1,10 @@
 /* ===================================================
    AUTHENTIC GIRLSWEAR - Admin Products Management
-   FIXED:
+   UPDATED:
+   - Auto AG logo watermark (bottom-right) on every image before upload
+   - Draggable watermark preview on cover image (repositionable)
+   - Semi-transparent dark rounded rect behind the AG logo
+   - Edit mode now shows previously uploaded images correctly
    - Color input with circle preview + 50+ fashion color auto-map
    - Custom size input (free text, comma separated) — ALWAYS VISIBLE
    - Auto SKU generation from product name
@@ -8,7 +12,7 @@
    - Categories from useCategoryStore (not mockData)
    =================================================== */
 import { uploadToCloudinary } from '@/lib/cloudinary';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Plus, Edit2, Trash2, Search, X, RefreshCw } from 'lucide-react';
 import { Button, Input, Select, Badge, Modal } from '@/components/ui';
 import { useProductStore, useCategoryStore } from '@/store';
@@ -17,154 +21,331 @@ import { supabase } from '@/lib/supabase';
 import { UploadCloud } from 'lucide-react';
 import { GripVertical } from 'lucide-react';
 
+// ─────────────────────────────────────────────────
+// WATERMARK POSITION — module-level mutable ref
+// ─────────────────────────────────────────────────
+let wmPos: { xFrac: number; yFrac: number } = { xFrac: 0.82, yFrac: 0.90 };
 
+// ─────────────────────────────────────────────────
+// FASHION COLOR MAP — 50+ names → real hex values
+// ─────────────────────────────────────────────────
+const FASHION_COLORS: Record<string, string> = {
+  'red': '#E53E3E', 'dark red': '#9B2335', 'crimson': '#DC143C',
+  'maroon': '#800000', 'burgundy': '#722F37', 'wine': '#722F37',
+  'pink': '#FFC0CB', 'hot pink': '#FF69B4', 'baby pink': '#F4C2C2',
+  'light pink': '#FFB6C1', 'magenta': '#FF00FF', 'blush': '#FADADD',
+  'rose': '#FF007F', 'rose gold': '#B76E79', 'dusty rose': '#DCAE96',
+  'coral': '#FF6B6B', 'salmon': '#FA8072', 'peach': '#FFCBA4',
+  'blue': '#3182CE', 'navy': '#001F5B', 'navy blue': '#001F5B',
+  'royal blue': '#4169E1', 'sky blue': '#87CEEB', 'baby blue': '#89CFF0',
+  'powder blue': '#B0E0E6', 'teal': '#008080', 'turquoise': '#40E0D0',
+  'aqua': '#00FFFF', 'denim': '#1560BD', 'indigo': '#4B0082',
+  'cobalt': '#0047AB', 'green': '#38A169', 'dark green': '#006400',
+  'forest green': '#228B22', 'olive': '#808000', 'olive green': '#6B8E23',
+  'mint': '#98FF98', 'mint green': '#98FF98', 'sage': '#BCB88A',
+  'emerald': '#50C878', 'lime': '#00FF00', 'army green': '#4B5320',
+  'yellow': '#F6E05E', 'golden': '#FFD700', 'gold': '#FFD700',
+  'mustard': '#FFDB58', 'mustard yellow': '#FFDB58', 'orange': '#ED8936',
+  'burnt orange': '#CC5500', 'amber': '#FFBF00', 'lemon': '#FFF44F',
+  'purple': '#805AD5', 'violet': '#8F00FF', 'lavender': '#E6E6FA',
+  'lilac': '#C8A2C8', 'plum': '#8E4585', 'mauve': '#E0B0FF',
+  'grape': '#6F2DA8', 'white': '#FFFFFF', 'off white': '#FAF9F6',
+  'cream': '#FFFDD0', 'ivory': '#FFFFF0', 'beige': '#F5F5DC',
+  'skin': '#FED9B0', 'nude': '#E3BC9A', 'tan': '#D2B48C',
+  'camel': '#C19A6B', 'khaki': '#C3B091', 'brown': '#A0522D',
+  'chocolate': '#7B3F00', 'coffee': '#6F4E37', 'mocha': '#967259',
+  'grey': '#808080', 'gray': '#808080', 'light grey': '#D3D3D3',
+  'dark grey': '#404040', 'charcoal': '#36454F', 'silver': '#C0C0C0',
+  'black': '#000000', 'copper': '#B87333', 'bronze': '#CD7F32',
+  'champagne': '#F7E7CE', 'steel blue': '#4682B4', 'rust': '#B7410E',
+  'terracotta': '#E2725B', 'cyan': '#00BCD4', 'fuchsia': '#FF00FF',
+  'shocking pink': '#FC0FC0',
+};
+
+const resolveColor = (input: string): string => {
+  const normalized = input.trim().toLowerCase();
+  if (FASHION_COLORS[normalized]) return FASHION_COLORS[normalized];
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(normalized)) return normalized;
+  const s = new Option().style;
+  s.color = normalized;
+  if (s.color !== '') return normalized;
+  return '#cccccc';
+};
+
+// ─────────────────────────────────────────────────
+// DRAW AG LOGO WATERMARK
+// Draws a semi-transparent dark rounded rect behind the logo,
+// then bold grey "A" + bold orange "G", with "Authentic Girlswear" subtitle.
+// ─────────────────────────────────────────────────
+const drawAGLogo = (
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  size: number
+) => {
+  ctx.save();
+  ctx.textBaseline = 'alphabetic';
+
+  const subSize = size * 0.38;
+  const gap = size * 0.04;
+
+  // Measure total width for background box
+  ctx.font = `900 ${size}px Arial, sans-serif`;
+  const aWidth = ctx.measureText('A').width;
+  const gWidth = ctx.measureText('G').width;
+  const totalAGWidth = aWidth + gWidth + gap * 2;
+
+  ctx.font = `500 ${subSize}px Arial, sans-serif`;
+  const subWidth = ctx.measureText('Authentic Girlswear').width;
+
+  const boxW = Math.max(totalAGWidth, subWidth) + size * 0.6;
+  const boxH = size + subSize * 1.5 + size * 0.6;
+
+  // Background: semi-transparent dark rounded rect
+  const boxX = x - boxW / 2;
+  const boxY = y - size - size * 0.25;
+  const radius = size * 0.22;
+
+  ctx.globalAlpha = 0.52;
+  ctx.fillStyle = '#1a1a1a';
+  ctx.beginPath();
+  ctx.moveTo(boxX + radius, boxY);
+  ctx.lineTo(boxX + boxW - radius, boxY);
+  ctx.quadraticCurveTo(boxX + boxW, boxY, boxX + boxW, boxY + radius);
+  ctx.lineTo(boxX + boxW, boxY + boxH - radius);
+  ctx.quadraticCurveTo(boxX + boxW, boxY + boxH, boxX + boxW - radius, boxY + boxH);
+  ctx.lineTo(boxX + radius, boxY + boxH);
+  ctx.quadraticCurveTo(boxX, boxY + boxH, boxX, boxY + boxH - radius);
+  ctx.lineTo(boxX, boxY + radius);
+  ctx.quadraticCurveTo(boxX, boxY, boxX + radius, boxY);
+  ctx.closePath();
+  ctx.fill();
+
+  // Restore alpha for text
+  ctx.globalAlpha = 0.92;
+
+  // Soft drop shadow
+  ctx.shadowColor = 'rgba(0,0,0,0.55)';
+  ctx.shadowBlur = size * 0.35;
+  ctx.shadowOffsetX = size * 0.04;
+  ctx.shadowOffsetY = size * 0.04;
+
+  // "A" — silver/grey, bold
+  ctx.font = `900 ${size}px Arial, sans-serif`;
+  ctx.fillStyle = '#C0C0C0';
+  ctx.textAlign = 'right';
+  ctx.fillText('A', x - gap, y);
+
+  // "G" — orange, bold, same baseline
+  ctx.fillStyle = '#F5A623';
+  ctx.textAlign = 'left';
+  ctx.fillText('G', x + gap, y);
+
+  // "Authentic Girlswear" — small, orange, centered below AG
+  ctx.font = `500 ${subSize}px Arial, sans-serif`;
+  ctx.fillStyle = '#F5A623';
+  ctx.textAlign = 'center';
+  ctx.shadowBlur = size * 0.25;
+  ctx.fillText('Authentic Girlswear', x, y + subSize * 1.5);
+
+  ctx.restore();
+};
+
+// ─────────────────────────────────────────────────
+// WATERMARK A FILE: draws logo at saved wmPos, returns new File
+// ─────────────────────────────────────────────────
+const applyWatermark = (file: File): Promise<File> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0);
+
+      const size = Math.max(18, Math.min(img.width, img.height) * 0.08);
+      const x = wmPos.xFrac * img.width;
+      const y = wmPos.yFrac * img.height;
+
+      drawAGLogo(ctx, x, y, size);
+      URL.revokeObjectURL(url);
+
+      canvas.toBlob((blob) => {
+        if (!blob) { resolve(file); return; }
+        resolve(new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() }));
+      }, 'image/jpeg', 0.92);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+};
+
+// connected to WatermarkPreview component
+const MiniWatermarkThumb: React.FC<{ file: File; xFrac: number; yFrac: number }> = ({ file, xFrac, yFrac }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const imgRef = useRef<HTMLImageElement | null>(null);
+  const xRef = useRef(xFrac);
+  const yRef = useRef(yFrac);
+
+  // Always keep refs in sync with latest props
+  xRef.current = xFrac;
+  yRef.current = yFrac;
+
+  const redraw = () => {
+    const canvas = canvasRef.current;
+    const img = imgRef.current;
+    if (!canvas || !img) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const displayW = 300;
+    const displayH = Math.round((img.naturalHeight / img.naturalWidth) * displayW);
+    canvas.width = displayW;
+    canvas.height = displayH;
+    ctx.drawImage(img, 0, 0, displayW, displayH);
+    const size = Math.max(10, Math.min(displayW, displayH) * 0.08);
+    drawAGLogo(ctx, xRef.current * displayW, yRef.current * displayH, size);
+  };
+
+  // Load image once when file changes
+  useEffect(() => {
+    imgRef.current = null;
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      imgRef.current = img;
+      redraw();
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  }, [file]);
+
+  // Redraw whenever position changes
+  useEffect(() => {
+    redraw();
+  }, [xFrac, yFrac]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="w-full rounded-xl"
+      style={{ display: 'block', width: '100%', height: 'auto' }}
+    />
+  );
+};
+
+// ─────────────────────────────────────────────────
+// WATERMARK PREVIEW — interactive canvas component
+// User can click or drag to reposition the AG logo.
+// ─────────────────────────────────────────────────
+interface WatermarkPreviewProps {
+  file: File;
+  onPositionChange: (xFrac: number, yFrac: number) => void;
+}
+
+const WatermarkPreview: React.FC<WatermarkPreviewProps> = ({ file, onPositionChange }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const imgRef = useRef<HTMLImageElement | null>(null);
+  const isDragging = useRef(false);
+  const [pos, setPos] = useState<{ xFrac: number; yFrac: number }>(wmPos);
+
+  // Draw the preview whenever pos or file changes
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const drawFrame = (img: HTMLImageElement) => {
+      const displayW = 800;
+      const displayH = Math.round((img.naturalHeight / img.naturalWidth) * displayW);
+      canvas.width = displayW;
+      canvas.height = displayH;
+      ctx.drawImage(img, 0, 0, displayW, displayH);
+      const size = Math.max(18, Math.min(displayW, displayH) * 0.08);
+      const x = pos.xFrac * displayW;
+      const y = pos.yFrac * displayH;
+      drawAGLogo(ctx, x, y, size);
+    };
+
+    if (imgRef.current) {
+      drawFrame(imgRef.current);
+    } else {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        imgRef.current = img;
+        drawFrame(img);
+        URL.revokeObjectURL(url);
+      };
+      img.src = url;
+    }
+  }, [pos, file]);
+
+  const getFrac = (e: React.MouseEvent<HTMLCanvasElement>): { xFrac: number; yFrac: number } => {
+    const canvas = canvasRef.current!;
+    const rect = canvas.getBoundingClientRect();
+    const xFrac = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    const yFrac = Math.min(1, Math.max(0, (e.clientY - rect.top) / rect.height));
+    return { xFrac, yFrac };
+  };
+
+  const applyPos = (xFrac: number, yFrac: number) => {
+    wmPos = { xFrac, yFrac };
+    setPos({ xFrac, yFrac });
+    onPositionChange(xFrac, yFrac);
+  };
+
+  return (
+    <div className="relative select-none">
+      <canvas
+        ref={canvasRef}
+        className="w-full rounded-xl cursor-crosshair"
+        style={{ display: 'block', maxHeight: '380px', objectFit: 'contain' }}
+        onMouseDown={(e) => {
+          isDragging.current = true;
+          const { xFrac, yFrac } = getFrac(e);
+          applyPos(xFrac, yFrac);
+        }}
+        onMouseMove={(e) => {
+          if (!isDragging.current) return;
+          const { xFrac, yFrac } = getFrac(e);
+          applyPos(xFrac, yFrac);
+        }}
+        onMouseUp={() => { isDragging.current = false; }}
+        onMouseLeave={() => { isDragging.current = false; }}
+      />
+      <p className="text-[10px] text-[#6B5B55] text-center mt-1 italic">
+        Click or drag to reposition the AG watermark
+      </p>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────
+// EMPTY PRODUCT TEMPLATE
+// ─────────────────────────────────────────────────
 const emptyProduct: any = {
   name: '', slug: '', description: '', shortDescription: '',
   price: 0, comparePrice: undefined, images: [],
   category: '', categorySlug: '',
-  sizes: [], colors: [], stock: 0, sku: '', tags: [],
+  sizes: [], colors: [], stock: 150, sku: '', tags: [],
   isFeatured: false, isTrending: false, isNewArrival: false, isOnSale: false,
   customText: '',
 };
 
-// ─────────────────────────────────────────────────
-// FASHION COLOR MAP — 50+ names → real hex values
-// Covers common Bangladeshi/South-Asian fashion terms
-// ─────────────────────────────────────────────────
-const FASHION_COLORS: Record<string, string> = {
-  // Reds & Pinks
-  'red': '#E53E3E',
-  'dark red': '#9B2335',
-  'crimson': '#DC143C',
-  'maroon': '#800000',
-  'burgundy': '#722F37',
-  'wine': '#722F37',
-  'pink': '#FFC0CB',
-  'hot pink': '#FF69B4',
-  'baby pink': '#F4C2C2',
-  'light pink': '#FFB6C1',
-  'magenta': '#FF00FF',
-  'blush': '#FADADD',
-  'rose': '#FF007F',
-  'rose gold': '#B76E79',
-  'dusty rose': '#DCAE96',
-  'coral': '#FF6B6B',
-  'salmon': '#FA8072',
-  'peach': '#FFCBA4',
-
-  // Blues
-  'blue': '#3182CE',
-  'navy': '#001F5B',
-  'navy blue': '#001F5B',
-  'royal blue': '#4169E1',
-  'sky blue': '#87CEEB',
-  'baby blue': '#89CFF0',
-  'powder blue': '#B0E0E6',
-  'teal': '#008080',
-  'turquoise': '#40E0D0',
-  'aqua': '#00FFFF',
-  'denim': '#1560BD',
-  'indigo': '#4B0082',
-  'cobalt': '#0047AB',
-
-  // Greens
-  'green': '#38A169',
-  'dark green': '#006400',
-  'forest green': '#228B22',
-  'olive': '#808000',
-  'olive green': '#6B8E23',
-  'mint': '#98FF98',
-  'mint green': '#98FF98',
-  'sage': '#BCB88A',
-  'emerald': '#50C878',
-  'lime': '#00FF00',
-  'army green': '#4B5320',
-
-  // Yellows & Oranges
-  'yellow': '#F6E05E',
-  'golden': '#FFD700',
-  'gold': '#FFD700',
-  'mustard': '#FFDB58',
-  'mustard yellow': '#FFDB58',
-  'orange': '#ED8936',
-  'burnt orange': '#CC5500',
-  'amber': '#FFBF00',
-  'lemon': '#FFF44F',
-
-  // Purples
-  'purple': '#805AD5',
-  'violet': '#8F00FF',
-  'lavender': '#E6E6FA',
-  'lilac': '#C8A2C8',
-  'plum': '#8E4585',
-  'mauve': '#E0B0FF',
-  'grape': '#6F2DA8',
-
-  // Neutrals & Skin Tones
-  'white': '#FFFFFF',
-  'off white': '#FAF9F6',
-  'cream': '#FFFDD0',
-  'ivory': '#FFFFF0',
-  'beige': '#F5F5DC',
-  'skin': '#FED9B0',
-  'nude': '#E3BC9A',
-  'tan': '#D2B48C',
-  'camel': '#C19A6B',
-  'khaki': '#C3B091',
-  'brown': '#A0522D',
-  'chocolate': '#7B3F00',
-  'coffee': '#6F4E37',
-  'mocha': '#967259',
-
-  // Greys & Black
-  'grey': '#808080',
-  'gray': '#808080',
-  'light grey': '#D3D3D3',
-  'dark grey': '#404040',
-  'charcoal': '#36454F',
-  'silver': '#C0C0C0',
-  'black': '#000000',
-
-  // Special Fashion
-  'copper': '#B87333',
-  'bronze': '#CD7F32',
-  'champagne': '#F7E7CE',
-  'steel blue': '#4682B4',
-  'rust': '#B7410E',
-  'terracotta': '#E2725B',
-  'cyan': '#00BCD4',
-  'fuchsia': '#FF00FF',
-  'shocking pink': '#FC0FC0',
-};
-
-/**
- * Resolves a color string to a real CSS color:
- * 1. Checks FASHION_COLORS map (case-insensitive)
- * 2. Tries browser CSS parsing (handles hex, rgb(), named CSS colors)
- * 3. Falls back to grey
- */
-const resolveColor = (input: string): string => {
-  const normalized = input.trim().toLowerCase();
-  if (FASHION_COLORS[normalized]) return FASHION_COLORS[normalized];
-
-  // Try hex directly
-  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(normalized)) return normalized;
-
-  // Try browser CSS parser
-  const s = new Option().style;
-  s.color = normalized;
-  if (s.color !== '') return normalized;
-
-  return '#cccccc'; // unknown → grey
-};
-
+// ═════════════════════════════════════════════════
+// ADMIN PRODUCTS COMPONENT
+// ═════════════════════════════════════════════════
 export const AdminProducts: React.FC = () => {
   const { products, addProduct, updateProduct, deleteProduct, fetchProducts } = useProductStore();
   const { categories } = useCategoryStore();
 
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<any>(emptyProduct); const [searchQuery, setSearchQuery] = useState('');
+  const [form, setForm] = useState<any>(emptyProduct);
+  const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [videoFile, setVideoFile] = useState<File | null>(null);
@@ -172,12 +353,10 @@ export const AdminProducts: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
-
-
+  const [wmFrac, setWmFrac] = useState<{ xFrac: number; yFrac: number }>({ xFrac: 0.82, yFrac: 0.90 });
 
   // Color input state
   const [colorInput, setColorInput] = useState('');
-
   // Size free-text input state
   const [sizeInput, setSizeInput] = useState('');
 
@@ -187,7 +366,7 @@ export const AdminProducts: React.FC = () => {
   const generateSKU = (name: string): string => {
     if (!name.trim()) return '';
     const words = name.trim().toUpperCase().split(/\s+/);
-    const prefix = words.map(w => w.slice(0, 3)).join('-');
+    const prefix = words.map((w: string) => w.slice(0, 3)).join('-');
     const suffix = Date.now().toString().slice(-4);
     return `AG-${prefix}-${suffix}`;
   };
@@ -218,7 +397,7 @@ export const AdminProducts: React.FC = () => {
   // ── Add sizes from free-text ──
   const addSizes = () => {
     if (!sizeInput.trim()) return;
-    const newSizes = sizeInput.split(',').map(s => s.trim()).filter(Boolean);
+    const newSizes = sizeInput.split(',').map((s: string) => s.trim()).filter(Boolean);
     const existing = form.sizes || [];
     const merged = [...new Set([...existing, ...newSizes])];
     setForm({ ...form, sizes: merged });
@@ -228,7 +407,8 @@ export const AdminProducts: React.FC = () => {
   const removeSize = (size: string) => {
     setForm({ ...form, sizes: (form.sizes || []).filter((s: string) => s !== size) });
   };
-  const filtered = products.filter(p => {
+
+  const filtered = products.filter((p: Product) => {
     const matchesSearch = !searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCat = !filterCategory || p.categorySlug === filterCategory;
     return matchesSearch && matchesCat;
@@ -241,6 +421,9 @@ export const AdminProducts: React.FC = () => {
     setVideoPreviewUrl('');
     setColorInput('');
     setSizeInput('');
+    wmPos = { xFrac: 0.82, yFrac: 0.90 };
+    setWmFrac({ xFrac: 0.82, yFrac: 0.90 });
+    setWmFrac({ xFrac: 0.82, yFrac: 0.90 });
     setForm({
       ...emptyProduct,
       id: '',
@@ -260,60 +443,59 @@ export const AdminProducts: React.FC = () => {
     setVideoPreviewUrl((product as any).videoUrl || '');
     setColorInput('');
     setSizeInput('');
-    setForm({ ...product });
+    wmPos = { xFrac: 0.82, yFrac: 0.90 };
+    setWmFrac({ xFrac: 0.82, yFrac: 0.90 });
+    setWmFrac({ xFrac: 0.82, yFrac: 0.90 });
+    setForm({
+      ...product,
+      images: product.images || [],
+      colors: product.colors || [],
+      sizes: product.sizes || [],
+      tags: product.tags || [],
+    });
     setShowModal(true);
   };
 
+  // ── Upload images with watermark ──
   const uploadImages = async (files: File[]): Promise<string[]> => {
     const urls: string[] = [];
-
     for (const file of files) {
       try {
-        const url = await uploadToCloudinary(file);
+        const watermarked = await applyWatermark(file);
+        const url = await uploadToCloudinary(watermarked);
         urls.push(url);
       } catch (err) {
         console.error('Cloudinary upload failed:', err);
       }
     }
-
     return urls;
   };
 
   const uploadVideo = async (file: File): Promise<string> => {
     try {
       const formData = new FormData();
-
       formData.append('file', file);
-      formData.append(
-        'upload_preset',
-        import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
-      );
-
-      const cloudName =
-        import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-
+      formData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
+      const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
       const res = await fetch(
         `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`,
-        {
-          method: 'POST',
-          body: formData,
-        }
+        { method: 'POST', body: formData }
       );
-
       const data = await res.json();
-      console.log(data);
-
       return data.secure_url;
     } catch (err) {
       console.error(err);
       return '';
     }
   };
+
   const handleSave = async () => {
     try {
-      const slug = form.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || '';
-      const cat = categories.find(c => c.name === form.category);
+      const baseSlug = form.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || '';
+      const slug = editingId ? baseSlug : `${baseSlug}-${Date.now().toString().slice(-6)}`;
+      const cat = categories.find((c: any) => c.name === form.category);
 
+      // Keep existing uploaded images (edit mode) + upload new ones
       let finalImages = (form.images || []).filter((img: string) => img.startsWith('http'));
       if (imageFiles.length > 0) {
         setUploading(true);
@@ -323,14 +505,13 @@ export const AdminProducts: React.FC = () => {
 
       let finalVideoUrl = (form as any).videoUrl || '';
       if (videoFile) {
+        setUploading(true);
         finalVideoUrl = await uploadVideo(videoFile);
       }
       setUploading(false);
 
       const payload = {
         name: form.name, slug,
-        description: form.description,
-        short_description: form.shortDescription,
         images: finalImages,
         video_url: finalVideoUrl || null,
         price: form.price,
@@ -394,6 +575,9 @@ export const AdminProducts: React.FC = () => {
     deleteProduct(id);
   };
 
+  // Previously uploaded images (in edit mode)
+  const existingImages = (form.images || []).filter((img: string) => img.startsWith('http'));
+
   return (
     <div>
       {/* ── Header ── */}
@@ -418,9 +602,9 @@ export const AdminProducts: React.FC = () => {
           />
         </div>
         <Select
-          options={[{ value: '', label: 'All Categories' }, ...categories.map(c => ({ value: c.slug, label: c.name }))]}
+          options={[{ value: '', label: 'All Categories' }, ...categories.map((c: any) => ({ value: c.slug, label: c.name }))]}
           value={filterCategory}
-          onChange={e => setFilterCategory(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilterCategory(e.target.value)}
           className="!w-auto"
         />
       </div>
@@ -440,7 +624,7 @@ export const AdminProducts: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {filtered.map(product => (
+              {filtered.map((product: Product) => (
                 <tr key={product.id} className="border-b border-blush/10 last:border-0 hover:bg-blush-light/10 transition-colors">
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-3">
@@ -452,7 +636,6 @@ export const AdminProducts: React.FC = () => {
                       <div>
                         <p className="font-medium text-charcoal line-clamp-1">{product.name}</p>
                         <p className="text-xs text-[#6B5B55]">{product.sku}</p>
-                        {/* Color swatches in table row */}
                         {(product.colors || []).length > 0 && (
                           <div className="flex gap-1 mt-1">
                             {(product.colors || []).slice(0, 5).map((color: any) => (
@@ -514,11 +697,9 @@ export const AdminProducts: React.FC = () => {
             <Input
               label="Product Name"
               value={form.name || ''}
-              onChange={e => handleNameChange(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleNameChange(e.target.value)}
               placeholder="e.g. Silk Evening Gown"
             />
-
-            {/* SKU with refresh */}
             <div>
               <label className="block text-sm font-medium text-[#6B5B55] mb-1.5">SKU (auto-generated)</label>
               <div className="flex gap-2">
@@ -538,26 +719,24 @@ export const AdminProducts: React.FC = () => {
                 </button>
               </div>
             </div>
-
             <Input
               label="Price (৳)"
               type="number"
               value={form.price?.toString() || ''}
-              onChange={e => setForm({ ...form, price: parseFloat(e.target.value) || 0 })}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, price: parseFloat(e.target.value) || 0 })}
             />
             <Input
               label="Compare Price (৳) — strike-through"
               type="number"
               value={form.comparePrice?.toString() || ''}
-              onChange={e => setForm({ ...form, comparePrice: parseFloat(e.target.value) || undefined })}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, comparePrice: parseFloat(e.target.value) || undefined })}
             />
-
             <Select
               label="Category"
-              options={[{ value: '', label: 'Select category' }, ...categories.map(c => ({ value: c.name, label: c.name }))]}
+              options={[{ value: '', label: 'Select category' }, ...categories.map((c: any) => ({ value: c.name, label: c.name }))]}
               value={form.category || ''}
-              onChange={e => {
-                const cat = categories.find(c => c.name === e.target.value);
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                const cat = categories.find((c: any) => c.name === e.target.value);
                 setForm({ ...form, category: e.target.value, categorySlug: cat?.slug || '' });
               }}
             />
@@ -565,92 +744,87 @@ export const AdminProducts: React.FC = () => {
               label="Stock"
               type="number"
               value={form.stock?.toString() || ''}
-              onChange={e => setForm({ ...form, stock: parseInt(e.target.value) || 0 })}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, stock: parseInt(e.target.value) || 0 })}
             />
           </div>
 
-          {/* ── Descriptions ── */}
-          <div>
-            <label className="block text-sm font-medium text-[#6B5B55] mb-1.5">Short Description</label>
-            <input
-              value={form.shortDescription || ''}
-              onChange={e => setForm({ ...form, shortDescription: e.target.value })}
-              className="w-full px-4 py-2.5 rounded-xl border border-blush/30 bg-white/80 text-sm focus:outline-none focus:ring-2 focus:ring-rose-gold/30"
-              placeholder="One line shown on product cards"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-[#6B5B55] mb-1.5">Full Description</label>
-            <textarea
-              value={form.description || ''}
-              onChange={e => setForm({ ...form, description: e.target.value })}
-              className="w-full px-4 py-2.5 rounded-xl border border-blush/30 bg-white/80 text-sm focus:outline-none focus:ring-2 focus:ring-rose-gold/30 resize-none"
-              rows={3}
-              placeholder="Detailed product description shown on product detail page"
-            />
-          </div>
+          {/* ════════════════════════════════════════
+              PREVIOUSLY UPLOADED IMAGES (Edit Mode)
+              ════════════════════════════════════════ */}
+          {editingId && existingImages.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-[#6B5B55] mb-2">
+                Current Images ({existingImages.length})
+                <span className="ml-2 text-xs font-normal text-[#6B5B55]/70">Click × to remove</span>
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {existingImages.map((url: string, i: number) => (
+                  <div
+                    key={url}
+                    className="relative group rounded-xl overflow-hidden border border-blush/30 bg-white shadow-sm"
+                  >
+                    <img src={url} alt="" className="w-full h-32 object-cover" />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setForm({
+                          ...form,
+                          images: (form.images || []).filter((u: string) => u !== url),
+                        })
+                      }
+                      className="absolute top-2 right-2 bg-black/60 hover:bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center transition-colors"
+                      title="Remove image"
+                    >
+                      <X size={12} />
+                    </button>
+                    {i === 0 && (
+                      <div className="absolute bottom-2 left-2 bg-rose-gold text-white text-[10px] px-2 py-1 rounded-full shadow">
+                        Cover
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
-          {/* ── DRAG & DROP IMAGES ── */}
+          {/* ── DRAG & DROP NEW IMAGES ── */}
           <div>
             <label className="block text-sm font-medium text-[#6B5B55] mb-2">
-              Product Images
+              {editingId && existingImages.length > 0 ? 'Add More Images' : 'Product Images'}
+              <span className="ml-2 text-xs font-normal text-[#6B5B55]/70">
+                AG logo will be auto-watermarked ✓
+              </span>
             </label>
 
             <div
-              onDragEnter={(e) => {
-                e.preventDefault();
-                setDragActive(true);
-              }}
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDragActive(true);
-              }}
-              onDragLeave={(e) => {
-                e.preventDefault();
-                setDragActive(false);
-              }}
+              onDragEnter={(e) => { e.preventDefault(); setDragActive(true); }}
+              onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+              onDragLeave={(e) => { e.preventDefault(); setDragActive(false); }}
               onDrop={(e) => {
                 e.preventDefault();
                 setDragActive(false);
-
-                const files = Array.from(e.dataTransfer.files).filter(file =>
-                  file.type.startsWith('image/')
-                );
-
+                const files = Array.from(e.dataTransfer.files).filter((file: File) => file.type.startsWith('image/'));
                 setImageFiles(prev => [...prev, ...files]);
               }}
               className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all
-      ${dragActive
-                  ? 'border-rose-gold bg-blush-light/40'
-                  : 'border-blush/40 bg-white/60'
-                }`}
+                ${dragActive ? 'border-rose-gold bg-blush-light/40' : 'border-blush/40 bg-white/60'}`}
             >
               <UploadCloud className="mx-auto mb-3 text-rose-gold" size={40} />
-
-              <p className="text-sm font-medium text-charcoal mb-1">
-                Drag & Drop Product Images
-              </p>
-
-              <p className="text-xs text-[#6B5B55] mb-4">
-                JPG, PNG, WEBP supported
-              </p>
-
+              <p className="text-sm font-medium text-charcoal mb-1">Drag & Drop Product Images</p>
+              <p className="text-xs text-[#6B5B55] mb-4">JPG, PNG, WEBP supported</p>
               <input
                 type="file"
                 accept="image/*"
                 multiple
                 onChange={(e) => {
                   if (e.target.files) {
-                    setImageFiles(prev => [
-                      ...prev,
-                      ...Array.from(e.target.files || [])
-                    ]);
+                    setImageFiles(prev => [...prev, ...Array.from(e.target.files || [])]);
                   }
                 }}
                 className="hidden"
                 id="product-image-upload"
               />
-
               <label
                 htmlFor="product-image-upload"
                 className="inline-flex items-center px-4 py-2 rounded-xl bg-rose-gold text-white text-sm cursor-pointer hover:opacity-90"
@@ -660,82 +834,79 @@ export const AdminProducts: React.FC = () => {
             </div>
 
             {imageFiles.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
-                {imageFiles.map((file, i) => (
-                  <div
-                    key={i}
-                    draggable
-                    onDragStart={() => setDragIndex(i)}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={() => {
-                      if (dragIndex === null) return;
+              <div className="mt-4 space-y-3">
 
-                      const updated = [...imageFiles];
-
-                      const draggedItem = updated[dragIndex];
-
-                      updated.splice(dragIndex, 1);
-
-                      updated.splice(i, 0, draggedItem);
-
-                      setImageFiles(updated);
-
-                      setDragIndex(null);
+                {/* ── First image: full-width draggable watermark preview ── */}
+                <div className="relative rounded-xl overflow-hidden border border-blush/30 bg-white">
+                  <WatermarkPreview
+                    file={imageFiles[0]}
+                    onPositionChange={(xFrac: number, yFrac: number) => {
+                      wmPos = { xFrac, yFrac };
+                      setWmFrac({ xFrac, yFrac });
                     }}
-                    className="relative group rounded-xl overflow-hidden border border-blush/30 bg-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setImageFiles(prev => prev.filter((_, index) => index !== 0))}
+                    className="absolute top-2 right-2 bg-black/60 text-white rounded-full w-6 h-6 flex items-center justify-center z-10"
                   >
-                    {/* Drag Icon */}
-                    <div className="absolute top-2 left-2 z-10 bg-white/80 rounded-full p-1 shadow">
-                      <GripVertical size={14} className="text-charcoal" />
+                    ×
+                  </button>
+                  {existingImages.length === 0 && (
+                    <div className="absolute bottom-2 left-2 bg-rose-gold text-white text-[10px] px-2 py-1 rounded-full shadow z-10">
+                      Cover
                     </div>
+                  )}
+                </div>
 
-                    {/* Image */}
-                    <img
-                      src={URL.createObjectURL(file)}
-                      alt=""
-                      className="w-full h-32 object-cover"
-                    />
-
-                    {/* Remove Button */}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setImageFiles(prev =>
-                          prev.filter((_, index) => index !== i)
-                        )
-                      }
-                      className="absolute top-2 right-2 bg-black/60 text-white rounded-full w-6 h-6 flex items-center justify-center"
-                    >
-                      ×
-                    </button>
-
-                    {/* Cover Badge */}
-                    {i === 0 && (
-                      <div className="absolute bottom-2 left-2 bg-rose-gold text-white text-[10px] px-2 py-1 rounded-full shadow">
-                        Cover
+                {/* ── Rest of images: small grid thumbnails ── */}
+                {imageFiles.length > 1 && (
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                    {imageFiles.slice(1).map((file: File, i: number) => (
+                      <div
+                        key={i + 1}
+                        draggable
+                        onDragStart={() => setDragIndex(i + 1)}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={() => {
+                          if (dragIndex === null) return;
+                          const updated = [...imageFiles];
+                          const draggedItem = updated[dragIndex];
+                          updated.splice(dragIndex, 1);
+                          updated.splice(i + 1, 0, draggedItem);
+                          setImageFiles(updated);
+                          setDragIndex(null);
+                        }}
+                        className="relative rounded-xl overflow-hidden border border-blush/30 bg-white"
+                      >
+                        <div className="absolute top-1 left-1 z-10 bg-white/80 rounded-full p-0.5 shadow">
+                          <GripVertical size={12} className="text-charcoal" />
+                        </div>
+                        <MiniWatermarkThumb file={file} xFrac={wmFrac.xFrac} yFrac={wmFrac.yFrac} />
+                        <button
+                          type="button"
+                          onClick={() => setImageFiles(prev => prev.filter((_, index) => index !== i + 1))}
+                          className="absolute top-1 right-1 bg-black/60 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                        >
+                          ×
+                        </button>
                       </div>
-                    )}
+                    ))}
                   </div>
-                ))}
+                )}
+
               </div>
             )}
           </div>
-          {/* ── Video Upload ── */}
+
           {/* ── DRAG & DROP VIDEO ── */}
           <div>
-            <label className="block text-sm font-medium text-[#6B5B55] mb-2">
-              Product Video
-            </label>
-
+            <label className="block text-sm font-medium text-[#6B5B55] mb-2">Product Video</label>
             <div
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
                 e.preventDefault();
-
-                const file = Array.from(e.dataTransfer.files).find(file =>
-                  file.type.startsWith('video/')
-                );
-
+                const file = Array.from(e.dataTransfer.files).find((f: File) => f.type.startsWith('video/'));
                 if (file) {
                   setVideoFile(file);
                   setVideoPreviewUrl(URL.createObjectURL(file));
@@ -744,11 +915,7 @@ export const AdminProducts: React.FC = () => {
               className="border-2 border-dashed border-blush/40 rounded-2xl p-6 text-center bg-white/60"
             >
               <UploadCloud className="mx-auto mb-3 text-rose-gold" size={36} />
-
-              <p className="text-sm font-medium text-charcoal mb-1">
-                Drag & Drop Product Video
-              </p>
-
+              <p className="text-sm font-medium text-charcoal mb-1">Drag & Drop Product Video</p>
               <input
                 type="file"
                 accept="video/*"
@@ -756,14 +923,12 @@ export const AdminProducts: React.FC = () => {
                 id="video-upload"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
-
                   if (file) {
                     setVideoFile(file);
                     setVideoPreviewUrl(URL.createObjectURL(file));
                   }
                 }}
               />
-
               <label
                 htmlFor="video-upload"
                 className="inline-flex items-center px-4 py-2 rounded-xl bg-rose-gold text-white text-sm cursor-pointer hover:opacity-90 mt-3"
@@ -771,7 +936,6 @@ export const AdminProducts: React.FC = () => {
                 Browse Video
               </label>
             </div>
-
             {videoPreviewUrl && (
               <video
                 src={videoPreviewUrl}
@@ -782,17 +946,13 @@ export const AdminProducts: React.FC = () => {
           </div>
 
           {/* ════════════════════════════════════════
-              COLORS — type name or hex, auto-resolved
+              COLORS
               ════════════════════════════════════════ */}
           <div>
-            <label className="block text-sm font-medium text-[#6B5B55] mb-0.5">
-              Colors
-            </label>
+            <label className="block text-sm font-medium text-[#6B5B55] mb-0.5">Colors</label>
             <p className="text-xs text-[#6B5B55] mb-2">
-              Type color name (e.g. <span className="text-charcoal font-medium">red, navy, rose gold, maroon</span>) or hex (e.g. <span className="text-charcoal font-medium">#FF5733</span>). Press Enter or click Add. Add multiple colors one by one.
+              Type color name (e.g. <span className="text-charcoal font-medium">red, navy, rose gold, maroon</span>) or hex. Press Enter or click Add.
             </p>
-
-            {/* Input row */}
             <div className="flex gap-2 mb-3">
               <div className="relative flex-1">
                 <input
@@ -800,38 +960,23 @@ export const AdminProducts: React.FC = () => {
                   onChange={e => setColorInput(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addColor(); } }}
                   className="w-full px-4 py-2.5 rounded-xl border border-blush/30 bg-white/80 text-sm focus:outline-none focus:ring-2 focus:ring-rose-gold/30"
-                  placeholder="e.g. red  or  #B76E79  or  rose gold  or  navy blue"
+                  placeholder="e.g. red  or  #B76E79  or  rose gold"
                 />
               </div>
-              {/* Live color preview circle */}
               <div
                 className="w-11 h-11 rounded-xl border-2 border-blush/40 flex-shrink-0 transition-all"
-                style={{
-                  backgroundColor: colorInput.trim() ? resolveColor(colorInput) : '#f0f0f0',
-                }}
+                style={{ backgroundColor: colorInput.trim() ? resolveColor(colorInput) : '#f0f0f0' }}
                 title={colorInput || 'preview'}
               />
               <Button size="sm" onClick={addColor} type="button">Add</Button>
             </div>
-
-            {/* Quick common color buttons */}
             <div className="flex flex-wrap gap-1.5 mb-3">
               {[
-                ['White', '#FFFFFF'],
-                ['Black', '#000000'],
-                ['Red', '#E53E3E'],
-                ['Maroon', '#800000'],
-                ['Navy', '#001F5B'],
-                ['Pink', '#FFC0CB'],
-                ['Rose Gold', '#B76E79'],
-                ['Green', '#38A169'],
-                ['Yellow', '#F6E05E'],
-                ['Orange', '#ED8936'],
-                ['Purple', '#805AD5'],
-                ['Skin', '#FED9B0'],
-                ['Beige', '#F5F5DC'],
-                ['Grey', '#808080'],
-                ['Teal', '#008080'],
+                ['White', '#FFFFFF'], ['Black', '#000000'], ['Red', '#E53E3E'],
+                ['Maroon', '#800000'], ['Navy', '#001F5B'], ['Pink', '#FFC0CB'],
+                ['Rose Gold', '#B76E79'], ['Green', '#38A169'], ['Yellow', '#F6E05E'],
+                ['Orange', '#ED8936'], ['Purple', '#805AD5'], ['Skin', '#FED9B0'],
+                ['Beige', '#F5F5DC'], ['Grey', '#808080'], ['Teal', '#008080'],
               ].map(([name, hex]) => (
                 <button
                   key={name}
@@ -848,28 +993,18 @@ export const AdminProducts: React.FC = () => {
                 </button>
               ))}
             </div>
-
-            {/* Selected colors */}
             {(form.colors || []).length > 0 && (
               <>
                 <p className="text-xs text-[#6B5B55] mb-2">Selected ({(form.colors || []).length}):</p>
                 <div className="flex flex-wrap gap-2">
                   {(form.colors || []).map((color: string) => (
-                    <div
-                      key={String(color)}
-                      className="flex items-center gap-1.5 bg-white border border-blush/20 rounded-full px-3 py-1.5 shadow-sm"
-                    >
+                    <div key={String(color)} className="flex items-center gap-1.5 bg-white border border-blush/20 rounded-full px-3 py-1.5 shadow-sm">
                       <div
                         className="w-4 h-4 rounded-full border border-gray-200 shadow-sm flex-shrink-0"
                         style={{ backgroundColor: resolveColor(String(color)) }}
-                        title={resolveColor(String(color))}
                       />
                       <span className="text-xs text-charcoal font-medium">{String(color)}</span>
-                      <button
-                        type="button"
-                        onClick={() => removeColor(String(color))}
-                        className="text-[#6B5B55] hover:text-red-500 ml-0.5 transition-colors"
-                      >
+                      <button type="button" onClick={() => removeColor(String(color))} className="text-[#6B5B55] hover:text-red-500 ml-0.5 transition-colors">
                         <X size={10} />
                       </button>
                     </div>
@@ -880,17 +1015,13 @@ export const AdminProducts: React.FC = () => {
           </div>
 
           {/* ════════════════════════════════════════
-              SIZES — free text input (ALWAYS VISIBLE)
+              SIZES
               ════════════════════════════════════════ */}
           <div>
-            <label className="block text-sm font-medium text-[#6B5B55] mb-0.5">
-              Sizes
-            </label>
+            <label className="block text-sm font-medium text-[#6B5B55] mb-0.5">Sizes</label>
             <p className="text-xs text-[#6B5B55] mb-2">
-              Type any sizes separated by commas (e.g. <span className="text-charcoal font-medium">XS, S, M, L, XL</span> or <span className="text-charcoal font-medium">Free Size</span> or <span className="text-charcoal font-medium">32, 34, 36, 38</span>) then click Add.
+              Type sizes separated by commas (e.g. <span className="text-charcoal font-medium">XS, S, M, L, XL</span>) then click Add.
             </p>
-
-            {/* Free text input — ALWAYS RENDERED, no conditional */}
             <div className="flex gap-2 mb-2">
               <input
                 type="text"
@@ -902,8 +1033,6 @@ export const AdminProducts: React.FC = () => {
               />
               <Button size="sm" onClick={addSizes} type="button">Add</Button>
             </div>
-
-            {/* Quick preset buttons */}
             <div className="flex flex-wrap gap-1.5 mb-2">
               {[
                 { label: 'XS–XXL', sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'] },
@@ -925,8 +1054,6 @@ export const AdminProducts: React.FC = () => {
                 </button>
               ))}
             </div>
-
-            {/* Selected sizes as tags */}
             {(form.sizes || []).length > 0 && (
               <>
                 <p className="text-xs text-[#6B5B55] mb-2">Selected ({(form.sizes || []).length}):</p>
@@ -944,12 +1071,11 @@ export const AdminProducts: React.FC = () => {
             )}
           </div>
 
-          {/* ── Custom Product Detail Text ── */}
+          {/* ── Product Description / Notes ── */}
           <div>
             <label className="block text-sm font-medium text-[#6B5B55] mb-1.5">
-              Custom Product Detail Text
+              Products Details / Description / Notes (optional)
             </label>
-
             <textarea
               value={form.customText || ''}
               onChange={e => setForm({ ...form, customText: e.target.value })}
@@ -958,31 +1084,20 @@ export const AdminProducts: React.FC = () => {
               placeholder="Write custom product information, offer, sizing help, delivery notes, fabric details etc."
             />
           </div>
-          {/* ── CUSTOM PRODUCT ASSEMBLY ── */}
+
+          {/* ── Product Assembly ── */}
           <div className="space-y-3">
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
                 checked={form.isCustomAssembly || false}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    isCustomAssembly: e.target.checked,
-                  })
-                }
+                onChange={(e) => setForm({ ...form, isCustomAssembly: e.target.checked })}
               />
-
-              <span className="text-sm font-medium text-charcoal">
-                Enable Product Assembly
-              </span>
+              <span className="text-sm font-medium text-charcoal">Enable Product Assembly</span>
             </label>
-
             {form.isCustomAssembly && (
               <div>
-                <p className="text-xs text-[#6B5B55] mb-2">
-                  Add related products separated by commas
-                </p>
-
+                <p className="text-xs text-[#6B5B55] mb-2">Add related products separated by commas</p>
                 <input
                   type="text"
                   placeholder="e.g. Hijab, Bag, Shoes"
@@ -990,10 +1105,7 @@ export const AdminProducts: React.FC = () => {
                   onChange={(e) =>
                     setForm({
                       ...form,
-                      assembledProducts: e.target.value
-                        .split(',')
-                        .map(item => item.trim())
-                        .filter(Boolean),
+                      assembledProducts: e.target.value.split(',').map((item: string) => item.trim()).filter(Boolean),
                     })
                   }
                   className="w-full px-4 py-2.5 rounded-xl border border-blush/30 bg-white/80 text-sm"
@@ -1001,12 +1113,13 @@ export const AdminProducts: React.FC = () => {
               </div>
             )}
           </div>
+
           {/* ── Tags ── */}
           <div>
             <label className="block text-sm font-medium text-[#6B5B55] mb-1.5">Tags (comma separated)</label>
             <input
               value={(form.tags || []).join(', ')}
-              onChange={e => setForm({ ...form, tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean) })}
+              onChange={e => setForm({ ...form, tags: e.target.value.split(',').map((t: string) => t.trim()).filter(Boolean) })}
               className="w-full px-4 py-2.5 rounded-xl border border-blush/30 bg-white/80 text-sm focus:outline-none focus:ring-2 focus:ring-rose-gold/30"
               placeholder="e.g. silk, evening, luxury"
             />

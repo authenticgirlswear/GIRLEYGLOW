@@ -2,7 +2,7 @@
    AUTHENTIC GIRLSWEAR - Search Page
    FIXED: Now searches Supabase products via useProductStore
    =================================================== */
-
+declare global { interface Window { dataLayer: any[]; } }
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -26,6 +26,7 @@ export const SearchPage: React.FC = () => {
     setInputValue(query);
   }, [query]);
 
+
   const results = useMemo(() => {
     if (!query.trim()) return [];
     const q = query.toLowerCase().trim();
@@ -37,6 +38,17 @@ export const SearchPage: React.FC = () => {
       (p.tags && p.tags.some((t: string) => t.toLowerCase().includes(q)))
     );
   }, [query, products]);
+
+  /* GTM DATA LAYER — search */
+  useEffect(() => {
+    if (!query.trim()) return;
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({
+      event: 'search',
+      search_term: query.trim(),
+      search_results_count: results.length,
+    });
+  }, [query, results.length]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

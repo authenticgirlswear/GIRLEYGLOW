@@ -7,7 +7,7 @@
    - Google Sheets integration
    - bKash/Nagad: 01623-124760 (tap to copy)
    =================================================== */
-
+declare global { interface Window { dataLayer: any[]; } }
 import React, { useState, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -215,6 +215,25 @@ export const CheckoutPage: React.FC = () => {
   const handleReviewOrder = () => {
     if (validate()) {
       trackInitiateCheckout(total);
+
+      /* GTM DATA LAYER — begin_checkout */
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({ ecommerce: null });
+      window.dataLayer.push({
+        event: 'begin_checkout',
+        ecommerce: {
+          currency: 'BDT',
+          value: total,
+          items: checkoutItems.map(item => ({
+            item_id: item.product.id,
+            item_name: item.product.name,
+            item_category: item.product.category,
+            price: item.product.price,
+            quantity: item.quantity,
+          })),
+        },
+      });
+
       setShowReview(true);
     }
   };
@@ -263,6 +282,28 @@ export const CheckoutPage: React.FC = () => {
 
     await placeOrder(orderData);
     trackPurchase(total);
+
+    /* GTM DATA LAYER — purchase */
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({ ecommerce: null });
+    window.dataLayer.push({
+      event: 'purchase',
+      ecommerce: {
+        transaction_id: num,
+        currency: 'BDT',
+        value: total,
+        shipping: shippingCharge,
+        coupon: couponApplied ? couponInput.trim().toUpperCase() : undefined,
+        items: checkoutItems.map(item => ({
+          item_id: item.product.id,
+          item_name: item.product.name,
+          item_category: item.product.category,
+          price: item.product.price,
+          quantity: item.quantity,
+        })),
+      },
+    });
+
     // Send to Google Sheets
     try {
       await sendOrderToGoogleSheets(orderData as Record<string, unknown>);

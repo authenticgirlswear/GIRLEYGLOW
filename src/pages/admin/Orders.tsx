@@ -4,10 +4,11 @@
    1. fetchOrders() called on mount so search works
    2. Admin can edit order total inline
    3. Admin can add/remove items from an existing order
+   4. Admin can permanently delete an order from the panel
    =================================================== */
 
 import React, { useState, useEffect } from 'react';
-import { Search, Eye, CheckCircle, XCircle, ShoppingBag, X, Plus, Minus, Edit2, Check } from 'lucide-react';
+import { Search, Eye, CheckCircle, XCircle, ShoppingBag, X, Plus, Minus, Edit2, Check, Trash2 } from 'lucide-react';
 import { Button, Select, Modal } from '@/components/ui';
 import { useOrderStore } from '@/store';
 import type { OrderStatus } from '@/types';
@@ -43,7 +44,7 @@ const blankNewItem = {
 };
 
 export const AdminOrders: React.FC = () => {
-  const { orders, fetchOrders, updateOrderStatus, updatePaymentStatus, updateOrder } = useOrderStore();
+  const { orders, fetchOrders, updateOrderStatus, updatePaymentStatus, updateOrder, deleteOrder } = useOrderStore();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -104,6 +105,13 @@ export const AdminOrders: React.FC = () => {
     if (confirm('Cancel this order? Revenue and customer total will be updated.')) {
       updateOrderStatus(orderId, 'cancelled' as OrderStatus);
     }
+  };
+
+  // ── FIX 4: Permanently delete an order ────────────────────────────────────
+  const handleDeleteOrder = (orderId: string) => {
+    if (!confirm('Permanently delete this order? This cannot be undone.')) return;
+    deleteOrder?.(orderId);
+    if (selectedOrder?.id === orderId) handleModalClose();
   };
 
   // ── FIX 2: Save edited total ───────────────────────────────────────────────
@@ -185,7 +193,6 @@ export const AdminOrders: React.FC = () => {
     setShowAddItem(false);
   };
 
-
   const handleModalClose = () => {
     setSelectedOrder(null);
     setEditingTotal(false);
@@ -265,10 +272,10 @@ export const AdminOrders: React.FC = () => {
                   <td className="py-3 px-4">
                     <span
                       className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${order.paymentStatus === 'verified'
-                          ? 'bg-green-100 text-green-700'
-                          : order.paymentStatus === 'failed'
-                            ? 'bg-red-100 text-red-600'
-                            : 'bg-yellow-100 text-yellow-700'
+                        ? 'bg-green-100 text-green-700'
+                        : order.paymentStatus === 'failed'
+                          ? 'bg-red-100 text-red-600'
+                          : 'bg-yellow-100 text-yellow-700'
                         }`}
                     >
                       {order.paymentMethod.toUpperCase()} — {order.paymentStatus}
@@ -294,6 +301,14 @@ export const AdminOrders: React.FC = () => {
                           <X size={14} />
                         </Button>
                       )}
+                      {/* ── FIX 4: Delete button ── */}
+                      <button
+                        onClick={() => handleDeleteOrder(order.id)}
+                        className="p-2 rounded-lg hover:bg-red-50 text-[#6B5B55] hover:text-red-500 transition-colors"
+                        title="Delete order permanently"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -583,6 +598,19 @@ export const AdminOrders: React.FC = () => {
             <p className="text-xs text-[#6B5B55] text-right">
               Placed: {new Date(selectedOrder.createdAt).toLocaleString()}
             </p>
+
+            {/* ── FIX 4: Delete button inside modal ── */}
+            <div className="border-t border-blush/20 pt-4 flex justify-end">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="!text-red-500 hover:!bg-red-50 flex items-center gap-1.5"
+                onClick={() => handleDeleteOrder(selectedOrder.id)}
+              >
+                <Trash2 size={14} />
+                Delete Order
+              </Button>
+            </div>
           </div>
         )}
       </Modal>
