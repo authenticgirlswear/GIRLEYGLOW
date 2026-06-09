@@ -43,7 +43,8 @@
     );
 
     fbq('init', '517991158551582');
-    fbq('track', 'PageView');
+    // PageView is intentionally NOT fired here.
+    // It is handled by PixelTracker in App.tsx on every route change.
   </script>
   <!-- End Meta Pixel Code -->
 
@@ -69,7 +70,7 @@
       j.src = 'https://www.googletagmanager.com/gtm.js?id=' + i + dl;
 
       f.parentNode.insertBefore(j, f);
-    })(window, document, 'script', 'dataLayer', 'GTM-TNRPVQKM');
+    })(window, document, 'script', 'dataLayer', 'GTM-TWN3NF5S');
   </script>
   <!-- End Google Tag Manager -->
 
@@ -79,7 +80,7 @@
 
   <!-- Google Tag Manager (noscript) -->
   <noscript>
-    <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-TNRPVQKM" height="0" width="0"
+    <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-TWN3NF5S" height="0" width="0"
       style="display:none;visibility:hidden">
     </iframe>
   </noscript>

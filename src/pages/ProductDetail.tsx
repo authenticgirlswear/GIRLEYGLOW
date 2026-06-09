@@ -60,54 +60,58 @@ const normalise = (p: any): Product => ({
  */
 const COLOR_NAME_MAP: Record<string, string> = {
   // ── Reds & Pinks ──
-  'red': '#FF0000', 'dark red': '#8B0000', 'crimson': '#DC143C',
-  'maroon': '#800000', 'burgundy': '#800020', 'wine': '#722F37',
-  'rose': '#FF007F', 'hot pink': '#FF69B4', 'deep pink': '#FF1493',
-  'light pink': '#FFB6C1', 'baby pink': '#F4C2C2', 'blush pink': '#FEC5BB',
-  'dusty rose': '#DCAE96', 'mauve': '#E0B0FF', 'salmon': '#FA8072',
-  'coral': '#FF6B6B', 'peach': '#FFCBA4', 'pink': '#FF69B4',
-  'rose gold': '#B76E79', 'flamingo': '#FC8EAC',
+  'red': '#E53E3E', 'dark red': '#9B2335', 'crimson': '#DC143C',
+  'maroon': '#800000', 'burgundy': '#722F37', 'wine': '#722F37',
+  'pink': '#FFC0CB', 'hot pink': '#FF69B4', 'baby pink': '#F4C2C2',
+  'light pink': '#FFB6C1', 'magenta': '#FF00FF', 'blush': '#FADADD',
+  'rose': '#FF007F', 'rose gold': '#B76E79', 'dusty rose': '#DCAE96',
+  'blush pink': '#FEC5BB', 'deep pink': '#FF1493', 'flamingo': '#FC8EAC',
+  'coral': '#FF6B6B', 'salmon': '#FA8072', 'peach': '#FFCBA4',
+  'shocking pink': '#FC0FC0', 'mauve': '#E0B0FF',
   // ── Oranges ──
-  'orange': '#FF8C00', 'dark orange': '#FF8C00', 'light orange': '#FFB347',
+  'orange': '#ED8936', 'dark orange': '#FF8C00', 'light orange': '#FFB347',
   'amber': '#FFBF00', 'burnt orange': '#CC5500', 'tangerine': '#F28500',
+  'rust': '#B7410E', 'terracotta': '#E2725B',
   // ── Yellows ──
-  'yellow': '#FFD700', 'light yellow': '#FFFFE0', 'gold': '#FFD700',
-  'dark yellow': '#C9A800', 'mustard': '#FFDB58', 'lemon': '#FFF44F',
-  'cream': '#FFFDD0', 'ivory': '#FFFFF0', 'champagne': '#F7E7CE',
-  'vanilla': '#F3E5AB', 'butter': '#FFFAA0',
+  'yellow': '#F6E05E', 'light yellow': '#FFFFE0', 'gold': '#FFD700',
+  'golden': '#FFD700', 'dark yellow': '#C9A800', 'mustard': '#FFDB58',
+  'mustard yellow': '#FFDB58', 'lemon': '#FFF44F', 'cream': '#FFFDD0',
+  'ivory': '#FFFFF0', 'champagne': '#F7E7CE', 'vanilla': '#F3E5AB',
+  'butter': '#FFFAA0',
   // ── Greens ──
-  'green': '#008000', 'dark green': '#006400', 'light green': '#90EE90',
-  'lime green': '#32CD32', 'mint green': '#98FF98', 'mint': '#3EB489',
-  'sage': '#B2AC88', 'olive': '#808000', 'forest green': '#228B22',
-  'emerald': '#50C878', 'teal': '#008080', 'turquoise': '#40E0D0',
-  'seafoam': '#93E9BE', 'lime': '#00FF00', 'moss': '#8A9A5B',
-  'hunter green': '#355E3B', 'jade': '#00A86B', 'bottle green': '#006A4E',
+  'green': '#38A169', 'dark green': '#006400', 'light green': '#90EE90',
+  'lime green': '#32CD32', 'mint green': '#98FF98', 'mint': '#98FF98',
+  'sage': '#BCB88A', 'olive': '#808000', 'olive green': '#6B8E23',
+  'forest green': '#228B22', 'emerald': '#50C878', 'teal': '#008080',
+  'turquoise': '#40E0D0', 'seafoam': '#93E9BE', 'lime': '#00FF00',
+  'moss': '#8A9A5B', 'hunter green': '#355E3B', 'jade': '#00A86B',
+  'bottle green': '#006A4E', 'army green': '#4B5320',
   // ── Blues ──
-  'blue': '#0000FF', 'dark blue': '#00008B', 'light blue': '#ADD8E6',
-  'sky blue': '#87CEEB', 'baby blue': '#89CFF0', 'navy': '#000080',
-  'navy blue': '#000080', 'royal blue': '#4169E1', 'cobalt': '#0047AB',
+  'blue': '#3182CE', 'dark blue': '#00008B', 'light blue': '#ADD8E6',
+  'sky blue': '#87CEEB', 'baby blue': '#89CFF0', 'navy': '#001F5B',
+  'navy blue': '#001F5B', 'royal blue': '#4169E1', 'cobalt': '#0047AB',
   'powder blue': '#B0E0E6', 'steel blue': '#4682B4', 'denim': '#1560BD',
-  'cerulean': '#007BA7', 'aqua': '#00FFFF', 'cyan': '#00FFFF',
+  'cerulean': '#007BA7', 'aqua': '#00FFFF', 'cyan': '#00BCD4',
   'electric blue': '#7DF9FF', 'indigo': '#4B0082', 'periwinkle': '#CCCCFF',
   'slate blue': '#6A5ACD', 'cadet blue': '#5F9EA0',
   // ── Purples & Violets ──
-  'purple': '#800080', 'light purple': '#DA70D6', 'dark purple': '#4B0082',
-  'violet': '#EE82EE', 'lavender': '#E6E6FA', 'lilac': '#C8A2C8',
-  'plum': '#DDA0DD', 'magenta': '#FF00FF', 'fuchsia': '#FF00FF',
-  'orchid': '#DA70D6', 'wisteria': '#C9A0DC', 'grape': '#6F2DA8',
-  'eggplant': '#614051', 'amethyst': '#9966CC',
+  'purple': '#805AD5', 'light purple': '#DA70D6', 'dark purple': '#4B0082',
+  'violet': '#8F00FF', 'lavender': '#E6E6FA', 'lilac': '#C8A2C8',
+  'plum': '#8E4585', 'fuchsia': '#FF00FF', 'orchid': '#DA70D6',
+  'wisteria': '#C9A0DC', 'grape': '#6F2DA8', 'eggplant': '#614051',
+  'amethyst': '#9966CC',
   // ── Browns & Neutrals ──
-  'brown': '#A52A2A', 'dark brown': '#654321', 'light brown': '#C4A882',
+  'brown': '#A0522D', 'dark brown': '#654321', 'light brown': '#C4A882',
   'tan': '#D2B48C', 'beige': '#F5F5DC', 'khaki': '#C3B091',
   'camel': '#C19A6B', 'sand': '#C2B280', 'taupe': '#483C32',
   'mocha': '#967259', 'coffee': '#6F4E37', 'chocolate': '#7B3F00',
   'chestnut': '#954535', 'walnut': '#773F1A', 'nude': '#E3BC9A',
-  'skin': '#FFDBAC', 'bronze': '#CD7F32', 'copper': '#B87333',
+  'skin': '#FED9B0', 'bronze': '#CD7F32', 'copper': '#B87333',
   // ── Whites & Greys ──
   'white': '#FFFFFF', 'off white': '#FAF9F6', 'off-white': '#FAF9F6',
   'snow': '#FFFAFA', 'pearl': '#F0EAD6', 'linen': '#FAF0E6',
   'grey': '#808080', 'gray': '#808080', 'light grey': '#D3D3D3',
-  'light gray': '#D3D3D3', 'dark grey': '#A9A9A9', 'dark gray': '#A9A9A9',
+  'light gray': '#D3D3D3', 'dark grey': '#404040', 'dark gray': '#404040',
   'charcoal': '#36454F', 'silver': '#C0C0C0', 'ash': '#B2BEB5',
   'slate': '#708090', 'smoke': '#738276',
   // ── Blacks ──
@@ -295,10 +299,28 @@ export const ProductDetailPage: React.FC = () => {
   const handleAddToCart = () => {
     if (!selectedSize) return;
     addItem(product, selectedSize, selectedColor, quantity);
+
+    /* GTM DATA LAYER — add_to_cart */
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({ ecommerce: null });
+    window.dataLayer.push({
+      event: 'add_to_cart',
+      ecommerce: {
+        currency: 'BDT',
+        value: product.price * quantity,
+        items: [{
+          item_id: product.id,
+          item_name: product.name,
+          item_category: product.category,
+          price: product.price,
+          quantity: quantity,
+        }],
+      },
+    });
+
     setAddedToCart(true);
     setTimeout(() => setAddedToCart(false), 2000);
   };
-
   return (
     <div className="min-h-screen pt-24 pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
