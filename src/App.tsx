@@ -42,12 +42,13 @@ function PixelTracker() {
   const location = useLocation();
 
   useEffect(() => {
-    trackPageView();
+    if (!location.pathname.startsWith('/admin')) {
+      trackPageView();
+    }
   }, [location]);
 
   return null;
 }
-
 
 // ===== Scroll to Top on Navigation =====
 const ScrollToTop: React.FC = () => {

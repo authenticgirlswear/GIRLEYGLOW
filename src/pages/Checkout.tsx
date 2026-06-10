@@ -280,7 +280,13 @@ export const CheckoutPage: React.FC = () => {
       })),
     };
 
-    await placeOrder(orderData);
+    try {
+      await placeOrder(orderData);
+    } catch (err) {
+      console.error('Order failed', err);
+      setPlacing(false);
+      return;
+    }
     trackPurchase(total);
 
     /* GTM DATA LAYER — purchase */

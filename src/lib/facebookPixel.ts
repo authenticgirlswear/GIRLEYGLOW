@@ -6,15 +6,9 @@ export const initFacebookPixel = () => {
 
 export const trackPageView = () => {
     if (typeof window.fbq === 'function') {
-        fire();
-    } else {
-        window.addEventListener('load', fire, { once: true });
-    }
-
-    function fire() {
         window.fbq('track', 'PageView');
     }
-}
+};
 
 export const trackViewContent = (productName: string, price: number) => {
     window.fbq('track', 'ViewContent', {
