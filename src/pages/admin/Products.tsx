@@ -899,6 +899,7 @@ export const AdminProducts: React.FC = () => {
           className="space-y-5 max-h-[70vh] overflow-y-auto pr-2"
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
+            e.stopPropagation();
             e.preventDefault();
             const allFiles = Array.from(e.dataTransfer.files);
             const imgs = allFiles.filter((f: File) => f.type.startsWith('image/'));
@@ -1030,6 +1031,7 @@ export const AdminProducts: React.FC = () => {
                 e.preventDefault();
                 setDragActive(false);
                 const allFiles = Array.from(e.dataTransfer.files);
+                e.stopPropagation();
                 const imgs = allFiles.filter((f: File) => f.type.startsWith('image/'));
                 const vid = allFiles.find((f: File) => f.type.startsWith('video/'));
                 if (imgs.length > 0) setImageFiles(prev => {
