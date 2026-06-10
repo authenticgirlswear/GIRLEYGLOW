@@ -460,6 +460,7 @@ export const AdminProducts: React.FC = () => {
   const [colorInput, setColorInput] = useState('');
   const [sizeInput, setSizeInput] = useState('');
   const [wmEnabled, setWmEnabled] = useState<boolean>(true);
+  const [wmPanelOpen, setWmPanelOpen] = useState<boolean>(false);
   const [textWmEnabled, setTextWmEnabled] = useState<boolean>(true);
   const [textWmText, setTextWmText] = useState<string>('Authentic Girlswear');
   const [textWmOpacity, setTextWmOpacity] = useState<number>(0.18);
@@ -526,7 +527,9 @@ export const AdminProducts: React.FC = () => {
     setWmFrac({ xFrac: 0.82, yFrac: 0.90 });
     setWmSize(1.0);
     setWmEnabled(true);
+    setWmPanelOpen(false);
   };
+
 
   const openAdd = () => {
     setEditingId(null);
@@ -1125,110 +1128,123 @@ export const AdminProducts: React.FC = () => {
                 </div>
 
                 {/* Watermark controls */}
-                <div className="bg-blush-light/30 rounded-xl px-3 py-2.5 space-y-3 border border-blush/20">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-[#6B5B55]">AG Logo Watermark</span>
-                    <label className="flex items-center gap-2 cursor-pointer select-none">
-                      <span className="text-xs text-[#6B5B55]">{wmEnabled ? 'On' : 'Off'}</span>
-                      <div
-                        onClick={() => setWmEnabled(v => !v)}
-                        className={`relative w-9 h-5 rounded-full transition-colors ${wmEnabled ? 'bg-rose-gold' : 'bg-gray-300'}`}
-                      >
-                        <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${wmEnabled ? 'left-4' : 'left-0.5'}`} />
-                      </div>
-                    </label>
-                  </div>
-                  {wmEnabled && (
-                    <div className="flex items-center gap-3">
-                      <span className="text-[11px] text-[#6B5B55] whitespace-nowrap">Logo Size</span>
-                      <input
-                        type="range" min={0.4} max={2.5} step={0.05} value={wmSize}
-                        onChange={e => setWmSize(parseFloat(e.target.value))}
-                        className="flex-1 accent-rose-gold"
-                      />
-                      <span className="text-[11px] text-[#6B5B55] w-8 text-right">{Math.round(wmSize * 100)}%</span>
-                    </div>
-                  )}
+                <div className="rounded-xl border border-blush/20 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setWmPanelOpen(v => !v)}
+                    className="w-full flex items-center justify-between px-3 py-2 bg-blush-light/40 hover:bg-blush-light/60 transition-colors"
+                  >
+                    <span className="text-xs font-medium text-[#6B5B55]">⚙️ Watermark Settings</span>
+                    <span className="text-[10px] text-[#6B5B55]">{wmPanelOpen ? '▲ Hide' : '▼ Expand'}</span>
+                  </button>
 
-                  <div className="border-t border-blush/20" />
+                  {wmPanelOpen && (
+                    <div className="bg-blush-light/30 px-3 py-2.5 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-[#6B5B55]">AG Logo Watermark</span>
+                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                          <span className="text-xs text-[#6B5B55]">{wmEnabled ? 'On' : 'Off'}</span>
+                          <div
+                            onClick={() => setWmEnabled(v => !v)}
+                            className={`relative w-9 h-5 rounded-full transition-colors ${wmEnabled ? 'bg-rose-gold' : 'bg-gray-300'}`}
+                          >
+                            <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${wmEnabled ? 'left-4' : 'left-0.5'}`} />
+                          </div>
+                        </label>
+                      </div>
+                      {wmEnabled && (
+                        <div className="flex items-center gap-3">
+                          <span className="text-[11px] text-[#6B5B55] whitespace-nowrap">Logo Size</span>
+                          <input
+                            type="range" min={0.4} max={2.5} step={0.05} value={wmSize}
+                            onChange={e => setWmSize(parseFloat(e.target.value))}
+                            className="flex-1 accent-rose-gold"
+                          />
+                          <span className="text-[11px] text-[#6B5B55] w-8 text-right">{Math.round(wmSize * 100)}%</span>
+                        </div>
+                      )}
 
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-[#6B5B55]">Text Watermark (anti-theft)</span>
-                    <label className="flex items-center gap-2 cursor-pointer select-none">
-                      <span className="text-xs text-[#6B5B55]">{textWmEnabled ? 'On' : 'Off'}</span>
-                      <div
-                        onClick={() => setTextWmEnabled(v => !v)}
-                        className={`relative w-9 h-5 rounded-full transition-colors ${textWmEnabled ? 'bg-rose-gold' : 'bg-gray-300'}`}
-                      >
-                        <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${textWmEnabled ? 'left-4' : 'left-0.5'}`} />
-                      </div>
-                    </label>
-                  </div>
+                      <div className="border-t border-blush/20" />
 
-                  {textWmEnabled && (
-                    <div className="space-y-2.5">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] text-[#6B5B55] w-20 shrink-0">Text</span>
-                        <input
-                          type="text"
-                          value={textWmText}
-                          onChange={e => setTextWmText(e.target.value)}
-                          className="flex-1 px-2.5 py-1.5 rounded-lg border border-blush/30 bg-white/80 text-xs focus:outline-none focus:ring-1 focus:ring-rose-gold/30"
-                          placeholder="e.g. Authentic Girlswear"
-                        />
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-[#6B5B55]">Text Watermark (anti-theft)</span>
+                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                          <span className="text-xs text-[#6B5B55]">{textWmEnabled ? 'On' : 'Off'}</span>
+                          <div
+                            onClick={() => setTextWmEnabled(v => !v)}
+                            className={`relative w-9 h-5 rounded-full transition-colors ${textWmEnabled ? 'bg-rose-gold' : 'bg-gray-300'}`}
+                          >
+                            <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${textWmEnabled ? 'left-4' : 'left-0.5'}`} />
+                          </div>
+                        </label>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-[11px] text-[#6B5B55] w-20 shrink-0">Color</span>
-                        <input
-                          type="color"
-                          value={textWmColor}
-                          onChange={e => setTextWmColor(e.target.value)}
-                          className="w-8 h-7 rounded cursor-pointer border border-blush/30 p-0.5 bg-white"
-                        />
-                        <span className="text-[11px] text-[#6B5B55] ml-2 whitespace-nowrap">Opacity</span>
-                        <input
-                          type="range" min={0.03} max={0.7} step={0.01} value={textWmOpacity}
-                          onChange={e => setTextWmOpacity(parseFloat(e.target.value))}
-                          className="flex-1 accent-rose-gold"
-                        />
-                        <span className="text-[11px] text-[#6B5B55] w-8 text-right">{Math.round(textWmOpacity * 100)}%</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-[11px] text-[#6B5B55] w-20 shrink-0">Font Size</span>
-                        <input
-                          type="range" min={8} max={80} step={1} value={textWmSize}
-                          onChange={e => setTextWmSize(parseInt(e.target.value))}
-                          className="flex-1 accent-rose-gold"
-                        />
-                        <span className="text-[11px] text-[#6B5B55] w-8 text-right">{textWmSize}px</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-[11px] text-[#6B5B55] w-20 shrink-0">Angle</span>
-                        <input
-                          type="range" min={-90} max={90} step={1} value={textWmAngle}
-                          onChange={e => setTextWmAngle(parseInt(e.target.value))}
-                          className="flex-1 accent-rose-gold"
-                        />
-                        <span className="text-[11px] text-[#6B5B55] w-8 text-right">{textWmAngle}°</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-[11px] text-[#6B5B55] w-20 shrink-0">Spacing H</span>
-                        <input
-                          type="range" min={60} max={500} step={5} value={textWmSpacingX}
-                          onChange={e => setTextWmSpacingX(parseInt(e.target.value))}
-                          className="flex-1 accent-rose-gold"
-                        />
-                        <span className="text-[11px] text-[#6B5B55] w-8 text-right">{textWmSpacingX}</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-[11px] text-[#6B5B55] w-20 shrink-0">Spacing V</span>
-                        <input
-                          type="range" min={40} max={400} step={5} value={textWmSpacingY}
-                          onChange={e => setTextWmSpacingY(parseInt(e.target.value))}
-                          className="flex-1 accent-rose-gold"
-                        />
-                        <span className="text-[11px] text-[#6B5B55] w-8 text-right">{textWmSpacingY}</span>
-                      </div>
+
+                      {textWmEnabled && (
+                        <div className="space-y-2.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] text-[#6B5B55] w-20 shrink-0">Text</span>
+                            <input
+                              type="text"
+                              value={textWmText}
+                              onChange={e => setTextWmText(e.target.value)}
+                              className="flex-1 px-2.5 py-1.5 rounded-lg border border-blush/30 bg-white/80 text-xs focus:outline-none focus:ring-1 focus:ring-rose-gold/30"
+                              placeholder="e.g. Authentic Girlswear"
+                            />
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-[11px] text-[#6B5B55] w-20 shrink-0">Color</span>
+                            <input
+                              type="color"
+                              value={textWmColor}
+                              onChange={e => setTextWmColor(e.target.value)}
+                              className="w-8 h-7 rounded cursor-pointer border border-blush/30 p-0.5 bg-white"
+                            />
+                            <span className="text-[11px] text-[#6B5B55] ml-2 whitespace-nowrap">Opacity</span>
+                            <input
+                              type="range" min={0.03} max={0.7} step={0.01} value={textWmOpacity}
+                              onChange={e => setTextWmOpacity(parseFloat(e.target.value))}
+                              className="flex-1 accent-rose-gold"
+                            />
+                            <span className="text-[11px] text-[#6B5B55] w-8 text-right">{Math.round(textWmOpacity * 100)}%</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-[11px] text-[#6B5B55] w-20 shrink-0">Font Size</span>
+                            <input
+                              type="range" min={8} max={80} step={1} value={textWmSize}
+                              onChange={e => setTextWmSize(parseInt(e.target.value))}
+                              className="flex-1 accent-rose-gold"
+                            />
+                            <span className="text-[11px] text-[#6B5B55] w-8 text-right">{textWmSize}px</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-[11px] text-[#6B5B55] w-20 shrink-0">Angle</span>
+                            <input
+                              type="range" min={-90} max={90} step={1} value={textWmAngle}
+                              onChange={e => setTextWmAngle(parseInt(e.target.value))}
+                              className="flex-1 accent-rose-gold"
+                            />
+                            <span className="text-[11px] text-[#6B5B55] w-8 text-right">{textWmAngle}°</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-[11px] text-[#6B5B55] w-20 shrink-0">Spacing H</span>
+                            <input
+                              type="range" min={60} max={500} step={5} value={textWmSpacingX}
+                              onChange={e => setTextWmSpacingX(parseInt(e.target.value))}
+                              className="flex-1 accent-rose-gold"
+                            />
+                            <span className="text-[11px] text-[#6B5B55] w-8 text-right">{textWmSpacingX}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-[11px] text-[#6B5B55] w-20 shrink-0">Spacing V</span>
+                            <input
+                              type="range" min={40} max={400} step={5} value={textWmSpacingY}
+                              onChange={e => setTextWmSpacingY(parseInt(e.target.value))}
+                              className="flex-1 accent-rose-gold"
+                            />
+                            <span className="text-[11px] text-[#6B5B55] w-8 text-right">{textWmSpacingY}</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1277,7 +1293,8 @@ export const AdminProducts: React.FC = () => {
                       );
                     })}
                   </div>
-                )}
+                )
+                }
 
                 <p className="text-[10px] text-[#6B5B55] italic text-center">
                   Drag any image to reorder — the top image will be the cover photo
@@ -1378,13 +1395,15 @@ export const AdminProducts: React.FC = () => {
             </div>
             <div className="flex flex-wrap gap-1.5 mb-2">
               {[
+                { label: 'M–XL', sizes: ['M', 'L', 'XL'] },
+                { label: '32-38', sizes: ['32', '34', '36', '38'] },
                 { label: 'XS–XXL', sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'] },
                 { label: 'Free Size', sizes: ['Free Size'] },
                 { label: '32–40 (bra/chest)', sizes: ['32', '34', '36', '38', '40'] },
                 { label: '28–36 (waist)', sizes: ['28', '30', '32', '34', '36'] },
                 { label: 'S–XXL only', sizes: ['S', 'M', 'L', 'XL', 'XXL'] },
-                { label: '32-38', sizes: ['32', '34', '36', '38'] },
-                { label: 'M–XL', sizes: ['M', 'L', 'XL'] },
+
+
               ].map(preset => (
                 <button key={preset.label} type="button"
                   onClick={() => { const existing = form.sizes || []; setForm({ ...form, sizes: [...new Set([...existing, ...preset.sizes])] }); }}
