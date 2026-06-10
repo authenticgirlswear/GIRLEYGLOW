@@ -80,7 +80,6 @@ const drawAGLogo = (
   ctx.save();
   ctx.textBaseline = 'alphabetic';
 
-  const subSize = size * 0.38;
   const gap = size * 0.04;
 
   ctx.font = `900 ${size}px Arial, sans-serif`;
@@ -88,11 +87,8 @@ const drawAGLogo = (
   const gWidth = ctx.measureText('G').width;
   const totalAGWidth = aWidth + gWidth + gap * 2;
 
-  ctx.font = `500 ${subSize}px Arial, sans-serif`;
-  const subWidth = ctx.measureText('Authentic Girlswear').width;
-
-  const boxW = Math.max(totalAGWidth, subWidth) + size * 0.6;
-  const boxH = size + subSize * 1.5 + size * 0.6;
+  const boxW = totalAGWidth + size * 0.6;
+  const boxH = size + size * 0.5;
 
   const boxX = x - boxW / 2;
   const boxY = y - size - size * 0.25;
@@ -128,11 +124,7 @@ const drawAGLogo = (
   ctx.textAlign = 'left';
   ctx.fillText('G', x + gap, y);
 
-  ctx.font = `500 ${subSize}px Arial, sans-serif`;
-  ctx.fillStyle = '#F5A623';
-  ctx.textAlign = 'center';
-  ctx.shadowBlur = size * 0.25;
-  ctx.fillText('AUTHENTIC GIRLSWEAR', x, y + subSize * 1.5);
+  // subtitle removed — AG only
 
   ctx.restore();
 };
@@ -284,11 +276,12 @@ const WatermarkPreview: React.FC<WatermarkPreviewProps> = ({ file, onPositionCha
       <canvas
         ref={canvasRef}
         className="w-full rounded-xl cursor-crosshair"
-        style={{ display: 'block', maxHeight: '380px', objectFit: 'contain' }}
+        style={{ display: 'block', maxHeight: '380px', objectFit: 'contain', userSelect: 'none', WebkitUserDrag: 'none' } as React.CSSProperties}
         onMouseDown={(e) => { isDragging.current = true; const f = getFrac(e); applyPos(f.xFrac, f.yFrac); }}
         onMouseMove={(e) => { if (!isDragging.current) return; const f = getFrac(e); applyPos(f.xFrac, f.yFrac); }}
         onMouseUp={() => { isDragging.current = false; }}
         onMouseLeave={() => { isDragging.current = false; }}
+        onDragStart={(e) => e.preventDefault()}
       />
       <p className="text-[10px] text-[#6B5B55] text-center mt-1 italic">
         Click or drag to reposition the AG watermark
@@ -333,6 +326,7 @@ export const AdminProducts: React.FC = () => {
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [wmFrac, setWmFrac] = useState<{ xFrac: number; yFrac: number }>({ xFrac: 0.82, yFrac: 0.90 });
   const [wmSize, setWmSize] = useState<number>(1.0);
+  const [wmEnabled, setWmEnabled] = useState<boolean>(true);
   const [colorInput, setColorInput] = useState('');
   const [sizeInput, setSizeInput] = useState('');
 
@@ -391,6 +385,7 @@ export const AdminProducts: React.FC = () => {
     wmPos = { xFrac: 0.82, yFrac: 0.90 };
     setWmFrac({ xFrac: 0.82, yFrac: 0.90 });
     setWmSize(1.0);
+    setWmEnabled(true);
   };
 
   const openAdd = () => {
@@ -440,9 +435,9 @@ export const AdminProducts: React.FC = () => {
       // Apply watermark once, then retry the upload up to 3 times
       let watermarked: File;
       try {
-        watermarked = await applyWatermark(files[i], sizeMultiplier);
+        watermarked = wmEnabled ? await applyWatermark(files[i], sizeMultiplier) : files[i];
       } catch {
-        watermarked = files[i]; // fallback to original if watermark fails
+        watermarked = files[i];
       }
 
       for (let attempt = 1; attempt <= 3; attempt++) {
@@ -914,20 +909,37 @@ export const AdminProducts: React.FC = () => {
                       Cover — drag to reorder
                     </div>
                   )}
-                  {/* Logo size slider — lives here in parent where wmSize state exists */}
-                  <div className="flex items-center gap-3 mt-2 px-2 pb-2">
-                    <span className="text-[11px] text-[#6B5B55] whitespace-nowrap">Logo Size</span>
-                    <input
-                      type="range"
-                      min={0.4}
-                      max={2.5}
-                      step={0.05}
-                      value={wmSize}
-                      onChange={e => setWmSize(parseFloat(e.target.value))}
-                      className="flex-1 accent-rose-gold"
-                    />
-                    <span className="text-[11px] text-[#6B5B55] w-8 text-right">{Math.round(wmSize * 100)}%</span>
+                </div>
+
+                {/* Watermark controls — outside draggable div so slider doesn't trigger drag */}
+                <div className="bg-blush-light/30 rounded-xl px-3 py-2.5 space-y-2 border border-blush/20">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-[#6B5B55]">Watermark</span>
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <span className="text-xs text-[#6B5B55]">{wmEnabled ? 'Enabled' : 'Disabled'}</span>
+                      <div
+                        onClick={() => setWmEnabled(v => !v)}
+                        className={`relative w-9 h-5 rounded-full transition-colors ${wmEnabled ? 'bg-rose-gold' : 'bg-gray-300'}`}
+                      >
+                        <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${wmEnabled ? 'left-4' : 'left-0.5'}`} />
+                      </div>
+                    </label>
                   </div>
+                  {wmEnabled && (
+                    <div className="flex items-center gap-3">
+                      <span className="text-[11px] text-[#6B5B55] whitespace-nowrap">Logo Size</span>
+                      <input
+                        type="range"
+                        min={0.4}
+                        max={2.5}
+                        step={0.05}
+                        value={wmSize}
+                        onChange={e => setWmSize(parseFloat(e.target.value))}
+                        className="flex-1 accent-rose-gold"
+                      />
+                      <span className="text-[11px] text-[#6B5B55] w-8 text-right">{Math.round(wmSize * 100)}%</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Remaining images — draggable thumbnails */}
