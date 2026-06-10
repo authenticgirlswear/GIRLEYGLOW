@@ -5,7 +5,7 @@ export const uploadToCloudinary = async (file: File) => {
     const compressedFile = await imageCompression(file, {
         maxSizeMB: 0.8,
         maxWidthOrHeight: 1600,
-        useWebWorker: true,
+        useWebWorker: false,
         fileType: 'image/webp',
     });
 
