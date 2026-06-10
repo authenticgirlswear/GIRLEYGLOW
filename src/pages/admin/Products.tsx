@@ -440,6 +440,7 @@ export const AdminProducts: React.FC = () => {
   const [wmFrac, setWmFrac] = useState<{ xFrac: number; yFrac: number }>({ xFrac: 0.82, yFrac: 0.90 });
   const [wmSize, setWmSize] = useState<number>(1.0);
   const [colorInput, setColorInput] = useState('');
+  const [sizeInput, setSizeInput] = useState('');
   const [wmEnabled, setWmEnabled] = useState<boolean>(true);
   const [textWmEnabled, setTextWmEnabled] = useState<boolean>(true);
   const [textWmText, setTextWmText] = useState<string>('Authentic Girlswear');
@@ -449,9 +450,6 @@ export const AdminProducts: React.FC = () => {
   const [textWmColor, setTextWmColor] = useState<string>('#ffffff');
   const [textWmSpacingX, setTextWmSpacingX] = useState<number>(180);
   const [textWmSpacingY, setTextWmSpacingY] = useState<number>(90);
-  const [sizeInput, setSizeInput] = useState('');
-  const [sizeHistory, setSizeHistory] = useState<string[]>([]);
-  const [showSizeSuggestions, setShowSizeSuggestions] = useState(false);
 
 
   useEffect(() => { fetchProducts(); }, []);
@@ -483,44 +481,12 @@ export const AdminProducts: React.FC = () => {
     setForm({ ...form, colors: (form.colors || []).filter((c: string) => c !== color) });
 
   // ── Sizes ──
-  const SIZE_SUGGESTIONS = [
-    'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL',
-    'Free Size', 'One Size',
-    '28', '30', '32', '34', '36', '38', '40', '42',
-    '32B', '32C', '32D', '34B', '34C', '34D', '36B', '36C', '36D', '38B', '38C', '38D',
-    'S-M', 'M-L', 'L-XL',
-    '4-5Y', '6-7Y', '8-9Y', '10-11Y', '12-13Y',
-  ];
-
-  const getSizeSuggestions = () => {
-    const current = sizeInput.split(',').pop()?.trim().toLowerCase() || '';
-    if (!current) return [...new Set([...sizeHistory, ...SIZE_SUGGESTIONS])].slice(0, 12);
-    return [...new Set([...sizeHistory, ...SIZE_SUGGESTIONS])]
-      .filter(s => s.toLowerCase().includes(current))
-      .slice(0, 10);
-  };
-
   const addSizes = () => {
     if (!sizeInput.trim()) return;
     const newSizes = sizeInput.split(',').map((s: string) => s.trim()).filter(Boolean);
     const existing = form.sizes || [];
     setForm({ ...form, sizes: [...new Set([...existing, ...newSizes])] });
-    // Save to history
-    setSizeHistory(prev => [...new Set([...newSizes, ...prev])].slice(0, 20));
     setSizeInput('');
-    setShowSizeSuggestions(false);
-  };
-
-  const applySizeSuggestion = (suggestion: string) => {
-    const parts = sizeInput.split(',');
-    parts[parts.length - 1] = ' ' + suggestion;
-    const newInput = parts.join(',').replace(/^\s*,/, '').trim();
-    const newSizes = newInput.split(',').map((s: string) => s.trim()).filter(Boolean);
-    const existing = form.sizes || [];
-    setForm({ ...form, sizes: [...new Set([...existing, ...newSizes])] });
-    setSizeHistory(prev => [...new Set([suggestion, ...prev])].slice(0, 20));
-    setSizeInput('');
-    setShowSizeSuggestions(false);
   };
   const removeSize = (size: string) =>
     setForm({ ...form, sizes: (form.sizes || []).filter((s: string) => s !== size) });
@@ -1363,56 +1329,15 @@ export const AdminProducts: React.FC = () => {
             <p className="text-xs text-[#6B5B55] mb-2">
               Type sizes separated by commas (e.g. <span className="text-charcoal font-medium">XS, S, M, L, XL</span>) then click Add.
             </p>
-            <div className="relative flex gap-2 mb-2">
-              <div className="relative flex-1">
-                <input
-                  type="text"
-                  value={sizeInput}
-                  onChange={e => { setSizeInput(e.target.value); setShowSizeSuggestions(true); }}
-                  onFocus={() => setShowSizeSuggestions(true)}
-                  onBlur={() => setTimeout(() => setShowSizeSuggestions(false), 150)}
-                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSizes(); } if (e.key === 'Escape') setShowSizeSuggestions(false); }}
-                  className="w-full px-4 py-2.5 rounded-xl border border-blush/30 bg-white/80 text-sm focus:outline-none focus:ring-2 focus:ring-rose-gold/30"
-                  placeholder="e.g.  S, M, L   or   Free Size   or   32, 34, 36"
-                />
-                {showSizeSuggestions && getSizeSuggestions().length > 0 && (
-                  <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-blush/30 rounded-xl shadow-lg z-50 overflow-hidden">
-                    <div className="px-3 py-1.5 border-b border-blush/10 flex items-center justify-between">
-                      <span className="text-[10px] text-[#6B5B55] font-medium uppercase tracking-wide">Suggestions</span>
-                      {sizeHistory.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setSizeHistory([])}
-                          className="text-[10px] text-[#6B5B55] hover:text-red-400 transition-colors"
-                        >
-                          Clear history
-                        </button>
-                      )}
-                    </div>
-                    <div className="max-h-48 overflow-y-auto">
-                      {getSizeSuggestions().map(suggestion => {
-                        const isHistory = sizeHistory.includes(suggestion);
-                        const isAdded = (form.sizes || []).includes(suggestion);
-                        return (
-                          <button
-                            key={suggestion}
-                            type="button"
-                            onMouseDown={() => applySizeSuggestion(suggestion)}
-                            className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between hover:bg-blush-light/40 transition-colors
-                      ${isAdded ? 'opacity-40 cursor-not-allowed' : ''}`}
-                            disabled={isAdded}
-                          >
-                            <span className="text-charcoal font-medium">{suggestion}</span>
-                            <span className="text-[10px] text-[#6B5B55]">
-                              {isAdded ? '✓ added' : isHistory ? '🕐 recent' : ''}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
+            <div className="flex gap-2 mb-2">
+              <input
+                type="text"
+                value={sizeInput}
+                onChange={e => setSizeInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSizes(); } }}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-blush/30 bg-white/80 text-sm focus:outline-none focus:ring-2 focus:ring-rose-gold/30"
+                placeholder="e.g.  S, M, L   or   Free Size   or   32, 34, 36"
+              />
               <Button size="sm" onClick={addSizes} type="button">Add</Button>
             </div>
             <div className="flex flex-wrap gap-1.5 mb-2">
@@ -1422,6 +1347,8 @@ export const AdminProducts: React.FC = () => {
                 { label: '32–40 (bra/chest)', sizes: ['32', '34', '36', '38', '40'] },
                 { label: '28–36 (waist)', sizes: ['28', '30', '32', '34', '36'] },
                 { label: 'S–XXL only', sizes: ['S', 'M', 'L', 'XL', 'XXL'] },
+                { label: '32-38', sizes: ['32', '34', '36', '38'] },
+                { label: 'M–XL', sizes: ['M', 'L', 'XL'] },
               ].map(preset => (
                 <button key={preset.label} type="button"
                   onClick={() => { const existing = form.sizes || []; setForm({ ...form, sizes: [...new Set([...existing, ...preset.sizes])] }); }}
