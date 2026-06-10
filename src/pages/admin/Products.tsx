@@ -219,8 +219,9 @@ interface WatermarkPreviewProps {
   file: File;
   onPositionChange: (xFrac: number, yFrac: number) => void;
   sizeMultiplier?: number;
+  enabled?: boolean;
 }
-const WatermarkPreview: React.FC<WatermarkPreviewProps> = ({ file, onPositionChange, sizeMultiplier = 1.0 }) => {
+const WatermarkPreview: React.FC<WatermarkPreviewProps> = ({ file, onPositionChange, sizeMultiplier = 1.0, enabled = true }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
   const isDragging = useRef(false);
@@ -239,7 +240,7 @@ const WatermarkPreview: React.FC<WatermarkPreviewProps> = ({ file, onPositionCha
       canvas.height = displayH;
       ctx.drawImage(img, 0, 0, displayW, displayH);
       const size = Math.max(18, Math.min(displayW, displayH) * 0.08) * sizeMultiplier;
-      drawAGLogo(ctx, pos.xFrac * displayW, pos.yFrac * displayH, size);
+      if (enabled) drawAGLogo(ctx, pos.xFrac * displayW, pos.yFrac * displayH, size);
     };
 
     if (imgRef.current) {
@@ -254,9 +255,9 @@ const WatermarkPreview: React.FC<WatermarkPreviewProps> = ({ file, onPositionCha
       };
       img.src = url;
     }
-  }, [pos, file, sizeMultiplier]);
+  }, [pos, file, sizeMultiplier, enabled]);
 
-  const getFrac = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const getFrac = (e: React.MouseEvent<HTMLCanvasElement> | MouseEvent) => {
     const canvas = canvasRef.current!;
     const rect = canvas.getBoundingClientRect();
     return {
@@ -271,6 +272,21 @@ const WatermarkPreview: React.FC<WatermarkPreviewProps> = ({ file, onPositionCha
     onPositionChange(xFrac, yFrac);
   };
 
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isDragging.current) return;
+      const f = getFrac(e);
+      applyPos(f.xFrac, f.yFrac);
+    };
+    const onMouseUp = () => { isDragging.current = false; };
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+  }, []);
+
   return (
     <div className="relative select-none">
       <canvas
@@ -278,9 +294,6 @@ const WatermarkPreview: React.FC<WatermarkPreviewProps> = ({ file, onPositionCha
         className="w-full rounded-xl cursor-crosshair"
         style={{ display: 'block', maxHeight: '380px', objectFit: 'contain', userSelect: 'none', WebkitUserDrag: 'none' } as React.CSSProperties}
         onMouseDown={(e) => { isDragging.current = true; const f = getFrac(e); applyPos(f.xFrac, f.yFrac); }}
-        onMouseMove={(e) => { if (!isDragging.current) return; const f = getFrac(e); applyPos(f.xFrac, f.yFrac); }}
-        onMouseUp={() => { isDragging.current = false; }}
-        onMouseLeave={() => { isDragging.current = false; }}
         onDragStart={(e) => e.preventDefault()}
       />
       <p className="text-[10px] text-[#6B5B55] text-center mt-1 italic">
@@ -892,6 +905,7 @@ export const AdminProducts: React.FC = () => {
                   <WatermarkPreview
                     file={imageFiles[0]}
                     sizeMultiplier={wmSize}
+                    enabled={wmEnabled}
                     onPositionChange={(xFrac: number, yFrac: number) => {
                       wmPos = { xFrac, yFrac };
                       setWmFrac({ xFrac, yFrac });
