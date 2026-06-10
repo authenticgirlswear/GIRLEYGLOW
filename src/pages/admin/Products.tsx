@@ -216,7 +216,10 @@ const applyWatermark = (file: File, sizeMultiplier = 1.0, textWm?: TextWmConfig)
         resolve(new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() }));
       }, 'image/jpeg', 0.92);
     };
-    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.onerror = () => {
+      try { URL.revokeObjectURL(url); } catch { }
+      resolve(file);
+    };
     img.src = url;
   });
 };
@@ -266,16 +269,23 @@ const MiniWatermarkThumb: React.FC<{
 
     useEffect(() => {
       imgRef.current = null;
+      let url = '';
+      try {
+        url = URL.createObjectURL(file);
+      } catch {
+        return;
+      }
       const img = new Image();
-      const url = URL.createObjectURL(file);
       img.onload = () => {
         imgRef.current = img;
         redraw();
-        URL.revokeObjectURL(url);
+        try { URL.revokeObjectURL(url); } catch { }
+      };
+      img.onerror = () => {
+        try { URL.revokeObjectURL(url); } catch { }
       };
       img.src = url;
     }, [file]);
-
     useEffect(() => {
       redraw();
     }, [xFrac, yFrac, textWmEnabled, textWmText, textWmOpacity, textWmSize, textWmAngle, textWmColor, textWmSpacingX, textWmSpacingY]);
@@ -347,11 +357,19 @@ const WatermarkPreview: React.FC<WatermarkPreviewProps> = ({
       drawFrame(imgRef.current);
     } else {
       const img = new Image();
-      const url = URL.createObjectURL(file);
+      let url = '';
+      try {
+        url = URL.createObjectURL(file);
+      } catch {
+        return;
+      }
       img.onload = () => {
         imgRef.current = img;
         drawFrame(img);
-        URL.revokeObjectURL(url);
+        try { URL.revokeObjectURL(url); } catch { }
+      };
+      img.onerror = () => {
+        try { URL.revokeObjectURL(url); } catch { }
       };
       img.src = url;
     }
@@ -555,6 +573,13 @@ export const AdminProducts: React.FC = () => {
       let uploaded = false;
 
       // Apply watermark once, then retry the upload up to 3 times
+      // Skip if this is somehow not a real local file
+      if (!(files[i] instanceof File) || files[i].size === 0) {
+        failedCount++;
+        onProgress(i + 1, files.length);
+        continue;
+      }
+
       let watermarked: File;
       try {
         watermarked = wmEnabled ? await applyWatermark(files[i], sizeMultiplier, {
