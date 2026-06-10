@@ -225,54 +225,70 @@ const applyWatermark = (file: File, sizeMultiplier = 1.0, textWm?: TextWmConfig)
 // ─────────────────────────────────────────────────
 // MINI THUMBNAIL with watermark overlay
 // ─────────────────────────────────────────────────
-const MiniWatermarkThumb: React.FC<{ file: File; xFrac: number; yFrac: number }> = ({ file, xFrac, yFrac }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const imgRef = useRef<HTMLImageElement | null>(null);
-  const xRef = useRef(xFrac);
-  const yRef = useRef(yFrac);
+const MiniWatermarkThumb: React.FC<{
+  file: File; xFrac: number; yFrac: number;
+  textWmEnabled?: boolean; textWmText?: string; textWmOpacity?: number;
+  textWmSize?: number; textWmAngle?: number; textWmColor?: string;
+  textWmSpacingX?: number; textWmSpacingY?: number;
+}> = ({ file, xFrac, yFrac, textWmEnabled = false, textWmText = 'Authentic Girlswear',
+  textWmOpacity = 0.18, textWmSize = 22, textWmAngle = -30,
+  textWmColor = '#ffffff', textWmSpacingX = 180, textWmSpacingY = 90 }) => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const imgRef = useRef<HTMLImageElement | null>(null);
+    const xRef = useRef(xFrac);
+    const yRef = useRef(yFrac);
 
-  xRef.current = xFrac;
-  yRef.current = yFrac;
+    xRef.current = xFrac;
+    yRef.current = yFrac;
 
-  const redraw = () => {
-    const canvas = canvasRef.current;
-    const img = imgRef.current;
-    if (!canvas || !img) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    const displayW = 300;
-    const displayH = Math.round((img.naturalHeight / img.naturalWidth) * displayW);
-    canvas.width = displayW;
-    canvas.height = displayH;
-    ctx.drawImage(img, 0, 0, displayW, displayH);
-    const size = Math.max(10, Math.min(displayW, displayH) * 0.08);
-    drawAGLogo(ctx, xRef.current * displayW, yRef.current * displayH, size);
-  };
-
-  useEffect(() => {
-    imgRef.current = null;
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      imgRef.current = img;
-      redraw();
-      URL.revokeObjectURL(url);
+    const redraw = () => {
+      const canvas = canvasRef.current;
+      const img = imgRef.current;
+      if (!canvas || !img) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      const displayW = 300;
+      const displayH = Math.round((img.naturalHeight / img.naturalWidth) * displayW);
+      canvas.width = displayW;
+      canvas.height = displayH;
+      ctx.drawImage(img, 0, 0, displayW, displayH);
+      const size = Math.max(10, Math.min(displayW, displayH) * 0.08);
+      drawAGLogo(ctx, xRef.current * displayW, yRef.current * displayH, size);
+      if (textWmEnabled) {
+        drawTextWatermark(
+          ctx, displayW, displayH,
+          textWmText, displayW * (textWmSize / 500),
+          textWmOpacity, textWmAngle, textWmColor,
+          displayW * (textWmSpacingX / 500),
+          displayH * (textWmSpacingY / 500)
+        );
+      }
     };
-    img.src = url;
-  }, [file]);
 
-  useEffect(() => {
-    redraw();
-  }, [xFrac, yFrac]);
+    useEffect(() => {
+      imgRef.current = null;
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        imgRef.current = img;
+        redraw();
+        URL.revokeObjectURL(url);
+      };
+      img.src = url;
+    }, [file]);
 
-  return (
-    <canvas
-      ref={canvasRef}
-      className="w-full rounded-xl"
-      style={{ display: 'block', width: '100%', height: 'auto' }}
-    />
-  );
-};
+    useEffect(() => {
+      redraw();
+    }, [xFrac, yFrac, textWmEnabled, textWmText, textWmOpacity, textWmSize, textWmAngle, textWmColor, textWmSpacingX, textWmSpacingY]);
+
+    return (
+      <canvas
+        ref={canvasRef}
+        className="w-full rounded-xl"
+        style={{ display: 'block', width: '100%', height: 'auto' }}
+      />
+    );
+  };
 
 // ─────────────────────────────────────────────────
 // WATERMARK PREVIEW — interactive canvas (cover image)
@@ -1202,7 +1218,19 @@ export const AdminProducts: React.FC = () => {
                           <div className="absolute top-1 left-1 z-10 bg-white/80 rounded-full p-0.5 shadow">
                             <GripVertical size={12} className="text-charcoal" />
                           </div>
-                          <MiniWatermarkThumb file={file} xFrac={wmFrac.xFrac} yFrac={wmFrac.yFrac} />
+                          <MiniWatermarkThumb
+                            file={file}
+                            xFrac={wmFrac.xFrac}
+                            yFrac={wmFrac.yFrac}
+                            textWmEnabled={textWmEnabled}
+                            textWmText={textWmText}
+                            textWmOpacity={textWmOpacity}
+                            textWmSize={textWmSize}
+                            textWmAngle={textWmAngle}
+                            textWmColor={textWmColor}
+                            textWmSpacingX={textWmSpacingX}
+                            textWmSpacingY={textWmSpacingY}
+                          />
                           <button
                             type="button"
                             onClick={() => setImageFiles(prev => prev.filter((_, idx) => idx !== realIndex))}
