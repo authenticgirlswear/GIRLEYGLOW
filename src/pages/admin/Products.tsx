@@ -815,11 +815,32 @@ export const AdminProducts: React.FC = () => {
             <div>
               <label className="block text-sm font-medium text-[#6B5B55] mb-2">
                 Current Images ({existingImages.length})
-                <span className="ml-2 text-xs font-normal text-[#6B5B55]/70">Click × to remove</span>
+                <span className="ml-2 text-xs font-normal text-[#6B5B55]/70">Drag to reorder · Click × to remove</span>
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {existingImages.map((url: string, i: number) => (
-                  <div key={url} className="relative group rounded-xl overflow-hidden border border-blush/30 bg-white shadow-sm">
+                  <div
+                    key={url}
+                    draggable
+                    onDragStart={() => setDragIndex(i)}
+                    onDragOver={(e) => { e.preventDefault(); setDragOverIndex(i); }}
+                    onDrop={() => {
+                      if (dragIndex === null || dragIndex === i) { setDragIndex(null); setDragOverIndex(null); return; }
+                      const updated = [...(form.images || [])];
+                      const [moved] = updated.splice(dragIndex, 1);
+                      updated.splice(i, 0, moved);
+                      setForm({ ...form, images: updated });
+                      setDragIndex(null);
+                      setDragOverIndex(null);
+                    }}
+                    onDragEnd={() => { setDragIndex(null); setDragOverIndex(null); }}
+                    className={`relative group rounded-xl overflow-hidden border-2 bg-white shadow-sm cursor-grab transition-all
+                      ${dragOverIndex === i ? 'border-rose-gold scale-95' : 'border-blush/30'}
+                      ${dragIndex === i ? 'opacity-40' : 'opacity-100'}`}
+                  >
+                    <div className="absolute top-1 left-1 z-10 bg-white/80 rounded-full p-0.5 shadow">
+                      <GripVertical size={12} className="text-charcoal" />
+                    </div>
                     <img src={url} alt="" className="w-full h-32 object-cover" />
                     <button
                       type="button"
