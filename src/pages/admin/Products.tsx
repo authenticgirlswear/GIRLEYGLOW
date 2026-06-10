@@ -69,6 +69,47 @@ const resolveColor = (input: string): string => {
 };
 
 // ─────────────────────────────────────────────────
+// DRAW TILED TEXT WATERMARK
+// ─────────────────────────────────────────────────
+const drawTextWatermark = (
+  ctx: CanvasRenderingContext2D,
+  canvasW: number,
+  canvasH: number,
+  text: string,
+  fontSize: number,
+  opacity: number,
+  angleDeg: number,
+  color: string,
+  spacingX: number,
+  spacingY: number
+) => {
+  ctx.save();
+  ctx.globalAlpha = opacity;
+  ctx.fillStyle = color;
+  ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'center';
+
+  const angleRad = (angleDeg * Math.PI) / 180;
+  const diagonal = Math.sqrt(canvasW * canvasW + canvasH * canvasH);
+
+  ctx.translate(canvasW / 2, canvasH / 2);
+  ctx.rotate(angleRad);
+
+  const cols = Math.ceil(diagonal / spacingX) + 4;
+  const rows = Math.ceil(diagonal / spacingY) + 4;
+
+  for (let row = -rows; row <= rows; row++) {
+    for (let col = -cols; col <= cols; col++) {
+      ctx.fillText(text, col * spacingX, row * spacingY);
+    }
+  }
+
+  ctx.restore();
+};
+
+
+// ─────────────────────────────────────────────────
 // DRAW AG LOGO WATERMARK
 // ─────────────────────────────────────────────────
 const drawAGLogo = (
@@ -132,7 +173,17 @@ const drawAGLogo = (
 // ─────────────────────────────────────────────────
 // WATERMARK A FILE with retry-safe canvas approach
 // ─────────────────────────────────────────────────
-const applyWatermark = (file: File, sizeMultiplier = 1.0): Promise<File> => {
+interface TextWmConfig {
+  enabled: boolean;
+  text: string;
+  opacity: number;
+  size: number;
+  angle: number;
+  color: string;
+  spacingX: number;
+  spacingY: number;
+}
+const applyWatermark = (file: File, sizeMultiplier = 1.0, textWm?: TextWmConfig): Promise<File> => {
   return new Promise((resolve) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
@@ -148,6 +199,17 @@ const applyWatermark = (file: File, sizeMultiplier = 1.0): Promise<File> => {
       const y = wmPos.yFrac * img.height;
 
       drawAGLogo(ctx, x, y, size);
+
+      if (textWm?.enabled) {
+        drawTextWatermark(
+          ctx, img.width, img.height,
+          textWm.text, Math.max(10, img.width * (textWm.size / 500)),
+          textWm.opacity, textWm.angle, textWm.color,
+          img.width * (textWm.spacingX / 500),
+          img.height * (textWm.spacingY / 500)
+        );
+      }
+
       URL.revokeObjectURL(url);
 
       canvas.toBlob((blob) => {
@@ -220,8 +282,21 @@ interface WatermarkPreviewProps {
   onPositionChange: (xFrac: number, yFrac: number) => void;
   sizeMultiplier?: number;
   enabled?: boolean;
+  textWmEnabled?: boolean;
+  textWmText?: string;
+  textWmOpacity?: number;
+  textWmSize?: number;
+  textWmAngle?: number;
+  textWmColor?: string;
+  textWmSpacingX?: number;
+  textWmSpacingY?: number;
 }
-const WatermarkPreview: React.FC<WatermarkPreviewProps> = ({ file, onPositionChange, sizeMultiplier = 1.0, enabled = true }) => {
+const WatermarkPreview: React.FC<WatermarkPreviewProps> = ({
+  file, onPositionChange, sizeMultiplier = 1.0, enabled = true,
+  textWmEnabled = false, textWmText = 'Authentic Girlswear',
+  textWmOpacity = 0.18, textWmSize = 22, textWmAngle = -30,
+  textWmColor = '#ffffff', textWmSpacingX = 180, textWmSpacingY = 90,
+}) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
   const isDragging = useRef(false);
@@ -241,6 +316,16 @@ const WatermarkPreview: React.FC<WatermarkPreviewProps> = ({ file, onPositionCha
       ctx.drawImage(img, 0, 0, displayW, displayH);
       const size = Math.max(18, Math.min(displayW, displayH) * 0.08) * sizeMultiplier;
       if (enabled) drawAGLogo(ctx, pos.xFrac * displayW, pos.yFrac * displayH, size);
+      if (textWmEnabled) {
+        drawTextWatermark(
+          ctx, displayW, displayH,
+          textWmText,
+          displayW * (textWmSize / 500),
+          textWmOpacity, textWmAngle, textWmColor,
+          displayW * (textWmSpacingX / 500),
+          displayH * (textWmSpacingY / 500)
+        );
+      }
     };
 
     if (imgRef.current) {
@@ -255,7 +340,7 @@ const WatermarkPreview: React.FC<WatermarkPreviewProps> = ({ file, onPositionCha
       };
       img.src = url;
     }
-  }, [pos, file, sizeMultiplier, enabled]);
+  }, [pos, file, sizeMultiplier, enabled, textWmEnabled, textWmText, textWmOpacity, textWmSize, textWmAngle, textWmColor, textWmSpacingX, textWmSpacingY]);
 
   const getFrac = (e: React.MouseEvent<HTMLCanvasElement> | MouseEvent) => {
     const canvas = canvasRef.current!;
@@ -339,9 +424,18 @@ export const AdminProducts: React.FC = () => {
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [wmFrac, setWmFrac] = useState<{ xFrac: number; yFrac: number }>({ xFrac: 0.82, yFrac: 0.90 });
   const [wmSize, setWmSize] = useState<number>(1.0);
-  const [wmEnabled, setWmEnabled] = useState<boolean>(true);
   const [colorInput, setColorInput] = useState('');
   const [sizeInput, setSizeInput] = useState('');
+  const [wmEnabled, setWmEnabled] = useState<boolean>(true);
+  const [textWmEnabled, setTextWmEnabled] = useState<boolean>(true);
+  const [textWmText, setTextWmText] = useState<string>('Authentic Girlswear');
+  const [textWmOpacity, setTextWmOpacity] = useState<number>(0.18);
+  const [textWmSize, setTextWmSize] = useState<number>(22);
+  const [textWmAngle, setTextWmAngle] = useState<number>(-30);
+  const [textWmColor, setTextWmColor] = useState<string>('#ffffff');
+  const [textWmSpacingX, setTextWmSpacingX] = useState<number>(180);
+  const [textWmSpacingY, setTextWmSpacingY] = useState<number>(90);
+
 
   useEffect(() => { fetchProducts(); }, []);
 
@@ -448,7 +542,16 @@ export const AdminProducts: React.FC = () => {
       // Apply watermark once, then retry the upload up to 3 times
       let watermarked: File;
       try {
-        watermarked = wmEnabled ? await applyWatermark(files[i], sizeMultiplier) : files[i];
+        watermarked = wmEnabled ? await applyWatermark(files[i], sizeMultiplier, {
+          enabled: textWmEnabled,
+          text: textWmText,
+          opacity: textWmOpacity,
+          size: textWmSize,
+          angle: textWmAngle,
+          color: textWmColor,
+          spacingX: textWmSpacingX,
+          spacingY: textWmSpacingY,
+        }) : files[i];
       } catch {
         watermarked = files[i];
       }
@@ -936,7 +1039,6 @@ export const AdminProducts: React.FC = () => {
                     ${dragOverIndex === 0 ? 'border-rose-gold scale-[0.99]' : 'border-blush/30'}
                     ${dragIndex === 0 ? 'opacity-50' : 'opacity-100'}`}
                 >
-                  {/* Drag handle */}
                   <div className="absolute top-2 left-2 z-10 bg-white/80 rounded-full p-1 shadow cursor-grab">
                     <GripVertical size={14} className="text-charcoal" />
                   </div>
@@ -948,6 +1050,14 @@ export const AdminProducts: React.FC = () => {
                       wmPos = { xFrac, yFrac };
                       setWmFrac({ xFrac, yFrac });
                     }}
+                    textWmEnabled={textWmEnabled}
+                    textWmText={textWmText}
+                    textWmOpacity={textWmOpacity}
+                    textWmSize={textWmSize}
+                    textWmAngle={textWmAngle}
+                    textWmColor={textWmColor}
+                    textWmSpacingX={textWmSpacingX}
+                    textWmSpacingY={textWmSpacingY}
                   />
                   <button
                     type="button"
@@ -963,12 +1073,12 @@ export const AdminProducts: React.FC = () => {
                   )}
                 </div>
 
-                {/* Watermark controls — outside draggable div so slider doesn't trigger drag */}
-                <div className="bg-blush-light/30 rounded-xl px-3 py-2.5 space-y-2 border border-blush/20">
+                {/* Watermark controls */}
+                <div className="bg-blush-light/30 rounded-xl px-3 py-2.5 space-y-3 border border-blush/20">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-[#6B5B55]">Watermark</span>
+                    <span className="text-xs font-medium text-[#6B5B55]">AG Logo Watermark</span>
                     <label className="flex items-center gap-2 cursor-pointer select-none">
-                      <span className="text-xs text-[#6B5B55]">{wmEnabled ? 'Enabled' : 'Disabled'}</span>
+                      <span className="text-xs text-[#6B5B55]">{wmEnabled ? 'On' : 'Off'}</span>
                       <div
                         onClick={() => setWmEnabled(v => !v)}
                         className={`relative w-9 h-5 rounded-full transition-colors ${wmEnabled ? 'bg-rose-gold' : 'bg-gray-300'}`}
@@ -981,15 +1091,93 @@ export const AdminProducts: React.FC = () => {
                     <div className="flex items-center gap-3">
                       <span className="text-[11px] text-[#6B5B55] whitespace-nowrap">Logo Size</span>
                       <input
-                        type="range"
-                        min={0.4}
-                        max={2.5}
-                        step={0.05}
-                        value={wmSize}
+                        type="range" min={0.4} max={2.5} step={0.05} value={wmSize}
                         onChange={e => setWmSize(parseFloat(e.target.value))}
                         className="flex-1 accent-rose-gold"
                       />
                       <span className="text-[11px] text-[#6B5B55] w-8 text-right">{Math.round(wmSize * 100)}%</span>
+                    </div>
+                  )}
+
+                  <div className="border-t border-blush/20" />
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-[#6B5B55]">Text Watermark (anti-theft)</span>
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <span className="text-xs text-[#6B5B55]">{textWmEnabled ? 'On' : 'Off'}</span>
+                      <div
+                        onClick={() => setTextWmEnabled(v => !v)}
+                        className={`relative w-9 h-5 rounded-full transition-colors ${textWmEnabled ? 'bg-rose-gold' : 'bg-gray-300'}`}
+                      >
+                        <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${textWmEnabled ? 'left-4' : 'left-0.5'}`} />
+                      </div>
+                    </label>
+                  </div>
+
+                  {textWmEnabled && (
+                    <div className="space-y-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-[#6B5B55] w-20 shrink-0">Text</span>
+                        <input
+                          type="text"
+                          value={textWmText}
+                          onChange={e => setTextWmText(e.target.value)}
+                          className="flex-1 px-2.5 py-1.5 rounded-lg border border-blush/30 bg-white/80 text-xs focus:outline-none focus:ring-1 focus:ring-rose-gold/30"
+                          placeholder="e.g. Authentic Girlswear"
+                        />
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[11px] text-[#6B5B55] w-20 shrink-0">Color</span>
+                        <input
+                          type="color"
+                          value={textWmColor}
+                          onChange={e => setTextWmColor(e.target.value)}
+                          className="w-8 h-7 rounded cursor-pointer border border-blush/30 p-0.5 bg-white"
+                        />
+                        <span className="text-[11px] text-[#6B5B55] ml-2 whitespace-nowrap">Opacity</span>
+                        <input
+                          type="range" min={0.03} max={0.7} step={0.01} value={textWmOpacity}
+                          onChange={e => setTextWmOpacity(parseFloat(e.target.value))}
+                          className="flex-1 accent-rose-gold"
+                        />
+                        <span className="text-[11px] text-[#6B5B55] w-8 text-right">{Math.round(textWmOpacity * 100)}%</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[11px] text-[#6B5B55] w-20 shrink-0">Font Size</span>
+                        <input
+                          type="range" min={8} max={80} step={1} value={textWmSize}
+                          onChange={e => setTextWmSize(parseInt(e.target.value))}
+                          className="flex-1 accent-rose-gold"
+                        />
+                        <span className="text-[11px] text-[#6B5B55] w-8 text-right">{textWmSize}px</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[11px] text-[#6B5B55] w-20 shrink-0">Angle</span>
+                        <input
+                          type="range" min={-90} max={90} step={1} value={textWmAngle}
+                          onChange={e => setTextWmAngle(parseInt(e.target.value))}
+                          className="flex-1 accent-rose-gold"
+                        />
+                        <span className="text-[11px] text-[#6B5B55] w-8 text-right">{textWmAngle}°</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[11px] text-[#6B5B55] w-20 shrink-0">Spacing H</span>
+                        <input
+                          type="range" min={60} max={500} step={5} value={textWmSpacingX}
+                          onChange={e => setTextWmSpacingX(parseInt(e.target.value))}
+                          className="flex-1 accent-rose-gold"
+                        />
+                        <span className="text-[11px] text-[#6B5B55] w-8 text-right">{textWmSpacingX}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[11px] text-[#6B5B55] w-20 shrink-0">Spacing V</span>
+                        <input
+                          type="range" min={40} max={400} step={5} value={textWmSpacingY}
+                          onChange={e => setTextWmSpacingY(parseInt(e.target.value))}
+                          className="flex-1 accent-rose-gold"
+                        />
+                        <span className="text-[11px] text-[#6B5B55] w-8 text-right">{textWmSpacingY}</span>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1036,19 +1224,22 @@ export const AdminProducts: React.FC = () => {
           </div>
 
           {/* ── VIDEO PREVIEW (shown after selection) ── */}
-          {videoPreviewUrl && (
-            <div className="relative">
-              <video src={videoPreviewUrl} controls className="w-full rounded-2xl border border-blush/30" />
-              <button
-                type="button"
-                onClick={() => { setVideoFile(null); setVideoPreviewUrl(''); }}
-                className="absolute top-2 right-2 bg-black/60 hover:bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center transition-colors"
-              >
-                <X size={12} />
-              </button>
-              <div className="absolute bottom-2 left-2 bg-black/50 text-white text-[10px] px-2 py-1 rounded-full">Video</div>
-            </div>
-          )}
+          {/* ── VIDEO PREVIEW (shown after selection) ── */}
+          {
+            videoPreviewUrl && (
+              <div className="relative">
+                <video src={videoPreviewUrl} controls className="w-full rounded-2xl border border-blush/30" />
+                <button
+                  type="button"
+                  onClick={() => { setVideoFile(null); setVideoPreviewUrl(''); }}
+                  className="absolute top-2 right-2 bg-black/60 hover:bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center transition-colors"
+                >
+                  <X size={12} />
+                </button>
+                <div className="absolute bottom-2 left-2 bg-black/50 text-white text-[10px] px-2 py-1 rounded-full">Video</div>
+              </div>
+            )
+          }
 
           {/* ── COLORS ── */}
           <div>
@@ -1241,8 +1432,8 @@ export const AdminProducts: React.FC = () => {
             </div>
           </div>
 
-        </div>
-      </Modal>
-    </div>
+        </div >
+      </Modal >
+    </div >
   );
 };
