@@ -752,7 +752,18 @@ export const AdminProducts: React.FC = () => {
           ADD / EDIT MODAL
           ════════════════════════════════════════ */}
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={editingId ? 'Edit Product' : 'Add Product'} size="xl">
-        <div className="space-y-5 max-h-[70vh] overflow-y-auto pr-2">
+        <div
+          className="space-y-5 max-h-[70vh] overflow-y-auto pr-2"
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            e.preventDefault();
+            const allFiles = Array.from(e.dataTransfer.files);
+            const imgs = allFiles.filter((f: File) => f.type.startsWith('image/'));
+            const vid = allFiles.find((f: File) => f.type.startsWith('video/'));
+            if (imgs.length > 0) setImageFiles(prev => [...prev, ...imgs]);
+            if (vid) { setVideoFile(vid); setVideoPreviewUrl(URL.createObjectURL(vid)); }
+          }}
+        >
 
           {/* ── Basic Info ── */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -872,31 +883,37 @@ export const AdminProducts: React.FC = () => {
               onDrop={(e) => {
                 e.preventDefault();
                 setDragActive(false);
-                const files = Array.from(e.dataTransfer.files).filter((f: File) => f.type.startsWith('image/'));
-                setImageFiles(prev => [...prev, ...files]);
+                const allFiles = Array.from(e.dataTransfer.files);
+                const imgs = allFiles.filter((f: File) => f.type.startsWith('image/'));
+                const vid = allFiles.find((f: File) => f.type.startsWith('video/'));
+                if (imgs.length > 0) setImageFiles(prev => [...prev, ...imgs]);
+                if (vid) { setVideoFile(vid); setVideoPreviewUrl(URL.createObjectURL(vid)); }
               }}
               className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all
                 ${dragActive ? 'border-rose-gold bg-blush-light/40' : 'border-blush/40 bg-white/60'}`}
             >
               <UploadCloud className="mx-auto mb-3 text-rose-gold" size={40} />
-              <p className="text-sm font-medium text-charcoal mb-1">Drag & Drop Product Images</p>
-              <p className="text-xs text-[#6B5B55] mb-4">JPG, PNG, WEBP supported</p>
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={(e) => {
+              <p className="text-sm font-medium text-charcoal mb-1">Drag & Drop Images or Video</p>
+              <p className="text-xs text-[#6B5B55] mb-4">Images: JPG, PNG, WEBP · Video: MP4, MOV</p>
+              <div className="flex items-center justify-center gap-3 flex-wrap">
+                <input type="file" accept="image/*" multiple onChange={(e) => {
                   if (e.target.files) setImageFiles(prev => [...prev, ...Array.from(e.target.files || [])]);
-                }}
-                className="hidden"
-                id="product-image-upload"
-              />
-              <label
-                htmlFor="product-image-upload"
-                className="inline-flex items-center px-4 py-2 rounded-xl bg-rose-gold text-white text-sm cursor-pointer hover:opacity-90"
-              >
-                Browse Images
-              </label>
+                }} className="hidden" id="product-image-upload" />
+                <label htmlFor="product-image-upload"
+                  className="inline-flex items-center px-4 py-2 rounded-xl bg-rose-gold text-white text-sm cursor-pointer hover:opacity-90">
+                  Browse Images
+                </label>
+                <input type="file" accept="video/*" hidden id="video-upload"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) { setVideoFile(file); setVideoPreviewUrl(URL.createObjectURL(file)); }
+                  }}
+                />
+                <label htmlFor="video-upload"
+                  className="inline-flex items-center px-4 py-2 rounded-xl bg-white border border-rose-gold text-rose-gold text-sm cursor-pointer hover:bg-blush-light/40 transition-colors">
+                  Browse Video
+                </label>
+              </div>
             </div>
 
             {/* ────────────────────────────────────────
@@ -1018,34 +1035,20 @@ export const AdminProducts: React.FC = () => {
             )}
           </div>
 
-          {/* ── VIDEO ── */}
-          <div>
-            <label className="block text-sm font-medium text-[#6B5B55] mb-2">Product Video</label>
-            <div
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault();
-                const file = Array.from(e.dataTransfer.files).find((f: File) => f.type.startsWith('video/'));
-                if (file) { setVideoFile(file); setVideoPreviewUrl(URL.createObjectURL(file)); }
-              }}
-              className="border-2 border-dashed border-blush/40 rounded-2xl p-6 text-center bg-white/60"
-            >
-              <UploadCloud className="mx-auto mb-3 text-rose-gold" size={36} />
-              <p className="text-sm font-medium text-charcoal mb-1">Drag & Drop Product Video</p>
-              <input type="file" accept="video/*" hidden id="video-upload"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) { setVideoFile(file); setVideoPreviewUrl(URL.createObjectURL(file)); }
-                }}
-              />
-              <label htmlFor="video-upload" className="inline-flex items-center px-4 py-2 rounded-xl bg-rose-gold text-white text-sm cursor-pointer hover:opacity-90 mt-3">
-                Browse Video
-              </label>
+          {/* ── VIDEO PREVIEW (shown after selection) ── */}
+          {videoPreviewUrl && (
+            <div className="relative">
+              <video src={videoPreviewUrl} controls className="w-full rounded-2xl border border-blush/30" />
+              <button
+                type="button"
+                onClick={() => { setVideoFile(null); setVideoPreviewUrl(''); }}
+                className="absolute top-2 right-2 bg-black/60 hover:bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center transition-colors"
+              >
+                <X size={12} />
+              </button>
+              <div className="absolute bottom-2 left-2 bg-black/50 text-white text-[10px] px-2 py-1 rounded-full">Video</div>
             </div>
-            {videoPreviewUrl && (
-              <video src={videoPreviewUrl} controls className="mt-4 w-full rounded-2xl border border-blush/30" />
-            )}
-          </div>
+          )}
 
           {/* ── COLORS ── */}
           <div>
