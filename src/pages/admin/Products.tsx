@@ -903,7 +903,10 @@ export const AdminProducts: React.FC = () => {
             const allFiles = Array.from(e.dataTransfer.files);
             const imgs = allFiles.filter((f: File) => f.type.startsWith('image/'));
             const vid = allFiles.find((f: File) => f.type.startsWith('video/'));
-            if (imgs.length > 0) setImageFiles(prev => [...prev, ...imgs]);
+            if (imgs.length > 0) setImageFiles(prev => {
+              const existing = new Set(prev.map(f => f.name + f.size));
+              return [...prev, ...imgs.filter(f => !existing.has(f.name + f.size))];
+            });
             if (vid) { setVideoFile(vid); setVideoPreviewUrl(URL.createObjectURL(vid)); }
           }}
         >
@@ -1029,7 +1032,10 @@ export const AdminProducts: React.FC = () => {
                 const allFiles = Array.from(e.dataTransfer.files);
                 const imgs = allFiles.filter((f: File) => f.type.startsWith('image/'));
                 const vid = allFiles.find((f: File) => f.type.startsWith('video/'));
-                if (imgs.length > 0) setImageFiles(prev => [...prev, ...imgs]);
+                if (imgs.length > 0) setImageFiles(prev => {
+                  const existing = new Set(prev.map(f => f.name + f.size));
+                  return [...prev, ...imgs.filter(f => !existing.has(f.name + f.size))];
+                });
                 if (vid) { setVideoFile(vid); setVideoPreviewUrl(URL.createObjectURL(vid)); }
               }}
               className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all
@@ -1040,7 +1046,10 @@ export const AdminProducts: React.FC = () => {
               <p className="text-xs text-[#6B5B55] mb-4">Images: JPG, PNG, WEBP · Video: MP4, MOV</p>
               <div className="flex items-center justify-center gap-3 flex-wrap">
                 <input type="file" accept="image/*" multiple onChange={(e) => {
-                  if (e.target.files) setImageFiles(prev => [...prev, ...Array.from(e.target.files || [])]);
+                  if (e.target.files) setImageFiles(prev => {
+                    const existing = new Set(prev.map(f => f.name + f.size));
+                    return [...prev, ...Array.from(e.target.files || []).filter(f => !existing.has(f.name + f.size))];
+                  });
                 }} className="hidden" id="product-image-upload" />
                 <label htmlFor="product-image-upload"
                   className="inline-flex items-center px-4 py-2 rounded-xl bg-rose-gold text-white text-sm cursor-pointer hover:opacity-90">
