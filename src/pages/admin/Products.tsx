@@ -40,6 +40,42 @@ colorNameList.forEach((c: { name: string; hex: string }) => {
 });
 
 const getNearestColorName = nearestColor.from(nearestColorMap);
+// ─────────────────────────────────────────────────
+// SIMPLE COLOR PALETTE — snaps any hex to a common name
+// ─────────────────────────────────────────────────
+const SIMPLE_COLORS: Record<string, string> = {
+  'White': '#FFFFFF', 'Off White': '#FAF9F6', 'Cream': '#FFFDD0',
+  'Ivory': '#FFFFF0', 'Black': '#000000', 'Charcoal': '#36454F',
+  'Dark Grey': '#A9A9A9', 'Grey': '#808080', 'Light Grey': '#D3D3D3',
+  'Red': '#FF0000', 'Dark Red': '#8B0000', 'Maroon': '#800000',
+  'Crimson': '#DC143C', 'Pink': '#FFC0CB', 'Hot Pink': '#FF69B4',
+  'Baby Pink': '#F4C2C2', 'Rose': '#FF007F', 'Blush': '#FFB6C1',
+  'Magenta': '#FF00FF', 'Purple': '#800080', 'Violet': '#EE82EE',
+  'Lavender': '#E6E6FA', 'Navy': '#000080', 'Blue': '#0000FF',
+  'Sky Blue': '#87CEEB', 'Baby Blue': '#89CFF0', 'Royal Blue': '#4169E1',
+  'Teal': '#008080', 'Cyan': '#00FFFF', 'Turquoise': '#40E0D0',
+  'Green': '#008000', 'Dark Green': '#006400', 'Light Green': '#90EE90',
+  'Mint': '#98FF98', 'Olive': '#808000', 'Yellow': '#FFFF00',
+  'Light Yellow': '#FFFFE0', 'Gold': '#FFD700', 'Orange': '#FFA500',
+  'Peach': '#FFDAB9', 'Coral': '#FF6B6B', 'Salmon': '#FA8072',
+  'Brown': '#8B4513', 'Dark Brown': '#5C4033', 'Light Brown': '#C4A882',
+  'Tan': '#D2B48C', 'Beige': '#F5F5DC', 'Skin': '#FED9B0',
+  'Nude': '#E8C9A0', 'Camel': '#C19A6B', 'Rose Gold': '#B76E79',
+  'Copper': '#B87333', 'Silver': '#C0C0C0', 'Wine': '#722F37',
+  'Burgundy': '#800020', 'Mustard': '#FFDB58', 'Khaki': '#F0E68C',
+  'Lemon': '#FFF44F', 'Indigo': '#4B0082', 'Mauve': '#E0B0FF',
+};
+
+const getNearestSimpleColor = nearestColor.from(SIMPLE_COLORS);
+
+const resolveToSimpleName = (hex: string): string => {
+  try {
+    const result = getNearestSimpleColor(hex);
+    return result?.name || hex;
+  } catch {
+    return hex;
+  }
+};
 
 // ─────────────────────────────────────────────────
 // AUTO DETECT DOMINANT COLORS FROM IMAGE
@@ -83,10 +119,27 @@ const extractDominantColors = (file: File, maxColors = 5): Promise<string[]> => 
       const colorNames: string[] = [];
       const seenNames = new Set<string>();
 
+      // Skip very similar simple colors (e.g. don't show both Grey and Dark Grey)
+      const skipIfSimilarExists = new Map([
+        ['Dark Grey', 'Grey'], ['Light Grey', 'Grey'],
+        ['Dark Green', 'Green'], ['Light Green', 'Green'],
+        ['Dark Brown', 'Brown'], ['Light Brown', 'Brown'],
+        ['Baby Pink', 'Pink'], ['Hot Pink', 'Pink'], ['Blush', 'Pink'],
+        ['Dark Red', 'Red'], ['Crimson', 'Red'],
+        ['Baby Blue', 'Sky Blue'], ['Royal Blue', 'Blue'],
+        ['Off White', 'White'], ['Ivory', 'White'], ['Cream', 'White'],
+        ['Light Yellow', 'Yellow'], ['Lemon', 'Yellow'],
+      ]);
+
       for (const [key] of sorted) {
         const [r, g, b] = key.split(',').map(Number);
         const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-        const name = resolveColorName(hex);
+        const name = resolveToSimpleName(hex);
+
+        // Skip if we already have the "parent" color
+        const parent = skipIfSimilarExists.get(name);
+        if (parent && seenNames.has(parent)) continue;
+
         if (!seenNames.has(name)) {
           seenNames.add(name);
           colorNames.push(name);
@@ -112,14 +165,27 @@ const resolveColor = (input: string): string => {
   // If it's already a valid hex, return it directly
   if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(trimmed)) return trimmed;
 
-  // Try name lookup
   const lower = trimmed.toLowerCase();
+
+  // Check simple colors first (exact match)
+  const simpleMatch = Object.entries(SIMPLE_COLORS).find(
+    ([name]) => name.toLowerCase() === lower
+  );
+  if (simpleMatch) return simpleMatch[1];
+
+  // Try full color name library
   if (COLOR_NAME_TO_HEX[lower]) return COLOR_NAME_TO_HEX[lower];
 
   // Try CSS color names via browser
   const s = new Option().style;
   s.color = trimmed;
   if (s.color !== '') return trimmed;
+
+  // Last resort — use nearest simple color hex
+  try {
+    const result = getNearestSimpleColor(trimmed);
+    if (result?.value) return result.value;
+  } catch { }
 
   return '#cccccc';
 };
@@ -601,7 +667,7 @@ export const AdminProducts: React.FC = () => {
       const eyeDropper = new (window as any).EyeDropper();
       const result = await eyeDropper.open();
       const hex = result.sRGBHex;
-      const name = resolveColorName(hex);
+      const name = resolveToSimpleName(hex);
       setColorInput(name);
     } catch {
       // User cancelled or browser doesn't support
