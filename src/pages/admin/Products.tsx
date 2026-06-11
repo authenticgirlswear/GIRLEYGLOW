@@ -41,6 +41,69 @@ colorNameList.forEach((c: { name: string; hex: string }) => {
 
 const getNearestColorName = nearestColor.from(nearestColorMap);
 
+// ─────────────────────────────────────────────────
+// AUTO DETECT DOMINANT COLORS FROM IMAGE
+// ─────────────────────────────────────────────────
+const extractDominantColors = (file: File, maxColors = 5): Promise<string[]> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      // Sample at reduced size for speed
+      const sampleSize = 100;
+      canvas.width = sampleSize;
+      canvas.height = sampleSize;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0, sampleSize, sampleSize);
+      URL.revokeObjectURL(url);
+
+      const imageData = ctx.getImageData(0, 0, sampleSize, sampleSize).data;
+      const colorBuckets: Record<string, number> = {};
+
+      // Sample every 5th pixel, quantize to reduce similar colors
+      for (let i = 0; i < imageData.length; i += 4 * 5) {
+        const r = Math.round(imageData[i] / 32) * 32;
+        const g = Math.round(imageData[i + 1] / 32) * 32;
+        const b = Math.round(imageData[i + 2] / 32) * 32;
+        const a = imageData[i + 3];
+        // Skip transparent and near-white/near-black pixels
+        if (a < 128) continue;
+        if (r > 240 && g > 240 && b > 240) continue; // skip white/near-white
+        if (r < 20 && g < 20 && b < 20) continue;    // skip black/near-black
+        const key = `${r},${g},${b}`;
+        colorBuckets[key] = (colorBuckets[key] || 0) + 1;
+      }
+
+      // Sort by frequency, take top colors
+      const sorted = Object.entries(colorBuckets)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, maxColors * 3); // take more then dedupe by name
+
+      const colorNames: string[] = [];
+      const seenNames = new Set<string>();
+
+      for (const [key] of sorted) {
+        const [r, g, b] = key.split(',').map(Number);
+        const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+        const name = resolveColorName(hex);
+        if (!seenNames.has(name)) {
+          seenNames.add(name);
+          colorNames.push(name);
+        }
+        if (colorNames.length >= maxColors) break;
+      }
+
+      resolve(colorNames);
+    };
+    img.onerror = () => {
+      try { URL.revokeObjectURL(url); } catch { }
+      resolve([]);
+    };
+    img.src = url;
+  });
+};
+
 // Given any input (name or hex), return a hex value
 const resolveColor = (input: string): string => {
   const trimmed = input.trim();
@@ -481,9 +544,27 @@ export const AdminProducts: React.FC = () => {
   const [textWmSpacingX, setTextWmSpacingX] = useState<number>(180);
   const [textWmSpacingY, setTextWmSpacingY] = useState<number>(90);
   const [hasEyeDropper] = useState(() => typeof (window as any).EyeDropper !== 'undefined');
-
+  const [detectedColors, setDetectedColors] = useState<string[]>([]);
+  const [detectingColors, setDetectingColors] = useState(false);
 
   useEffect(() => { fetchProducts(); }, []);
+
+  // Auto-detect colors from first uploaded image
+  useEffect(() => {
+    if (imageFiles.length === 0) {
+      setDetectedColors([]);
+      return;
+    }
+    let cancelled = false;
+    setDetectingColors(true);
+    extractDominantColors(imageFiles[0], 6).then((colors) => {
+      if (!cancelled) {
+        setDetectedColors(colors);
+        setDetectingColors(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [imageFiles[0]?.name, imageFiles[0]?.size]);
 
   // ── Auto-generate SKU ──
   const generateSKU = (name: string): string => {
@@ -558,6 +639,8 @@ export const AdminProducts: React.FC = () => {
     setWmSize(1.0);
     setWmEnabled(true);
     setWmPanelOpen(false);
+    setDetectedColors([]);
+    setDetectingColors(false);
   };
 
 
@@ -1435,6 +1518,65 @@ export const AdminProducts: React.FC = () => {
               )}
               <Button size="sm" onClick={addColor} type="button">Add</Button>
             </div>
+            {/* Auto-detected colors from image */}
+            {(detectedColors.length > 0 || detectingColors) && (
+              <div className="mb-3 p-3 rounded-xl bg-blush-light/30 border border-blush/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xs font-medium text-[#6B5B55]">
+                    🎨 Auto-detected from image
+                  </span>
+                  {detectingColors && (
+                    <span className="text-[10px] text-[#6B5B55] animate-pulse">Analyzing...</span>
+                  )}
+                </div>
+                {!detectingColors && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {detectedColors.map((colorName) => {
+                      const alreadyAdded = (form.colors || []).includes(colorName);
+                      return (
+                        <button
+                          key={colorName}
+                          type="button"
+                          onClick={() => {
+                            if (!alreadyAdded) {
+                              setForm({ ...form, colors: [...(form.colors || []), colorName] });
+                            }
+                          }}
+                          className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-full border transition-colors
+                ${alreadyAdded
+                              ? 'border-rose-gold/40 bg-rose-gold/10 text-rose-gold cursor-default'
+                              : 'border-blush/30 bg-white hover:bg-blush-light/60 text-charcoal cursor-pointer'
+                            }`}
+                        >
+                          <span
+                            className="w-3 h-3 rounded-full border border-white/80 shadow-sm flex-shrink-0"
+                            style={{ backgroundColor: resolveColor(colorName) }}
+                          />
+                          {colorName}
+                          {alreadyAdded ? (
+                            <span className="text-[9px]">✓</span>
+                          ) : (
+                            <span className="text-[9px] text-[#6B5B55]">+ add</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const toAdd = detectedColors.filter(c => !(form.colors || []).includes(c));
+                        if (toAdd.length > 0) {
+                          setForm({ ...form, colors: [...(form.colors || []), ...toAdd] });
+                        }
+                      }}
+                      className="text-[10px] px-2.5 py-1.5 rounded-full bg-rose-gold text-white hover:opacity-90 transition-opacity"
+                    >
+                      Add All
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
             <div className="flex flex-wrap gap-1.5 mb-3">
               {[
                 ['White', '#FFFFFF'], ['Black', '#000000'], ['Red', '#E53E3E'],
