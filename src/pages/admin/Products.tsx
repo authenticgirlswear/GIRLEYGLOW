@@ -824,26 +824,9 @@ export const AdminProducts: React.FC = () => {
         watermarked = files[i];
       }
 
-      // Convert watermarked file to ArrayBuffer BEFORE retry loop
-      // so the blob data is preserved across all retry attempts
-      let watermarkedBuffer: ArrayBuffer;
-      try {
-        watermarkedBuffer = await watermarked.arrayBuffer();
-      } catch {
-        failedCount++;
-        onProgress(i + 1, files.length);
-        continue;
-      }
-
       for (let attempt = 1; attempt <= 3; attempt++) {
         try {
-          // Recreate File from buffer on each attempt — prevents blob expiry
-          const freshFile = new File(
-            [watermarkedBuffer],
-            watermarked.name,
-            { type: watermarked.type, lastModified: Date.now() }
-          );
-          const url = await uploadToCloudinary(freshFile);
+          const url = await uploadToCloudinary(watermarked);
           if (url) {
             urls.push(url);
             uploaded = true;
@@ -852,7 +835,7 @@ export const AdminProducts: React.FC = () => {
         } catch (err) {
           console.warn(`Upload attempt ${attempt}/3 failed for "${files[i].name}":`, err);
           if (attempt < 3) {
-            await new Promise(r => setTimeout(r, 1000));
+            await new Promise(r => setTimeout(r, 1500));
           }
         }
       }
@@ -1323,19 +1306,7 @@ export const AdminProducts: React.FC = () => {
               <div className="mt-4 space-y-3">
 
                 {/* Cover image — full-width watermark preview */}
-                <div
-                  draggable
-                  onDragStart={() => handleDragStart(0)}
-                  onDragOver={(e) => handleDragOver(e, 0)}
-                  onDrop={() => handleDrop(0)}
-                  onDragEnd={handleDragEnd}
-                  className={`relative rounded-xl overflow-hidden border-2 transition-all cursor-grab
-                    ${dragOverIndex === 0 ? 'border-rose-gold scale-[0.99]' : 'border-blush/30'}
-                    ${dragIndex === 0 ? 'opacity-50' : 'opacity-100'}`}
-                >
-                  <div className="absolute top-2 left-2 z-10 bg-white/80 rounded-full p-1 shadow cursor-grab">
-                    <GripVertical size={14} className="text-charcoal" />
-                  </div>
+                <div className="relative rounded-xl overflow-hidden border-2 border-rose-gold">
                   <WatermarkPreview
                     file={imageFiles[0]}
                     sizeMultiplier={wmSize}
@@ -1362,7 +1333,7 @@ export const AdminProducts: React.FC = () => {
                   </button>
                   {existingImages.length === 0 && (
                     <div className="absolute bottom-2 left-2 bg-rose-gold text-white text-[10px] px-2 py-1 rounded-full shadow z-10">
-                      Cover — drag to reorder
+                      Cover ✓
                     </div>
                   )}
                 </div>
@@ -1509,6 +1480,18 @@ export const AdminProducts: React.FC = () => {
                           <div className="absolute top-1 left-1 z-10 bg-white/80 rounded-full p-0.5 shadow">
                             <GripVertical size={12} className="text-charcoal" />
                           </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = [...imageFiles];
+                              const [moved] = updated.splice(realIndex, 1);
+                              updated.unshift(moved);
+                              setImageFiles(updated);
+                            }}
+                            className="absolute bottom-1 left-1 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded-full z-10 hover:bg-rose-gold transition-colors"
+                          >
+                            Set Cover
+                          </button>
                           <MiniWatermarkThumb
                             file={file}
                             xFrac={wmFrac.xFrac}
