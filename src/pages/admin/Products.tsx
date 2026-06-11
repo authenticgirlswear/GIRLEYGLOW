@@ -31,7 +31,6 @@ import nearestColor from 'nearest-color';
 const COLOR_NAME_TO_HEX: Record<string, string> = {};
 const COLOR_HEX_TO_NAME: Record<string, string> = {};
 const nearestColorMap: Record<string, string> = {};
-const [hasEyeDropper] = useState(() => typeof (window as any).EyeDropper !== 'undefined');
 
 colorNameList.forEach((c: { name: string; hex: string }) => {
   const key = c.name.toLowerCase();
@@ -474,6 +473,7 @@ export const AdminProducts: React.FC = () => {
   const [textWmColor, setTextWmColor] = useState<string>('#ffffff');
   const [textWmSpacingX, setTextWmSpacingX] = useState<number>(180);
   const [textWmSpacingY, setTextWmSpacingY] = useState<number>(90);
+  const [hasEyeDropper] = useState(() => typeof (window as any).EyeDropper !== 'undefined');
 
 
   useEffect(() => { fetchProducts(); }, []);
