@@ -31,6 +31,7 @@ import nearestColor from 'nearest-color';
 const COLOR_NAME_TO_HEX: Record<string, string> = {};
 const COLOR_HEX_TO_NAME: Record<string, string> = {};
 const nearestColorMap: Record<string, string> = {};
+const [hasEyeDropper] = useState(() => typeof (window as any).EyeDropper !== 'undefined');
 
 colorNameList.forEach((c: { name: string; hex: string }) => {
   const key = c.name.toLowerCase();
@@ -1362,19 +1363,41 @@ export const AdminProducts: React.FC = () => {
                   placeholder="e.g. red  or  #B76E79  or  rose gold"
                 />
                 {/* Live name hint when hex is typed */}
-                {/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(colorInput.trim()) && (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-[#6B5B55] pointer-events-none">
-                    → {resolveColorName(colorInput.trim())}
-                  </span>
-                )}
+                {colorInput.trim() && (() => {
+                  const lower = colorInput.trim().toLowerCase();
+                  const isHex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(colorInput.trim());
+                  const exactMatch = COLOR_NAME_TO_HEX[lower];
+                  const hint = isHex
+                    ? resolveColorName(colorInput.trim())
+                    : exactMatch ? null : (() => {
+                      const partial = Object.keys(COLOR_NAME_TO_HEX).find(k => k.startsWith(lower));
+                      return partial ? partial : null;
+                    })();
+                  return hint ? (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-[#6B5B55] pointer-events-none">
+                      → {hint}
+                    </span>
+                  ) : null;
+                })()}
               </div>
               {/* Color preview swatch */}
               <div
                 className="w-11 h-11 rounded-xl border-2 border-blush/40 flex-shrink-0 transition-all"
-                style={{ backgroundColor: colorInput.trim() ? resolveColor(colorInput) : '#f0f0f0' }}
+                style={{
+                  backgroundColor: (() => {
+                    const t = colorInput.trim();
+                    if (!t) return '#f0f0f0';
+                    const resolved = resolveColor(t);
+                    if (resolved !== '#cccccc') return resolved;
+                    // Try partial match
+                    const lower = t.toLowerCase();
+                    const partial = Object.keys(COLOR_NAME_TO_HEX).find(k => k.startsWith(lower));
+                    return partial ? COLOR_NAME_TO_HEX[partial] : '#f0f0f0';
+                  })()
+                }}
               />
               {/* Eye dropper button */}
-              {typeof (window as any).EyeDropper !== 'undefined' && (
+              {hasEyeDropper && (
                 <button
                   type="button"
                   onClick={openEyeDropper}
