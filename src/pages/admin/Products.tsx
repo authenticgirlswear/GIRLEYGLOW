@@ -25,47 +25,51 @@ let wmPos: { xFrac: number; yFrac: number } = { xFrac: 0.82, yFrac: 0.90 };
 // ─────────────────────────────────────────────────
 // FASHION COLOR MAP — 50+ names → real hex values
 // ─────────────────────────────────────────────────
-const FASHION_COLORS: Record<string, string> = {
-  'red': '#E53E3E', 'dark red': '#9B2335', 'crimson': '#DC143C',
-  'maroon': '#800000', 'burgundy': '#722F37', 'wine': '#722F37',
-  'pink': '#FFC0CB', 'hot pink': '#FF69B4', 'baby pink': '#F4C2C2',
-  'light pink': '#FFB6C1', 'magenta': '#FF00FF', 'blush': '#FADADD',
-  'rose': '#FF007F', 'rose gold': '#B76E79', 'dusty rose': '#DCAE96',
-  'coral': '#FF6B6B', 'salmon': '#FA8072', 'peach': '#FFCBA4',
-  'blue': '#3182CE', 'navy': '#001F5B', 'navy blue': '#001F5B',
-  'royal blue': '#4169E1', 'sky blue': '#87CEEB', 'baby blue': '#89CFF0',
-  'powder blue': '#B0E0E6', 'teal': '#008080', 'turquoise': '#40E0D0',
-  'aqua': '#00FFFF', 'denim': '#1560BD', 'indigo': '#4B0082',
-  'cobalt': '#0047AB', 'green': '#38A169', 'dark green': '#006400',
-  'forest green': '#228B22', 'olive': '#808000', 'olive green': '#6B8E23',
-  'mint': '#98FF98', 'mint green': '#98FF98', 'sage': '#BCB88A',
-  'emerald': '#50C878', 'lime': '#00FF00', 'army green': '#4B5320',
-  'yellow': '#F6E05E', 'golden': '#FFD700', 'gold': '#FFD700',
-  'mustard': '#FFDB58', 'mustard yellow': '#FFDB58', 'orange': '#ED8936',
-  'burnt orange': '#CC5500', 'amber': '#FFBF00', 'lemon': '#FFF44F',
-  'purple': '#805AD5', 'violet': '#8F00FF', 'lavender': '#E6E6FA',
-  'lilac': '#C8A2C8', 'plum': '#8E4585', 'mauve': '#E0B0FF',
-  'grape': '#6F2DA8', 'white': '#FFFFFF', 'off white': '#FAF9F6',
-  'cream': '#FFFDD0', 'ivory': '#FFFFF0', 'beige': '#F5F5DC',
-  'skin': '#FED9B0', 'nude': '#E3BC9A', 'tan': '#D2B48C',
-  'camel': '#C19A6B', 'khaki': '#C3B091', 'brown': '#A0522D',
-  'chocolate': '#7B3F00', 'coffee': '#6F4E37', 'mocha': '#967259',
-  'grey': '#808080', 'gray': '#808080', 'light grey': '#D3D3D3',
-  'dark grey': '#404040', 'charcoal': '#36454F', 'silver': '#C0C0C0',
-  'black': '#000000', 'copper': '#B87333', 'bronze': '#CD7F32',
-  'champagne': '#F7E7CE', 'steel blue': '#4682B4', 'rust': '#B7410E',
-  'terracotta': '#E2725B', 'cyan': '#00BCD4', 'fuchsia': '#FF00FF',
-  'shocking pink': '#FC0FC0',
+import { colornames as colorNameList } from 'color-name-list';
+import nearestColor from 'nearest-color';
+// Build a lookup map: name → hex (lowercase keys)
+const COLOR_NAME_TO_HEX: Record<string, string> = {};
+const COLOR_HEX_TO_NAME: Record<string, string> = {};
+const nearestColorMap: Record<string, string> = {};
+
+colorNameList.forEach((c: { name: string; hex: string }) => {
+  const key = c.name.toLowerCase();
+  COLOR_NAME_TO_HEX[key] = c.hex;
+  COLOR_HEX_TO_NAME[c.hex.toLowerCase()] = c.name;
+  nearestColorMap[c.name] = c.hex;
+});
+
+const getNearestColorName = nearestColor.from(nearestColorMap);
+
+// Given any input (name or hex), return a hex value
+const resolveColor = (input: string): string => {
+  const trimmed = input.trim();
+  if (!trimmed) return '#cccccc';
+
+  // If it's already a valid hex, return it directly
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(trimmed)) return trimmed;
+
+  // Try name lookup
+  const lower = trimmed.toLowerCase();
+  if (COLOR_NAME_TO_HEX[lower]) return COLOR_NAME_TO_HEX[lower];
+
+  // Try CSS color names via browser
+  const s = new Option().style;
+  s.color = trimmed;
+  if (s.color !== '') return trimmed;
+
+  return '#cccccc';
 };
 
-const resolveColor = (input: string): string => {
-  const normalized = input.trim().toLowerCase();
-  if (FASHION_COLORS[normalized]) return FASHION_COLORS[normalized];
-  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(normalized)) return normalized;
-  const s = new Option().style;
-  s.color = normalized;
-  if (s.color !== '') return normalized;
-  return '#cccccc';
+// Given a hex, return the nearest human-readable color name
+const resolveColorName = (hex: string): string => {
+  if (!hex || !/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(hex)) return hex;
+  try {
+    const result = getNearestColorName(hex);
+    return result?.name || hex;
+  } catch {
+    return hex;
+  }
 };
 
 // ─────────────────────────────────────────────────
@@ -493,8 +497,26 @@ export const AdminProducts: React.FC = () => {
     const c = colorInput.trim();
     if (!c) return;
     const colors = form.colors || [];
-    if (!colors.includes(c)) setForm({ ...form, colors: [...colors, c] });
+    // If user typed a hex, store the nearest color name instead
+    let toStore = c;
+    if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(c)) {
+      toStore = resolveColorName(c);
+    }
+    if (!colors.includes(toStore)) setForm({ ...form, colors: [...colors, toStore] });
     setColorInput('');
+  };
+
+  // Eye dropper
+  const openEyeDropper = async () => {
+    try {
+      const eyeDropper = new (window as any).EyeDropper();
+      const result = await eyeDropper.open();
+      const hex = result.sRGBHex;
+      const name = resolveColorName(hex);
+      setColorInput(name);
+    } catch {
+      // User cancelled or browser doesn't support
+    }
   };
   const removeColor = (color: string) =>
     setForm({ ...form, colors: (form.colors || []).filter((c: string) => c !== color) });
@@ -1331,16 +1353,41 @@ export const AdminProducts: React.FC = () => {
               <div className="relative flex-1">
                 <input
                   value={colorInput}
-                  onChange={e => setColorInput(e.target.value)}
+                  onChange={e => {
+                    const val = e.target.value;
+                    setColorInput(val);
+                  }}
                   onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addColor(); } }}
                   className="w-full px-4 py-2.5 rounded-xl border border-blush/30 bg-white/80 text-sm focus:outline-none focus:ring-2 focus:ring-rose-gold/30"
                   placeholder="e.g. red  or  #B76E79  or  rose gold"
                 />
+                {/* Live name hint when hex is typed */}
+                {/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(colorInput.trim()) && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-[#6B5B55] pointer-events-none">
+                    → {resolveColorName(colorInput.trim())}
+                  </span>
+                )}
               </div>
+              {/* Color preview swatch */}
               <div
                 className="w-11 h-11 rounded-xl border-2 border-blush/40 flex-shrink-0 transition-all"
                 style={{ backgroundColor: colorInput.trim() ? resolveColor(colorInput) : '#f0f0f0' }}
               />
+              {/* Eye dropper button */}
+              {typeof (window as any).EyeDropper !== 'undefined' && (
+                <button
+                  type="button"
+                  onClick={openEyeDropper}
+                  title="Pick color from screen"
+                  className="w-11 h-11 rounded-xl border-2 border-blush/30 bg-white hover:bg-blush-light/40 flex items-center justify-center transition-colors flex-shrink-0"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#6B5B55]">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="none" />
+                    <path d="M20 14l-1.5-1.5M16.5 17.5l-8-8 2-2 8 8-2 2z" />
+                    <path d="M8.5 9.5L6 12l-2 5 5-2 2.5-2.5" />
+                  </svg>
+                </button>
+              )}
               <Button size="sm" onClick={addColor} type="button">Add</Button>
             </div>
             <div className="flex flex-wrap gap-1.5 mb-3">
