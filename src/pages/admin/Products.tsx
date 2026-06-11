@@ -214,12 +214,19 @@ const applyWatermark = (file: File, sizeMultiplier = 1.0, textWm?: TextWmConfig)
         );
       }
 
+      const isPng = file.type === 'image/png';
+      const outputFormat = isPng ? 'image/png' : 'image/jpeg';
+      const outputQuality = isPng ? 1.0 : 0.92;
       canvas.toBlob((blob) => {
         URL.revokeObjectURL(url);
         if (!blob) { resolve(file); return; }
-        resolve(new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() }));
-      }, 'image/jpeg', 0.92);
+        resolve(new File([blob], file.name, {
+          type: outputFormat,
+          lastModified: Date.now()
+        }));
+      }, outputFormat, outputQuality);
     };
+
     img.onerror = () => {
       try { URL.revokeObjectURL(url); } catch { }
       resolve(file);
@@ -622,23 +629,38 @@ export const AdminProducts: React.FC = () => {
         watermarked = files[i];
       }
 
+      // Convert watermarked file to ArrayBuffer BEFORE retry loop
+      // so the blob data is preserved across all retry attempts
+      let watermarkedBuffer: ArrayBuffer;
+      try {
+        watermarkedBuffer = await watermarked.arrayBuffer();
+      } catch {
+        failedCount++;
+        onProgress(i + 1, files.length);
+        continue;
+      }
+
       for (let attempt = 1; attempt <= 3; attempt++) {
         try {
-          const url = await uploadToCloudinary(watermarked);
+          // Recreate File from buffer on each attempt — prevents blob expiry
+          const freshFile = new File(
+            [watermarkedBuffer],
+            watermarked.name,
+            { type: watermarked.type, lastModified: Date.now() }
+          );
+          const url = await uploadToCloudinary(freshFile);
           if (url) {
             urls.push(url);
             uploaded = true;
-            break; // success — stop retrying
+            break;
           }
         } catch (err) {
           console.warn(`Upload attempt ${attempt}/3 failed for "${files[i].name}":`, err);
           if (attempt < 3) {
-            // Wait 1s before retry
             await new Promise(r => setTimeout(r, 1000));
           }
         }
       }
-
       if (!uploaded) {
         failedCount++;
         console.error(`All 3 attempts failed for "${files[i].name}"`);
