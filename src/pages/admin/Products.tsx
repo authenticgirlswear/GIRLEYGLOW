@@ -316,54 +316,100 @@ interface TextWmConfig {
   spacingX: number;
   spacingY: number;
 }
+// ─────────────────────────────────────────────────
+// APPLY WATERMARK — with pre-resize for large files
+// ─────────────────────────────────────────────────
 const applyWatermark = (file: File, sizeMultiplier = 1.0, textWm?: TextWmConfig): Promise<File> => {
   return new Promise((resolve) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
+
     img.onload = () => {
+      // ── Pre-resize: cap at 2400px on the long edge for AI-generated images ──
+      const MAX_EDGE = 2400;
+      let targetW = img.width;
+      let targetH = img.height;
+      const longEdge = Math.max(img.width, img.height);
+      if (longEdge > MAX_EDGE) {
+        const scale = MAX_EDGE / longEdge;
+        targetW = Math.round(img.width * scale);
+        targetH = Math.round(img.height * scale);
+      }
+
+      // Draw to canvas at target size
       const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
+      canvas.width = targetW;
+      canvas.height = targetH;
       const ctx = canvas.getContext('2d')!;
-      ctx.drawImage(img, 0, 0);
+      ctx.drawImage(img, 0, 0, targetW, targetH);
 
-      const size = Math.max(18, Math.min(img.width, img.height) * 0.08) * sizeMultiplier;
-      const x = wmPos.xFrac * img.width;
-      const y = wmPos.yFrac * img.height;
-
+      // Apply AG logo watermark
+      const size = Math.max(18, Math.min(targetW, targetH) * 0.08) * sizeMultiplier;
+      const x = wmPos.xFrac * targetW;
+      const y = wmPos.yFrac * targetH;
       drawAGLogo(ctx, x, y, size);
 
+      // Apply text watermark if enabled
       if (textWm?.enabled) {
         drawTextWatermark(
-          ctx, img.width, img.height,
-          textWm.text, Math.max(10, img.width * (textWm.size / 500)),
+          ctx, targetW, targetH,
+          textWm.text, Math.max(10, targetW * (textWm.size / 500)),
           textWm.opacity, textWm.angle, textWm.color,
-          img.width * (textWm.spacingX / 500),
-          img.height * (textWm.spacingY / 500)
+          targetW * (textWm.spacingX / 500),
+          targetH * (textWm.spacingY / 500)
         );
       }
 
-      const isPng = file.type === 'image/png';
+      // Determine output format — always use JPEG for large images to avoid
+      // canvas toBlob failures on oversized PNGs (common with AI-generated images)
+      const isPng = file.type === 'image/png' && targetW * targetH < 4_000_000; // ~2000x2000
       const outputFormat = isPng ? 'image/png' : 'image/jpeg';
       const outputQuality = isPng ? 1.0 : 0.92;
-      canvas.toBlob((blob) => {
-        URL.revokeObjectURL(url);
-        if (!blob) { resolve(file); return; }
-        resolve(new File([blob], file.name, {
-          type: outputFormat,
-          lastModified: Date.now()
-        }));
-      }, outputFormat, outputQuality);
+
+      canvas.toBlob(
+        (blob) => {
+          // Always revoke the object URL
+          try { URL.revokeObjectURL(url); } catch { }
+
+          if (!blob) {
+            // toBlob returned null — fall back to JPEG at lower quality
+            canvas.toBlob(
+              (fallbackBlob) => {
+                if (!fallbackBlob) {
+                  console.warn(`toBlob failed for "${file.name}" — using original file`);
+                  resolve(file);
+                  return;
+                }
+                resolve(new File([fallbackBlob], file.name.replace(/\.[^.]+$/, '.jpg'), {
+                  type: 'image/jpeg',
+                  lastModified: Date.now(),
+                }));
+              },
+              'image/jpeg',
+              0.85
+            );
+            return;
+          }
+
+          resolve(new File([blob], file.name, {
+            type: outputFormat,
+            lastModified: Date.now(),
+          }));
+        },
+        outputFormat,
+        outputQuality
+      );
     };
 
     img.onerror = () => {
       try { URL.revokeObjectURL(url); } catch { }
+      console.warn(`Image load failed for "${file.name}" — using original file`);
       resolve(file);
     };
+
     img.src = url;
   });
 };
-
 // ─────────────────────────────────────────────────
 // MINI THUMBNAIL with watermark overlay
 // ─────────────────────────────────────────────────
