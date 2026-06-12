@@ -14,7 +14,7 @@
 declare global { interface Window { dataLayer: any[]; } }
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   ShoppingBag, Heart, ArrowLeft, ArrowRight,
   Minus, Plus, ChevronRight,
@@ -56,153 +56,59 @@ const normalise = (p: any): Product => ({
 });
 
 /* ─────────────────────────────────────────────────────────────
-   COLOR_NAME_MAP
-   Covers every name that AdminProducts can save, including:
-   • All entries from its SIMPLE_COLORS map
-   • All common CSS color names
-   • Admin-typed descriptive names (Baby Pink, Sky Blue, etc.)
-   • Multicolor / gradient specials
+   resolveColor
+   Uses the same color-name-list library that AdminProducts uses,
+   so any name the admin saves (Rio Red, Dusty Rose, etc.) always
+   resolves correctly on the product detail page.
+   3-step: hex passthrough → color-name-list lookup → canvas CSS
    ───────────────────────────────────────────────────────────── */
-const COLOR_NAME_MAP: Record<string, string> = {
-  // ── Whites & Off-Whites ──
-  'white': '#FFFFFF', 'off white': '#FAF9F6', 'off-white': '#FAF9F6',
-  'snow': '#FFFAFA', 'pearl': '#F0EAD6', 'linen': '#FAF0E6',
-  'ivory': '#FFFFF0', 'cream': '#FFFDD0', 'vanilla': '#F3E5AB',
-  'champagne': '#F7E7CE', 'butter': '#FFFAA0',
+import { colornames as _colorNameList } from 'color-name-list';
+import nearestColor from 'nearest-color';
 
-  // ── Blacks & Near-Blacks ──
-  'black': '#000000', 'jet black': '#343434', 'off black': '#0F0F0F',
-  'onyx': '#353839',
+// Build lookup maps once at module load
+const _nameToHex: Record<string, string> = {};
+const _nearestMap: Record<string, string> = {};
+_colorNameList.forEach((c: { name: string; hex: string }) => {
+  _nameToHex[c.name.toLowerCase()] = c.hex;
+  _nearestMap[c.name] = c.hex;
+});
+const _getNearestColor = nearestColor.from(_nearestMap);
 
-  // ── Greys ──
-  'grey': '#808080', 'gray': '#808080',
-  'light grey': '#D3D3D3', 'light gray': '#D3D3D3',
-  'dark grey': '#A9A9A9', 'dark gray': '#A9A9A9',
-  'charcoal': '#36454F', 'silver': '#C0C0C0',
-  'ash': '#B2BEB5', 'slate': '#708090', 'smoke': '#738276',
-
-  // ── Reds ──
-  'red': '#FF0000', 'dark red': '#8B0000', 'crimson': '#DC143C',
-  'maroon': '#800000', 'burgundy': '#800020', 'wine': '#722F37',
-
-  // ── Pinks ──
-  'pink': '#FFC0CB', 'hot pink': '#FF69B4', 'baby pink': '#F4C2C2',
-  'light pink': '#FFB6C1', 'blush': '#FFB6C1', 'blush pink': '#FEC5BB',
-  'rose': '#FF007F', 'deep pink': '#FF1493', 'flamingo': '#FC8EAC',
-  'shocking pink': '#FC0FC0', 'magenta': '#FF00FF',
-  'dusty rose': '#DCAE96', 'mauve': '#E0B0FF',
-
-  // ── Rose Gold / Copper ──
-  'rose gold': '#B76E79', 'copper': '#B87333', 'bronze': '#CD7F32',
-
-  // ── Oranges ──
-  'orange': '#FFA500', 'dark orange': '#FF8C00', 'light orange': '#FFB347',
-  'amber': '#FFBF00', 'burnt orange': '#CC5500', 'tangerine': '#F28500',
-  'rust': '#B7410E', 'terracotta': '#E2725B', 'coral': '#FF6B6B',
-  'salmon': '#FA8072', 'peach': '#FFDAB9',
-
-  // ── Yellows ──
-  'yellow': '#FFFF00', 'light yellow': '#FFFFE0', 'gold': '#FFD700',
-  'golden': '#FFD700', 'dark yellow': '#C9A800', 'mustard': '#FFDB58',
-  'mustard yellow': '#FFDB58', 'lemon': '#FFF44F', 'khaki': '#F0E68C',
-
-  // ── Greens ──
+// Inline SIMPLE_COLORS for exact fast matches (same as AdminProducts)
+const _SIMPLE: Record<string, string> = {
+  'white': '#FFFFFF', 'off white': '#FAF9F6', 'cream': '#FFFDD0',
+  'ivory': '#FFFFF0', 'black': '#000000', 'charcoal': '#36454F',
+  'dark grey': '#A9A9A9', 'grey': '#808080', 'light grey': '#D3D3D3',
+  'gray': '#808080', 'dark gray': '#A9A9A9', 'light gray': '#D3D3D3',
+  'red': '#FF0000', 'dark red': '#8B0000', 'maroon': '#800000',
+  'crimson': '#DC143C', 'pink': '#FFC0CB', 'hot pink': '#FF69B4',
+  'baby pink': '#F4C2C2', 'rose': '#FF007F', 'blush': '#FFB6C1',
+  'magenta': '#FF00FF', 'purple': '#800080', 'violet': '#EE82EE',
+  'lavender': '#E6E6FA', 'navy': '#000080', 'blue': '#0000FF',
+  'sky blue': '#87CEEB', 'baby blue': '#89CFF0', 'royal blue': '#4169E1',
+  'teal': '#008080', 'cyan': '#00FFFF', 'turquoise': '#40E0D0',
   'green': '#008000', 'dark green': '#006400', 'light green': '#90EE90',
-  'lime green': '#32CD32', 'lime': '#00FF00',
-  'mint green': '#98FF98', 'mint': '#98FF98',
-  'sage': '#BCB88A', 'olive': '#808000', 'olive green': '#6B8E23',
-  'forest green': '#228B22', 'emerald': '#50C878', 'teal': '#008080',
-  'turquoise': '#40E0D0', 'seafoam': '#93E9BE',
-  'moss': '#8A9A5B', 'hunter green': '#355E3B', 'jade': '#00A86B',
-  'bottle green': '#006A4E', 'army green': '#4B5320',
-  'cyan': '#00FFFF', 'aqua': '#00FFFF',
-
-  // ── Blues ──
-  'blue': '#0000FF', 'dark blue': '#00008B', 'light blue': '#ADD8E6',
-  'sky blue': '#87CEEB', 'baby blue': '#89CFF0',
-  'navy': '#000080', 'navy blue': '#000080',
-  'royal blue': '#4169E1', 'cobalt': '#0047AB',
-  'powder blue': '#B0E0E6', 'steel blue': '#4682B4', 'denim': '#1560BD',
-  'cerulean': '#007BA7', 'electric blue': '#7DF9FF',
-  'indigo': '#4B0082', 'periwinkle': '#CCCCFF',
-  'slate blue': '#6A5ACD', 'cadet blue': '#5F9EA0',
-
-  // ── Purples & Violets ──
-  'purple': '#800080', 'light purple': '#DA70D6', 'dark purple': '#4B0082',
-  'violet': '#EE82EE', 'lavender': '#E6E6FA', 'lilac': '#C8A2C8',
-  'plum': '#8E4585', 'fuchsia': '#FF00FF', 'orchid': '#DA70D6',
-  'wisteria': '#C9A0DC', 'grape': '#6F2DA8', 'eggplant': '#614051',
-  'amethyst': '#9966CC',
-
-  // ── Browns & Neutrals ──
+  'mint': '#98FF98', 'olive': '#808000', 'yellow': '#FFFF00',
+  'light yellow': '#FFFFE0', 'gold': '#FFD700', 'orange': '#FFA500',
+  'peach': '#FFDAB9', 'coral': '#FF6B6B', 'salmon': '#FA8072',
   'brown': '#8B4513', 'dark brown': '#5C4033', 'light brown': '#C4A882',
-  'tan': '#D2B48C', 'beige': '#F5F5DC',
-  'camel': '#C19A6B', 'sand': '#C2B280', 'taupe': '#483C32',
-  'mocha': '#967259', 'coffee': '#6F4E37', 'chocolate': '#7B3F00',
-  'chestnut': '#954535', 'walnut': '#773F1A',
-  'nude': '#E8C9A0', 'skin': '#FED9B0',
-
-  // ── Platinum / Metallic ──
-  'platinum': '#E5E4E2', 'platinum grey': '#E5E4E2', 'platinum gray': '#E5E4E2',
-  'metallic': '#AAA9AD', 'metallic grey': '#AAA9AD', 'metallic silver': '#C0C0C0',
-  'steel': '#71797E', 'gunmetal': '#2a3439',
-
-  // ── Additional greys people type ──
-  'medium grey': '#9E9E9E', 'medium gray': '#9E9E9E',
-  'warm grey': '#9F9189', 'warm gray': '#9F9189',
-  'cool grey': '#8C92AC', 'cool gray': '#8C92AC',
-  'stone': '#928E85', 'pebble': '#9D9086',
-  'heather': '#B6B8C3', 'heather grey': '#B6B8C3',
-  'fog': '#D5D5D5', 'mist': '#C4C4BC',
-  'dove': '#D5D5D5', 'dove grey': '#D5D5D5',
-  'cement': '#8A8D8F', 'concrete': '#A0A09A',
-
-  // ── Additional blacks/whites people type ──
-  'midnight': '#191970', 'midnight black': '#0D0D0D',
-  'pure white': '#FFFFFF', 'bright white': '#F8F8FF',
-  'natural': '#F5F0EB', 'natural white': '#F5F0EB',
-
-  // ── Multicolor / Gradient Specials ──
+  'tan': '#D2B48C', 'beige': '#F5F5DC', 'skin': '#FED9B0',
+  'nude': '#E8C9A0', 'camel': '#C19A6B', 'rose gold': '#B76E79',
+  'copper': '#B87333', 'silver': '#C0C0C0', 'wine': '#722F37',
+  'burgundy': '#800020', 'mustard': '#FFDB58', 'khaki': '#F0E68C',
+  'lemon': '#FFF44F', 'indigo': '#4B0082', 'mauve': '#E0B0FF',
   'multicolor': 'linear-gradient(135deg,#FF6B6B,#FFD700,#6BCB77,#4D96FF,#C77DFF)',
   'multi': 'linear-gradient(135deg,#FF6B6B,#FFD700,#6BCB77,#4D96FF,#C77DFF)',
   'rainbow': 'linear-gradient(135deg,red,orange,yellow,green,blue,violet)',
-  'tie dye': 'linear-gradient(135deg,#FF6B6B,#FFD700,#6BCB77,#4D96FF)',
-  'printed': 'linear-gradient(135deg,#f8cdda,#1d2b64)',
-  'floral': 'linear-gradient(135deg,#ff9a9e,#fecfef)',
 };
 
-/* ─────────────────────────────────────────────────────────────
-   resolveColor
-   3-step resolution — never loses a color:
-   1. Direct hex  → use as-is
-   2. Map lookup  → covers every admin-saved name
-   3. Canvas      → catches any remaining CSS named colors
-      Uses #010101 sentinel so near-white colors never fail
-   Falls back to #cccccc only if all three steps fail.
-   ───────────────────────────────────────────────────────────── */
 const resolveColor = (() => {
   const cache: Record<string, string> = {};
 
-  /* Convert rgb(r,g,b) string → #rrggbb hex */
-  const rgbToHex = (rgb: string): string | null => {
-    const m = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
-    if (!m) return null;
-    return '#' + [m[1], m[2], m[3]]
-      .map(n => parseInt(n).toString(16).padStart(2, '0'))
-      .join('');
-  };
-
-  /* Normalise any hex variant to full lowercase #rrggbb */
   const normaliseHex = (h: string): string => {
-    const clean = h.trim().toLowerCase();
-    if (/^#[0-9a-f]{6}$/.test(clean)) return clean;
-    if (/^#[0-9a-f]{3}$/.test(clean)) {
-      // expand 3-char hex
-      return '#' + clean[1] + clean[1] + clean[2] + clean[2] + clean[3] + clean[3];
-    }
-    // without leading #
-    if (/^[0-9a-f]{6}$/.test(clean)) return '#' + clean;
-    if (/^[0-9a-f]{3}$/.test(clean)) return normaliseHex('#' + clean);
+    const c = h.trim().toLowerCase().replace(/^#/, '');
+    if (/^[0-9a-f]{6}$/.test(c)) return '#' + c;
+    if (/^[0-9a-f]{3}$/.test(c)) return '#' + c[0] + c[0] + c[1] + c[1] + c[2] + c[2];
     return '';
   };
 
@@ -212,51 +118,50 @@ const resolveColor = (() => {
     const key = trimmed.toLowerCase();
     if (cache[key]) return cache[key];
 
-    // Step 1: direct hex (3 or 6 char, with or without #, upper or lower)
-    const normHex = normaliseHex(trimmed);
-    if (normHex) {
-      cache[key] = normHex;
-      return normHex;
-    }
+    // Step 1: hex passthrough
+    const hex = normaliseHex(trimmed);
+    if (hex) { cache[key] = hex; return hex; }
 
-    // Step 2: gradient pass-through (multicolor etc.)
-    if (trimmed.startsWith('linear-gradient')) {
-      cache[key] = trimmed;
-      return trimmed;
-    }
+    // Step 2: gradient passthrough
+    if (trimmed.startsWith('linear-gradient')) { cache[key] = trimmed; return trimmed; }
 
-    // Step 3: map lookup — handles every admin-typed name
-    if (COLOR_NAME_MAP[key]) {
-      cache[key] = COLOR_NAME_MAP[key];
-      return COLOR_NAME_MAP[key];
-    }
+    // Step 3: simple map (fast exact match)
+    if (_SIMPLE[key]) { cache[key] = _SIMPLE[key]; return _SIMPLE[key]; }
 
-    // Step 4: canvas browser-parse — catches all standard CSS color names.
-    // Uses #010101 sentinel so near-white colors never false-negative.
+    // Step 4: color-name-list exact match (covers Rio Red, Dusty Rose, etc.)
+    if (_nameToHex[key]) { cache[key] = _nameToHex[key]; return _nameToHex[key]; }
+
+    // Step 5: nearest match from color-name-list (typos, slight variations)
+    try {
+      const result = _getNearestColor(key) as any;
+      if (result?.value) { cache[key] = result.value; return result.value; }
+    } catch { /* not a valid color string, skip */ }
+
+    // Step 6: canvas CSS parse (catches standard CSS color names)
     try {
       const canvas = document.createElement('canvas');
-      canvas.width = 1;
-      canvas.height = 1;
+      canvas.width = 1; canvas.height = 1;
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error('no ctx');
-      ctx.fillStyle = '#010101';           // sentinel
-      ctx.fillStyle = key;                 // attempt parse
+      ctx.fillStyle = '#010101';
+      ctx.fillStyle = key;
       const parsed = ctx.fillStyle;
-      // canvas returns rgb() for named colors in some browsers
-      let result = '#cccccc';
       if (parsed !== '#010101' && parsed !== '') {
-        result = parsed.startsWith('rgb(')
-          ? (rgbToHex(parsed) ?? '#cccccc')
+        // canvas may return rgb() format
+        const rgb = parsed.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+        const result = rgb
+          ? '#' + [rgb[1], rgb[2], rgb[3]].map(n => parseInt(n).toString(16).padStart(2, '0')).join('')
           : parsed;
+        cache[key] = result;
+        return result;
       }
-      cache[key] = result;
-      return result;
-    } catch {
-      cache[key] = '#cccccc';
-      return '#cccccc';
-    }
+    } catch { /* ignore */ }
+
+    cache[key] = '#cccccc';
+    return '#cccccc';
   };
 })();
+
 
 export const ProductDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
