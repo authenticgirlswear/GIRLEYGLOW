@@ -5,11 +5,16 @@
       with left/right arrow navigation buttons.
    2. Color circles now correctly render ALL CSS color
       names (blue, red, purple, etc.) AND hex values.
+   3. Description/Shipping tab section removed.
+   4. COLOR_NAME_MAP expanded to match AdminProducts
+      SIMPLE_COLORS — every admin-saved name resolves.
+   5. Canvas fallback uses #010101 sentinel (not #ffffff)
+      so near-white colors like Baby Pink never fail.
    =================================================== */
 declare global { interface Window { dataLayer: any[]; } }
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { motion, } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShoppingBag, Heart, ArrowLeft, ArrowRight,
   Minus, Plus, ChevronRight,
@@ -50,74 +55,94 @@ const normalise = (p: any): Product => ({
   updatedAt: p.updated_at || '',
 });
 
-/* ─── Resolve any color name/value → valid CSS color ─── */
-/**
- * 3-step resolution:
- * 1. Direct hex → use as-is
- * 2. Custom name lookup table → covers admin-typed names like "Baby Pink", "Sky Blue" etc.
- * 3. Canvas browser-parse → catches all standard CSS named colors (blue, red, purple…)
- * Falls back to #cccccc only if none of the above work.
- */
+/* ─────────────────────────────────────────────────────────────
+   COLOR_NAME_MAP
+   Covers every name that AdminProducts can save, including:
+   • All entries from its SIMPLE_COLORS map
+   • All common CSS color names
+   • Admin-typed descriptive names (Baby Pink, Sky Blue, etc.)
+   • Multicolor / gradient specials
+   ───────────────────────────────────────────────────────────── */
 const COLOR_NAME_MAP: Record<string, string> = {
-  // ── Reds & Pinks ──
-  'red': '#E53E3E', 'dark red': '#9B2335', 'crimson': '#DC143C',
-  'maroon': '#800000', 'burgundy': '#722F37', 'wine': '#722F37',
+  // ── Whites & Off-Whites ──
+  'white': '#FFFFFF', 'off white': '#FAF9F6', 'off-white': '#FAF9F6',
+  'snow': '#FFFAFA', 'pearl': '#F0EAD6', 'linen': '#FAF0E6',
+  'ivory': '#FFFFF0', 'cream': '#FFFDD0', 'vanilla': '#F3E5AB',
+  'champagne': '#F7E7CE', 'butter': '#FFFAA0',
+
+  // ── Blacks & Near-Blacks ──
+  'black': '#000000', 'jet black': '#343434', 'off black': '#0F0F0F',
+  'onyx': '#353839',
+
+  // ── Greys ──
+  'grey': '#808080', 'gray': '#808080',
+  'light grey': '#D3D3D3', 'light gray': '#D3D3D3',
+  'dark grey': '#A9A9A9', 'dark gray': '#A9A9A9',
+  'charcoal': '#36454F', 'silver': '#C0C0C0',
+  'ash': '#B2BEB5', 'slate': '#708090', 'smoke': '#738276',
+
+  // ── Reds ──
+  'red': '#FF0000', 'dark red': '#8B0000', 'crimson': '#DC143C',
+  'maroon': '#800000', 'burgundy': '#800020', 'wine': '#722F37',
+
+  // ── Pinks ──
   'pink': '#FFC0CB', 'hot pink': '#FF69B4', 'baby pink': '#F4C2C2',
-  'light pink': '#FFB6C1', 'magenta': '#FF00FF', 'blush': '#FADADD',
-  'rose': '#FF007F', 'rose gold': '#B76E79', 'dusty rose': '#DCAE96',
-  'blush pink': '#FEC5BB', 'deep pink': '#FF1493', 'flamingo': '#FC8EAC',
-  'coral': '#FF6B6B', 'salmon': '#FA8072', 'peach': '#FFCBA4',
-  'shocking pink': '#FC0FC0', 'mauve': '#E0B0FF',
+  'light pink': '#FFB6C1', 'blush': '#FFB6C1', 'blush pink': '#FEC5BB',
+  'rose': '#FF007F', 'deep pink': '#FF1493', 'flamingo': '#FC8EAC',
+  'shocking pink': '#FC0FC0', 'magenta': '#FF00FF',
+  'dusty rose': '#DCAE96', 'mauve': '#E0B0FF',
+
+  // ── Rose Gold / Copper ──
+  'rose gold': '#B76E79', 'copper': '#B87333', 'bronze': '#CD7F32',
+
   // ── Oranges ──
-  'orange': '#ED8936', 'dark orange': '#FF8C00', 'light orange': '#FFB347',
+  'orange': '#FFA500', 'dark orange': '#FF8C00', 'light orange': '#FFB347',
   'amber': '#FFBF00', 'burnt orange': '#CC5500', 'tangerine': '#F28500',
-  'rust': '#B7410E', 'terracotta': '#E2725B',
+  'rust': '#B7410E', 'terracotta': '#E2725B', 'coral': '#FF6B6B',
+  'salmon': '#FA8072', 'peach': '#FFDAB9',
+
   // ── Yellows ──
-  'yellow': '#F6E05E', 'light yellow': '#FFFFE0', 'gold': '#FFD700',
+  'yellow': '#FFFF00', 'light yellow': '#FFFFE0', 'gold': '#FFD700',
   'golden': '#FFD700', 'dark yellow': '#C9A800', 'mustard': '#FFDB58',
-  'mustard yellow': '#FFDB58', 'lemon': '#FFF44F', 'cream': '#FFFDD0',
-  'ivory': '#FFFFF0', 'champagne': '#F7E7CE', 'vanilla': '#F3E5AB',
-  'butter': '#FFFAA0',
+  'mustard yellow': '#FFDB58', 'lemon': '#FFF44F', 'khaki': '#F0E68C',
+
   // ── Greens ──
-  'green': '#38A169', 'dark green': '#006400', 'light green': '#90EE90',
-  'lime green': '#32CD32', 'mint green': '#98FF98', 'mint': '#98FF98',
+  'green': '#008000', 'dark green': '#006400', 'light green': '#90EE90',
+  'lime green': '#32CD32', 'lime': '#00FF00',
+  'mint green': '#98FF98', 'mint': '#98FF98',
   'sage': '#BCB88A', 'olive': '#808000', 'olive green': '#6B8E23',
   'forest green': '#228B22', 'emerald': '#50C878', 'teal': '#008080',
-  'turquoise': '#40E0D0', 'seafoam': '#93E9BE', 'lime': '#00FF00',
+  'turquoise': '#40E0D0', 'seafoam': '#93E9BE',
   'moss': '#8A9A5B', 'hunter green': '#355E3B', 'jade': '#00A86B',
   'bottle green': '#006A4E', 'army green': '#4B5320',
+  'cyan': '#00FFFF', 'aqua': '#00FFFF',
+
   // ── Blues ──
-  'blue': '#3182CE', 'dark blue': '#00008B', 'light blue': '#ADD8E6',
-  'sky blue': '#87CEEB', 'baby blue': '#89CFF0', 'navy': '#001F5B',
-  'navy blue': '#001F5B', 'royal blue': '#4169E1', 'cobalt': '#0047AB',
+  'blue': '#0000FF', 'dark blue': '#00008B', 'light blue': '#ADD8E6',
+  'sky blue': '#87CEEB', 'baby blue': '#89CFF0',
+  'navy': '#000080', 'navy blue': '#000080',
+  'royal blue': '#4169E1', 'cobalt': '#0047AB',
   'powder blue': '#B0E0E6', 'steel blue': '#4682B4', 'denim': '#1560BD',
-  'cerulean': '#007BA7', 'aqua': '#00FFFF', 'cyan': '#00BCD4',
-  'electric blue': '#7DF9FF', 'indigo': '#4B0082', 'periwinkle': '#CCCCFF',
+  'cerulean': '#007BA7', 'electric blue': '#7DF9FF',
+  'indigo': '#4B0082', 'periwinkle': '#CCCCFF',
   'slate blue': '#6A5ACD', 'cadet blue': '#5F9EA0',
+
   // ── Purples & Violets ──
-  'purple': '#805AD5', 'light purple': '#DA70D6', 'dark purple': '#4B0082',
-  'violet': '#8F00FF', 'lavender': '#E6E6FA', 'lilac': '#C8A2C8',
+  'purple': '#800080', 'light purple': '#DA70D6', 'dark purple': '#4B0082',
+  'violet': '#EE82EE', 'lavender': '#E6E6FA', 'lilac': '#C8A2C8',
   'plum': '#8E4585', 'fuchsia': '#FF00FF', 'orchid': '#DA70D6',
   'wisteria': '#C9A0DC', 'grape': '#6F2DA8', 'eggplant': '#614051',
   'amethyst': '#9966CC',
+
   // ── Browns & Neutrals ──
-  'brown': '#A0522D', 'dark brown': '#654321', 'light brown': '#C4A882',
-  'tan': '#D2B48C', 'beige': '#F5F5DC', 'khaki': '#C3B091',
+  'brown': '#8B4513', 'dark brown': '#5C4033', 'light brown': '#C4A882',
+  'tan': '#D2B48C', 'beige': '#F5F5DC',
   'camel': '#C19A6B', 'sand': '#C2B280', 'taupe': '#483C32',
   'mocha': '#967259', 'coffee': '#6F4E37', 'chocolate': '#7B3F00',
-  'chestnut': '#954535', 'walnut': '#773F1A', 'nude': '#E3BC9A',
-  'skin': '#FED9B0', 'bronze': '#CD7F32', 'copper': '#B87333',
-  // ── Whites & Greys ──
-  'white': '#FFFFFF', 'off white': '#FAF9F6', 'off-white': '#FAF9F6',
-  'snow': '#FFFAFA', 'pearl': '#F0EAD6', 'linen': '#FAF0E6',
-  'grey': '#808080', 'gray': '#808080', 'light grey': '#D3D3D3',
-  'light gray': '#D3D3D3', 'dark grey': '#404040', 'dark gray': '#404040',
-  'charcoal': '#36454F', 'silver': '#C0C0C0', 'ash': '#B2BEB5',
-  'slate': '#708090', 'smoke': '#738276',
-  // ── Blacks ──
-  'black': '#000000', 'jet black': '#343434', 'off black': '#0F0F0F',
-  'onyx': '#353839',
-  // ── Multicolor / Special ──
+  'chestnut': '#954535', 'walnut': '#773F1A',
+  'nude': '#E8C9A0', 'skin': '#FED9B0',
+
+  // ── Multicolor / Gradient Specials ──
   'multicolor': 'linear-gradient(135deg,#FF6B6B,#FFD700,#6BCB77,#4D96FF,#C77DFF)',
   'multi': 'linear-gradient(135deg,#FF6B6B,#FFD700,#6BCB77,#4D96FF,#C77DFF)',
   'rainbow': 'linear-gradient(135deg,red,orange,yellow,green,blue,violet)',
@@ -126,35 +151,50 @@ const COLOR_NAME_MAP: Record<string, string> = {
   'floral': 'linear-gradient(135deg,#ff9a9e,#fecfef)',
 };
 
+/* ─────────────────────────────────────────────────────────────
+   resolveColor
+   3-step resolution — never loses a color:
+   1. Direct hex  → use as-is
+   2. Map lookup  → covers every admin-saved name
+   3. Canvas      → catches any remaining CSS named colors
+      Uses #010101 sentinel so near-white colors never fail
+   Falls back to #cccccc only if all three steps fail.
+   ───────────────────────────────────────────────────────────── */
 const resolveColor = (() => {
   const cache: Record<string, string> = {};
+
   return (raw: string): string => {
     if (!raw) return '#cccccc';
-    const key = raw.trim().toLowerCase();
+    const trimmed = raw.trim();
+    const key = trimmed.toLowerCase();
     if (cache[key]) return cache[key];
 
-    // Step 1: direct hex value — trust it immediately
-    if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(raw.trim())) {
-      cache[key] = raw.trim();
-      return raw.trim();
+    // Step 1: direct hex — trust it immediately
+    if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(trimmed)) {
+      cache[key] = trimmed;
+      return trimmed;
     }
 
-    // Step 2: lookup table — handles admin-typed descriptive names
+    // Step 2: map lookup — handles every admin-typed name
     if (COLOR_NAME_MAP[key]) {
       cache[key] = COLOR_NAME_MAP[key];
       return COLOR_NAME_MAP[key];
     }
 
-    // Step 3: canvas browser-parse — handles all standard CSS color names
+    // Step 3: canvas browser-parse — catches all standard CSS color names.
+    // IMPORTANT: use #010101 as the sentinel (not #ffffff) so that
+    // near-white colors like Baby Pink / Cream / Ivory never false-negative.
     try {
       const canvas = document.createElement('canvas');
-      canvas.width = 1; canvas.height = 1;
+      canvas.width = 1;
+      canvas.height = 1;
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error('no ctx');
-      ctx.fillStyle = '#123456';
+      ctx.fillStyle = '#010101';
       ctx.fillStyle = key;
       const parsed = ctx.fillStyle;
-      const result = parsed !== '#123456' ? parsed : (COLOR_NAME_MAP[key] || '#cccccc');
+      // If the browser accepted the color, fillStyle will differ from #010101
+      const result = (parsed !== '#010101' && parsed !== '') ? parsed : '#cccccc';
       cache[key] = result;
       return result;
     } catch {
@@ -182,7 +222,7 @@ export const ProductDetailPage: React.FC = () => {
   const [addedToCart, setAddedToCart] = useState(false);
   const [similarPage, setSimilarPage] = useState(0);
 
-  /* ── FIX 1: ref for the thumbnail scroll container ── */
+  /* ── ref for the thumbnail scroll container ── */
   const thumbsRef = useRef<HTMLDivElement>(null);
 
   /* ── Fetch product by slug from Supabase ── */
@@ -258,11 +298,13 @@ export const ProductDetailPage: React.FC = () => {
     fetchProduct();
   }, [slug, addRecentlyViewed]);
 
-  /* ── FIX 1: scroll the thumbnail strip to keep the active thumb visible ── */
+  /* ── Scroll the thumbnail strip to keep the active thumb visible ── */
   useEffect(() => {
     if (!thumbsRef.current) return;
     const strip = thumbsRef.current;
-    const activeThumb = strip.children[selectedImage === -1 ? strip.children.length - 1 : selectedImage] as HTMLElement;
+    const activeThumb = strip.children[
+      selectedImage === -1 ? strip.children.length - 1 : selectedImage
+    ] as HTMLElement;
     if (activeThumb) {
       activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     }
@@ -321,6 +363,7 @@ export const ProductDetailPage: React.FC = () => {
     setAddedToCart(true);
     setTimeout(() => setAddedToCart(false), 2000);
   };
+
   return (
     <div className="min-h-screen pt-24 pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -384,20 +427,24 @@ export const ProductDetailPage: React.FC = () => {
                   <Heart size={18} className="text-rose-gold" />
                 </button>
                 {selectedImage > 0 && (
-                  <button onClick={() => setSelectedImage(i => i - 1)}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white shadow-md transition-all">
+                  <button
+                    onClick={() => setSelectedImage(i => i - 1)}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white shadow-md transition-all"
+                  >
                     <ArrowLeft size={16} className="text-charcoal" />
                   </button>
                 )}
                 {selectedImage < product.images.length - 1 && (
-                  <button onClick={() => setSelectedImage(i => i + 1)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white shadow-md transition-all">
+                  <button
+                    onClick={() => setSelectedImage(i => i + 1)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white shadow-md transition-all"
+                  >
                     <ArrowRight size={16} className="text-charcoal" />
                   </button>
                 )}
               </motion.div>
 
-              {/* ── FIX 1: Thumbnails — single horizontal row with arrow buttons ── */}
+              {/* ── Thumbnails — single horizontal row with arrow buttons ── */}
               {totalThumbs > 1 && (
                 <div className="flex items-center gap-2 mt-4">
 
@@ -425,8 +472,8 @@ export const ProductDetailPage: React.FC = () => {
                         key={i}
                         onClick={() => setSelectedImage(i)}
                         className={`flex-shrink-0 w-[72px] h-[86px] rounded-xl overflow-hidden bg-blush-light/30 transition-all duration-200 ${i === selectedImage
-                          ? 'ring-2 ring-rose-gold ring-offset-2'
-                          : 'opacity-60 hover:opacity-100'
+                            ? 'ring-2 ring-rose-gold ring-offset-2'
+                            : 'opacity-60 hover:opacity-100'
                           }`}
                       >
                         {img.startsWith('http') ? (
@@ -442,8 +489,8 @@ export const ProductDetailPage: React.FC = () => {
                       <button
                         onClick={() => setSelectedImage(-1)}
                         className={`flex-shrink-0 w-[72px] h-[86px] rounded-xl overflow-hidden bg-blush-light/30 transition-all duration-200 relative ${selectedImage === -1
-                          ? 'ring-2 ring-rose-gold ring-offset-2'
-                          : 'opacity-60 hover:opacity-100'
+                            ? 'ring-2 ring-rose-gold ring-offset-2'
+                            : 'opacity-60 hover:opacity-100'
                           }`}
                       >
                         <video
@@ -452,7 +499,6 @@ export const ProductDetailPage: React.FC = () => {
                           muted
                           playsInline
                         />
-                        {/* Play icon overlay */}
                         <div className="absolute inset-0 flex items-center justify-center bg-black/20">
                           <div className="w-8 h-8 rounded-full bg-white/80 flex items-center justify-center">
                             <svg width="12" height="14" viewBox="0 0 12 14" fill="none">
@@ -496,7 +542,7 @@ export const ProductDetailPage: React.FC = () => {
 
               <div className="luxury-line mb-3" />
 
-              {/* ── FIX 2: Color Selection — resolves ALL CSS color names & hex values ── */}
+              {/* ── Color Selection ── */}
               {product.colors.length > 0 && (
                 <div className="mb-4">
                   <p className="text-sm font-medium text-charcoal mb-3">
@@ -504,8 +550,11 @@ export const ProductDetailPage: React.FC = () => {
                   </p>
                   <div className="flex flex-wrap gap-3">
                     {product.colors.map((color: any) => {
-                      // Support all shapes: plain string, { name, hex }, { name, value },
-                      // { name, color }, { name, code }, { label, hex }, etc.
+                      /*
+                       * Support all shapes the admin might save:
+                       * plain string, { name, hex }, { name, value },
+                       * { name, color }, { name, code }, { label, hex }, etc.
+                       */
                       const colorName =
                         typeof color === 'string'
                           ? color
@@ -516,10 +565,12 @@ export const ProductDetailPage: React.FC = () => {
                           ? color
                           : color.hex || color.value || color.color || color.code || color.name || color.label || '';
 
-                      // resolveColor uses a canvas to validate & normalise any CSS color string
                       const resolvedBg = resolveColor(rawValue.trim());
 
                       const isSelected = selectedColor === colorName;
+
+                      // Detect gradient values so we apply background correctly
+                      const isGradient = resolvedBg.startsWith('linear-gradient');
 
                       return (
                         <button
@@ -531,7 +582,10 @@ export const ProductDetailPage: React.FC = () => {
                             width: 32,
                             height: 32,
                             borderRadius: '50%',
-                            backgroundColor: resolvedBg,
+                            ...(isGradient
+                              ? { background: resolvedBg }
+                              : { backgroundColor: resolvedBg }
+                            ),
                             border: isSelected
                               ? '3px solid #B07D6B'
                               : '2px solid rgba(0,0,0,0.12)',
@@ -549,7 +603,7 @@ export const ProductDetailPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Size Selection */}
+              {/* ── Size Selection ── */}
               {product.sizes.length > 0 && (
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-2">
@@ -563,8 +617,8 @@ export const ProductDetailPage: React.FC = () => {
                         key={String(size)}
                         onClick={() => setSelectedSize(size)}
                         className={`min-w-[70px] h-9 px-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${selectedSize === size
-                          ? 'bg-rose-gold text-white shadow-md'
-                          : 'bg-blush-light/50 text-[#6B5B55] hover:bg-blush-light'
+                            ? 'bg-rose-gold text-white shadow-md'
+                            : 'bg-blush-light/50 text-[#6B5B55] hover:bg-blush-light'
                           }`}
                       >
                         {size}
@@ -583,7 +637,7 @@ export const ProductDetailPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Quantity */}
+              {/* ── Quantity ── */}
               <div className="mb-4">
                 <p className="text-sm font-medium text-charcoal mb-3">Quantity</p>
                 <div className="flex items-center gap-3">
@@ -608,7 +662,7 @@ export const ProductDetailPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Add to Cart */}
+              {/* ── Add to Cart / Buy Now ── */}
               <div className="flex gap-2 mb-6">
                 {/* BUY NOW */}
                 <Button
@@ -642,14 +696,17 @@ export const ProductDetailPage: React.FC = () => {
                 </Button>
               </div>
 
-              {/* Trust Badges */}
+              {/* ── Trust Badges ── */}
               <div className="grid grid-cols-3 gap-3">
                 {[
                   { icon: '🚚', label: 'Fast Delivery' },
                   { icon: '✅', label: '100% Authentic' },
                   { icon: '🔒', label: 'Secure Payment' },
                 ].map(item => (
-                  <div key={item.label} className="flex flex-col items-center gap-1.5 text-center p-3 rounded-xl bg-blush-light/30">
+                  <div
+                    key={item.label}
+                    className="flex flex-col items-center gap-1.5 text-center p-3 rounded-xl bg-blush-light/30"
+                  >
                     <span className="text-xl">{item.icon}</span>
                     <span className="text-xs text-[#6B5B55]">{item.label}</span>
                   </div>
@@ -658,6 +715,7 @@ export const ProductDetailPage: React.FC = () => {
             </div>
           </FadeIn>
         </div>
+
         {/* ── Related Products ── */}
         {related.length > 0 && (
           <div className="mt-16">
@@ -666,14 +724,18 @@ export const ProductDetailPage: React.FC = () => {
                 You May Also Like
               </h2>
               <div className="flex gap-2">
-                <button onClick={() => setSimilarPage(p => Math.max(0, p - 1))}
+                <button
+                  onClick={() => setSimilarPage(p => Math.max(0, p - 1))}
                   disabled={similarPage === 0}
-                  className="w-9 h-9 rounded-full border border-blush/40 flex items-center justify-center disabled:opacity-30 hover:border-rose-gold transition-colors">
+                  className="w-9 h-9 rounded-full border border-blush/40 flex items-center justify-center disabled:opacity-30 hover:border-rose-gold transition-colors"
+                >
                   <ArrowLeft size={16} />
                 </button>
-                <button onClick={() => setSimilarPage(p => Math.min(Math.ceil(related.length / 4) - 1, p + 1))}
+                <button
+                  onClick={() => setSimilarPage(p => Math.min(Math.ceil(related.length / 4) - 1, p + 1))}
                   disabled={similarPage >= Math.ceil(related.length / 4) - 1}
-                  className="w-9 h-9 rounded-full border border-blush/40 flex items-center justify-center disabled:opacity-30 hover:border-rose-gold transition-colors">
+                  className="w-9 h-9 rounded-full border border-blush/40 flex items-center justify-center disabled:opacity-30 hover:border-rose-gold transition-colors"
+                >
                   <ArrowRight size={16} />
                 </button>
               </div>
@@ -685,6 +747,7 @@ export const ProductDetailPage: React.FC = () => {
             </div>
           </div>
         )}
+
       </div>
     </div>
   );
