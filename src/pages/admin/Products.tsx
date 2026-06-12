@@ -403,8 +403,52 @@ const applyWatermark = (file: File, sizeMultiplier = 1.0, textWm?: TextWmConfig)
 
     img.onerror = () => {
       try { URL.revokeObjectURL(url); } catch { }
-      console.warn(`Image load failed for "${file.name}" — using original file`);
-      resolve(file);
+      // Retry once after 400ms before giving up
+      setTimeout(() => {
+        try {
+          const retryUrl = URL.createObjectURL(file);
+          const retryImg = new Image();
+          retryImg.onload = () => {
+            // reuse the same onload logic inline
+            const MAX_EDGE = 2400;
+            let targetW = retryImg.width;
+            let targetH = retryImg.height;
+            const longEdge = Math.max(retryImg.width, retryImg.height);
+            if (longEdge > MAX_EDGE) {
+              const scale = MAX_EDGE / longEdge;
+              targetW = Math.round(retryImg.width * scale);
+              targetH = Math.round(retryImg.height * scale);
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = targetW; canvas.height = targetH;
+            const ctx = canvas.getContext('2d')!;
+            ctx.drawImage(retryImg, 0, 0, targetW, targetH);
+            const size = Math.max(18, Math.min(targetW, targetH) * 0.08) * sizeMultiplier;
+            drawAGLogo(ctx, wmPos.xFrac * targetW, wmPos.yFrac * targetH, size);
+            if (textWm?.enabled) {
+              drawTextWatermark(ctx, targetW, targetH, textWm.text,
+                Math.max(10, targetW * (textWm.size / 500)),
+                textWm.opacity, textWm.angle, textWm.color,
+                targetW * (textWm.spacingX / 500), targetH * (textWm.spacingY / 500));
+            }
+            try { URL.revokeObjectURL(retryUrl); } catch { }
+            const isPng = file.type === 'image/png' && targetW * targetH < 4_000_000;
+            const fmt = isPng ? 'image/png' : 'image/jpeg';
+            canvas.toBlob((blob) => {
+              resolve(blob ? new File([blob], file.name, { type: fmt, lastModified: Date.now() }) : file);
+            }, fmt, isPng ? 1.0 : 0.92);
+          };
+          retryImg.onerror = () => {
+            try { URL.revokeObjectURL(retryUrl); } catch { }
+            console.warn(`Image load failed for "${file.name}" after retry — using original`);
+            resolve(file);
+          };
+          retryImg.src = retryUrl;
+        } catch {
+          console.warn(`Image load failed for "${file.name}" — using original file`);
+          resolve(file);
+        }
+      }, 400);
     };
 
     img.src = url;
@@ -456,6 +500,7 @@ const MiniWatermarkThumb: React.FC<{
     useEffect(() => {
       imgRef.current = null;
       let url = '';
+      let revoked = false;
       try {
         url = URL.createObjectURL(file);
       } catch {
@@ -465,12 +510,29 @@ const MiniWatermarkThumb: React.FC<{
       img.onload = () => {
         imgRef.current = img;
         redraw();
-        try { URL.revokeObjectURL(url); } catch { }
+        if (!revoked) { revoked = true; try { URL.revokeObjectURL(url); } catch { } }
       };
       img.onerror = () => {
-        try { URL.revokeObjectURL(url); } catch { }
+        if (!revoked) { revoked = true; try { URL.revokeObjectURL(url); } catch { } }
+        // Retry once after 300ms — handles race condition on AI-generated files
+        setTimeout(() => {
+          try {
+            const retryUrl = URL.createObjectURL(file);
+            const retryImg = new Image();
+            retryImg.onload = () => {
+              imgRef.current = retryImg;
+              redraw();
+              try { URL.revokeObjectURL(retryUrl); } catch { }
+            };
+            retryImg.onerror = () => { try { URL.revokeObjectURL(retryUrl); } catch { } };
+            retryImg.src = retryUrl;
+          } catch { }
+        }, 300);
       };
       img.src = url;
+      return () => {
+        if (!revoked) { revoked = true; try { URL.revokeObjectURL(url); } catch { } }
+      };
     }, [file]);
     useEffect(() => {
       redraw();
@@ -556,6 +618,20 @@ const WatermarkPreview: React.FC<WatermarkPreviewProps> = ({
       };
       img.onerror = () => {
         try { URL.revokeObjectURL(url); } catch { }
+        // Retry once — handles AI-generated files with delayed readiness
+        setTimeout(() => {
+          try {
+            const retryUrl = URL.createObjectURL(file);
+            const retryImg = new Image();
+            retryImg.onload = () => {
+              imgRef.current = retryImg;
+              drawFrame(retryImg);
+              try { URL.revokeObjectURL(retryUrl); } catch { }
+            };
+            retryImg.onerror = () => { try { URL.revokeObjectURL(retryUrl); } catch { } };
+            retryImg.src = retryUrl;
+          } catch { }
+        }, 300);
       };
       img.src = url;
     }
@@ -878,7 +954,7 @@ export const AdminProducts: React.FC = () => {
       setUploadProgress(null);
 
       const baseSlug = form.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || '';
-      const slug = editingId ? baseSlug : `${baseSlug}-${Date.now().toString().slice(-6)}`;
+      const slug = editingId ? baseSlug : `${baseSlug}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
       const cat = categories.find((c: any) => c.name === form.category);
 
       // Keep existing uploaded images
