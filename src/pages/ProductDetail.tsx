@@ -9,7 +9,7 @@
 declare global { interface Window { dataLayer: any[]; } }
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, } from 'framer-motion';
 import {
   ShoppingBag, Heart, ArrowLeft, ArrowRight,
   Minus, Plus, ChevronRight,
