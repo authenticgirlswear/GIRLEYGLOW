@@ -151,9 +151,10 @@ const resolveColor = (() => {
       canvas.width = 1; canvas.height = 1;
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error('no ctx');
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = '#123456';
       ctx.fillStyle = key;
-      const result = ctx.fillStyle !== '#ffffff' ? ctx.fillStyle : '#cccccc';
+      const parsed = ctx.fillStyle;
+      const result = parsed !== '#123456' ? parsed : (COLOR_NAME_MAP[key] || '#cccccc');
       cache[key] = result;
       return result;
     } catch {
@@ -178,7 +179,6 @@ export const ProductDetailPage: React.FC = () => {
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
   const [quantity, setQuantity] = useState(1);
-  const [activeTab, setActiveTab] = useState<'description' | 'reviews' | 'shipping'>('description');
   const [addedToCart, setAddedToCart] = useState(false);
   const [similarPage, setSimilarPage] = useState(0);
 
@@ -658,62 +658,6 @@ export const ProductDetailPage: React.FC = () => {
             </div>
           </FadeIn>
         </div>
-
-        {/* ── Tabs ── */}
-        <div className="mt-16">
-          <div className="flex gap-6 border-b border-blush/20 mb-6">
-            {(['description', 'shipping'] as const).map(tab => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`pb-3 text-sm font-medium capitalize transition-colors ${activeTab === tab
-                  ? 'text-rose-gold border-b-2 border-rose-gold'
-                  : 'text-[#6B5B55] hover:text-charcoal'
-                  }`}
-              >
-                {tab === 'description' ? 'Description' : 'Shipping Info'}
-              </button>
-            ))}
-          </div>
-
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-            >
-              {activeTab === 'description' && (
-                <div className="prose max-w-none text-[#6B5B55]">
-                  <p className="leading-relaxed">{product.description}</p>
-                  <div className="mt-4 grid grid-cols-2 gap-4">
-                    <div>
-                      <strong className="text-charcoal">Material:</strong>{' '}
-                      Premium {product.tags[0] || 'fabric'}
-                    </div>
-                    <div>
-                      <strong className="text-charcoal">Care:</strong> Dry clean recommended
-                    </div>
-                  </div>
-                </div>
-              )}
-              {activeTab === 'shipping' && (
-                <div className="space-y-4 text-[#6B5B55]">
-                  <div className="glass-card rounded-2xl p-5">
-                    <h4 className="font-medium text-charcoal mb-2">Shipping Information</h4>
-                    <p className="mt-2">Inside Dhaka City delivery: Max 48 Hours</p>
-                    <p className="mt-2">Outside Dhaka City delivery: Max 86 Hours</p>
-                  </div>
-                  <div className="glass-card rounded-2xl p-5">
-                    <h4 className="font-medium text-charcoal mb-2">Returns & Exchanges</h4>
-                    <p>We accept Exchanges within 3 days of delivery. Items must be intact and unworn.</p>
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          </AnimatePresence>
-        </div>
-
         {/* ── Related Products ── */}
         {related.length > 0 && (
           <div className="mt-16">
