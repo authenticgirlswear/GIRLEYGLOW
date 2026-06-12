@@ -142,6 +142,26 @@ const COLOR_NAME_MAP: Record<string, string> = {
   'chestnut': '#954535', 'walnut': '#773F1A',
   'nude': '#E8C9A0', 'skin': '#FED9B0',
 
+  // ── Platinum / Metallic ──
+  'platinum': '#E5E4E2', 'platinum grey': '#E5E4E2', 'platinum gray': '#E5E4E2',
+  'metallic': '#AAA9AD', 'metallic grey': '#AAA9AD', 'metallic silver': '#C0C0C0',
+  'steel': '#71797E', 'gunmetal': '#2a3439',
+
+  // ── Additional greys people type ──
+  'medium grey': '#9E9E9E', 'medium gray': '#9E9E9E',
+  'warm grey': '#9F9189', 'warm gray': '#9F9189',
+  'cool grey': '#8C92AC', 'cool gray': '#8C92AC',
+  'stone': '#928E85', 'pebble': '#9D9086',
+  'heather': '#B6B8C3', 'heather grey': '#B6B8C3',
+  'fog': '#D5D5D5', 'mist': '#C4C4BC',
+  'dove': '#D5D5D5', 'dove grey': '#D5D5D5',
+  'cement': '#8A8D8F', 'concrete': '#A0A09A',
+
+  // ── Additional blacks/whites people type ──
+  'midnight': '#191970', 'midnight black': '#0D0D0D',
+  'pure white': '#FFFFFF', 'bright white': '#F8F8FF',
+  'natural': '#F5F0EB', 'natural white': '#F5F0EB',
+
   // ── Multicolor / Gradient Specials ──
   'multicolor': 'linear-gradient(135deg,#FF6B6B,#FFD700,#6BCB77,#4D96FF,#C77DFF)',
   'multi': 'linear-gradient(135deg,#FF6B6B,#FFD700,#6BCB77,#4D96FF,#C77DFF)',
@@ -163,38 +183,72 @@ const COLOR_NAME_MAP: Record<string, string> = {
 const resolveColor = (() => {
   const cache: Record<string, string> = {};
 
+  /* Convert rgb(r,g,b) string → #rrggbb hex */
+  const rgbToHex = (rgb: string): string | null => {
+    const m = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+    if (!m) return null;
+    return '#' + [m[1], m[2], m[3]]
+      .map(n => parseInt(n).toString(16).padStart(2, '0'))
+      .join('');
+  };
+
+  /* Normalise any hex variant to full lowercase #rrggbb */
+  const normaliseHex = (h: string): string => {
+    const clean = h.trim().toLowerCase();
+    if (/^#[0-9a-f]{6}$/.test(clean)) return clean;
+    if (/^#[0-9a-f]{3}$/.test(clean)) {
+      // expand 3-char hex
+      return '#' + clean[1] + clean[1] + clean[2] + clean[2] + clean[3] + clean[3];
+    }
+    // without leading #
+    if (/^[0-9a-f]{6}$/.test(clean)) return '#' + clean;
+    if (/^[0-9a-f]{3}$/.test(clean)) return normaliseHex('#' + clean);
+    return '';
+  };
+
   return (raw: string): string => {
     if (!raw) return '#cccccc';
     const trimmed = raw.trim();
     const key = trimmed.toLowerCase();
     if (cache[key]) return cache[key];
 
-    // Step 1: direct hex — trust it immediately
-    if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(trimmed)) {
+    // Step 1: direct hex (3 or 6 char, with or without #, upper or lower)
+    const normHex = normaliseHex(trimmed);
+    if (normHex) {
+      cache[key] = normHex;
+      return normHex;
+    }
+
+    // Step 2: gradient pass-through (multicolor etc.)
+    if (trimmed.startsWith('linear-gradient')) {
       cache[key] = trimmed;
       return trimmed;
     }
 
-    // Step 2: map lookup — handles every admin-typed name
+    // Step 3: map lookup — handles every admin-typed name
     if (COLOR_NAME_MAP[key]) {
       cache[key] = COLOR_NAME_MAP[key];
       return COLOR_NAME_MAP[key];
     }
 
-    // Step 3: canvas browser-parse — catches all standard CSS color names.
-    // IMPORTANT: use #010101 as the sentinel (not #ffffff) so that
-    // near-white colors like Baby Pink / Cream / Ivory never false-negative.
+    // Step 4: canvas browser-parse — catches all standard CSS color names.
+    // Uses #010101 sentinel so near-white colors never false-negative.
     try {
       const canvas = document.createElement('canvas');
       canvas.width = 1;
       canvas.height = 1;
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error('no ctx');
-      ctx.fillStyle = '#010101';
-      ctx.fillStyle = key;
+      ctx.fillStyle = '#010101';           // sentinel
+      ctx.fillStyle = key;                 // attempt parse
       const parsed = ctx.fillStyle;
-      // If the browser accepted the color, fillStyle will differ from #010101
-      const result = (parsed !== '#010101' && parsed !== '') ? parsed : '#cccccc';
+      // canvas returns rgb() for named colors in some browsers
+      let result = '#cccccc';
+      if (parsed !== '#010101' && parsed !== '') {
+        result = parsed.startsWith('rgb(')
+          ? (rgbToHex(parsed) ?? '#cccccc')
+          : parsed;
+      }
       cache[key] = result;
       return result;
     } catch {
@@ -472,8 +526,8 @@ export const ProductDetailPage: React.FC = () => {
                         key={i}
                         onClick={() => setSelectedImage(i)}
                         className={`flex-shrink-0 w-[72px] h-[86px] rounded-xl overflow-hidden bg-blush-light/30 transition-all duration-200 ${i === selectedImage
-                            ? 'ring-2 ring-rose-gold ring-offset-2'
-                            : 'opacity-60 hover:opacity-100'
+                          ? 'ring-2 ring-rose-gold ring-offset-2'
+                          : 'opacity-60 hover:opacity-100'
                           }`}
                       >
                         {img.startsWith('http') ? (
@@ -489,8 +543,8 @@ export const ProductDetailPage: React.FC = () => {
                       <button
                         onClick={() => setSelectedImage(-1)}
                         className={`flex-shrink-0 w-[72px] h-[86px] rounded-xl overflow-hidden bg-blush-light/30 transition-all duration-200 relative ${selectedImage === -1
-                            ? 'ring-2 ring-rose-gold ring-offset-2'
-                            : 'opacity-60 hover:opacity-100'
+                          ? 'ring-2 ring-rose-gold ring-offset-2'
+                          : 'opacity-60 hover:opacity-100'
                           }`}
                       >
                         <video
@@ -617,8 +671,8 @@ export const ProductDetailPage: React.FC = () => {
                         key={String(size)}
                         onClick={() => setSelectedSize(size)}
                         className={`min-w-[70px] h-9 px-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${selectedSize === size
-                            ? 'bg-rose-gold text-white shadow-md'
-                            : 'bg-blush-light/50 text-[#6B5B55] hover:bg-blush-light'
+                          ? 'bg-rose-gold text-white shadow-md'
+                          : 'bg-blush-light/50 text-[#6B5B55] hover:bg-blush-light'
                           }`}
                       >
                         {size}
