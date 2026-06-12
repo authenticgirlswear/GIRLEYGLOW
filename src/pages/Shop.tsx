@@ -15,6 +15,15 @@ import { supabase } from '@/lib/supabase';
 import { useCategoryStore } from '@/store';
 import { useContentStore } from '@/store/contentStore';
 
+/* ─── Fisher-Yates shuffle (returns a new array) ─── */
+const shuffleArray = <T,>(arr: T[]): T[] => {
+  const result = [...arr];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+};
 /* ─────────────────────────────────────────────
    NEW ARRIVALS HERO BANNER
 ───────────────────────────────────────────── */
@@ -184,7 +193,7 @@ export const ShopPage: React.FC = () => {
     if (error) {
       console.error('Error fetching products:', error);
     } else {
-      setProducts(data || []);
+      setProducts(shuffleArray(data || []));
     }
     setLoading(false);
   };
@@ -234,9 +243,7 @@ export const ShopPage: React.FC = () => {
         break;
       case 'newest':
       default:
-        filtered.sort((a, b) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        );
+        // keep the shuffled order from fetchProducts
         break;
     }
 
@@ -260,7 +267,7 @@ export const ShopPage: React.FC = () => {
   const activeFilterCount = [
     categoryFilter,
     saleFilter || newArrivalsFilter,
-    priceRange[0] > 0 || priceRange[1] < 500,
+    priceRange[0] > 299 || priceRange[1] < 10000,
     inStockOnly,
     searchQuery,
   ].filter(Boolean).length;
