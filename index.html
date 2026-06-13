@@ -5,6 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#ffffff" />
+  <meta name="color-scheme" content="light" />
 
   <meta name="robots" content="index, follow, max-image-preview:large" />
 
@@ -16,8 +17,18 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="apple-touch-icon" href="/favicon.svg" />
 
+  <!--
+    Performance: open TCP+TLS+DNS to image / analytics origins BEFORE
+    React boots so the first image bytes can start flying in parallel
+    with the JS download. This dramatically improves LCP on mobile.
+  -->
+  <link rel="preconnect" href="https://res.cloudinary.com" crossorigin />
+  <link rel="dns-prefetch" href="https://res.cloudinary.com" />
+
   <link rel="preconnect" href="https://connect.facebook.net" crossorigin />
+  <link rel="dns-prefetch" href="https://connect.facebook.net" />
   <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin />
+  <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
 
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Girley Glow" />
@@ -30,7 +41,12 @@
   <meta name="twitter:description"
     content="Shop our premium collection of push-up bras, maternity wear, shapewear, nightwear, and elegant dresses for every occasion." />
 
-  <script>
+  <!--
+    Analytics scripts loaded with defer so they NEVER block the LCP
+    paint. They still execute before DOMContentLoaded, which is fine
+    for Pixel / GTM bootstrap.
+  -->
+  <script defer>
     !function (f, b, e, v, n, t, s) {
       if (f.fbq) return;
       n = f.fbq = function () {
@@ -61,7 +77,7 @@
     // PageView is intentionally NOT fired here.
     // It is handled by PixelTracker in App.tsx on every route change.
   </script>
-  <script>
+  <script defer>
     (function (w, d, s, l, i) {
       w[l] = w[l] || [];
       w[l].push({

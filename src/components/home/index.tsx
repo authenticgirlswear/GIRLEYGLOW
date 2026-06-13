@@ -10,7 +10,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, ArrowLeft, ShoppingBag, Star, Sparkles } from 'lucide-react';
-import { FadeIn, SectionHeader, PriceDisplay, Badge, StarRating, Button } from '@/components/ui';
+import { FadeIn, SectionHeader, PriceDisplay, Badge, StarRating, Button, OptimizedImage } from '@/components/ui';
 import { useProductStore } from '@/store';
 import { useContentStore } from '@/store/contentStore';
 import type { Product } from '@/types';
@@ -105,21 +105,33 @@ export const Hero: React.FC = () => {
   return (
     <section
       className="relative min-h-[40vh] md:min-h-[50vh] flex items-center overflow-hidden"
-      style={
-        hasImage
-          ? {
-            backgroundImage: `url(${content.heroImageUrl})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-          }
-          : undefined
-      }
     >
+      {/*
+        LCP image — rendered as a real <img> (not a CSS background) so the
+        browser's preload-scanner discovers it during HTML parse, requests
+        the optimized Cloudinary asset (AVIF/WebP + sized for the viewport)
+        in parallel with React, and paints it as fast as possible.
+        priority → loading="eager" + fetchpriority="high".
+      */}
+      {hasImage && (
+        <OptimizedImage
+          src={content.heroImageUrl}
+          alt=""
+          aria-hidden="true"
+          priority
+          srcSetWidths={[640, 960, 1280, 1600, 1920]}
+          sizes="100vw"
+          targetWidth={1600}
+          wrapperClassName="absolute inset-0 w-full h-full"
+          className="w-full h-full object-cover"
+        />
+      )}
+
       {/* Background gradient (only if no image) */}
       {!hasImage && <div className="absolute inset-0 hero-gradient" />}
 
       {/* Dark overlay on image for text readability */}
-      {hasImage && <div className="absolute inset-0 bg-black/20" />}
+      {hasImage && <div className="absolute inset-0 bg-black/20 pointer-events-none" />}
 
       {/* Decorative floating circles (only if no image) */}
       {!hasImage && (
@@ -241,14 +253,22 @@ export const NewArrivals: React.FC = () => {
                   className="flex-shrink-0 w-[280px] cursor-pointer group"
                   onClick={() => navigate(`/product/${product.slug}`)}
                 >
-                  {/* Photo Card */}
+                  {/* Photo Card — fixed aspect-ratio so layout never shifts */}
                   <div className="relative rounded-2xl overflow-hidden aspect-[3/4] bg-blush-light/30">
                     {product.images?.[0]?.startsWith('http') ? (
-                      <img
+                      <OptimizedImage
                         src={product.images[0]}
                         alt={product.name}
-                        loading={idx < 6 ? 'eager' : 'lazy'}
-                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                        width={280}
+                        height={373}
+                        /* First few visible cards load eagerly to hit LCP fast,
+                           everything else is lazy + low priority. */
+                        priority={idx < 3}
+                        targetWidth={560}
+                        srcSetWidths={[280, 420, 560, 720]}
+                        sizes="(max-width: 640px) 70vw, 280px"
+                        wrapperClassName="absolute inset-0 w-full h-full"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                       />
                     ) : (
                       <div className="absolute inset-0 bg-gradient-to-br from-blush via-lavender to-champagne" />
@@ -325,16 +345,31 @@ export const BannerSlider: React.FC = () => {
               className="absolute inset-0 flex items-center"
               style={
                 banner.imageUrl
-                  ? {
-                    backgroundImage: `url(${banner.imageUrl})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                  }
+                  ? undefined
                   : { background: banner.gradient }
               }
             >
+              {/*
+                Banner uses a real <img> instead of CSS background-image so
+                Cloudinary can deliver AVIF/WebP at the right width and the
+                browser can prioritise it. First banner is treated as high
+                priority since it's the LCP candidate when Hero is disabled.
+              */}
+              {banner.imageUrl && (
+                <OptimizedImage
+                  src={banner.imageUrl}
+                  alt={banner.title || ''}
+                  priority={current === 0}
+                  srcSetWidths={[640, 960, 1280, 1600]}
+                  sizes="(max-width: 1280px) 100vw, 1280px"
+                  targetWidth={1280}
+                  wrapperClassName="absolute inset-0 w-full h-full"
+                  className="w-full h-full object-cover"
+                />
+              )}
+
               {/* Dark overlay for text readability when image is used */}
-              {banner.imageUrl && <div className="absolute inset-0 bg-black/30" />}
+              {banner.imageUrl && <div className="absolute inset-0 bg-black/30 pointer-events-none" />}
 
               <div className="relative px-8 md:px-16 max-w-xl">
                 <h3
@@ -455,16 +490,22 @@ export const CategoryShowcase: React.FC = () => {
                   }
                   className="flex-shrink-0 w-[260px] cursor-pointer group"
                 >
-                  {/* Photo Card */}
+                  {/* Photo Card — fixed aspect-ratio so layout never shifts */}
                   <div
                     className="relative rounded-2xl overflow-hidden aspect-[3/4]"
                     style={{ background: category.gradient }}
                   >
                     {category.image && (
-                      <img
+                      <OptimizedImage
                         src={category.image}
                         alt={category.name}
-                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                        width={260}
+                        height={347}
+                        targetWidth={520}
+                        srcSetWidths={[260, 390, 520, 640]}
+                        sizes="(max-width: 640px) 65vw, 260px"
+                        wrapperClassName="absolute inset-0 w-full h-full"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                       />
                     )}
 
@@ -593,12 +634,18 @@ export const Category: React.FC = () => {
                     background: category.gradient,
                   }}
                 >
-                  {/* CATEGORY IMAGE */}
+                  {/* CATEGORY IMAGE — lazy-loaded + responsive Cloudinary delivery */}
                   {category.image && (
-                    <img
+                    <OptimizedImage
                       src={category.image}
                       alt={category.name}
-                      className="absolute inset-0 w-full h-full object-cover"
+                      width={260}
+                      height={347}
+                      targetWidth={520}
+                      srcSetWidths={[260, 390, 520, 640]}
+                      sizes="(max-width: 640px) 65vw, 260px"
+                      wrapperClassName="absolute inset-0 w-full h-full"
+                      className="w-full h-full object-cover"
                     />
                   )}
 
@@ -776,10 +823,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     >
       <div className="relative rounded-2xl overflow-hidden aspect-[3/4] mb-3 bg-blush-light/30">
         {product.images?.[0]?.startsWith('http') ? (
-          <img
+          <OptimizedImage
             src={product.images[0]}
             alt={product.name}
-            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+            width={280}
+            height={373}
+            targetWidth={560}
+            srcSetWidths={[240, 320, 480, 560, 720]}
+            /* Shop/Search grids: 2 cols mobile, 3 tablet, 4 desktop */
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 280px"
+            wrapperClassName="absolute inset-0 w-full h-full"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
           />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-blush via-lavender to-champagne group-hover:scale-105 transition-transform duration-700" />
@@ -994,14 +1048,22 @@ export const FeaturedCollection: React.FC = () => {
                   className="flex-shrink-0 w-[280px] cursor-pointer group"
                   onClick={() => navigate(`/product/${product.slug}`)}
                 >
-                  {/* Photo Card */}
+                  {/* Photo Card — fixed aspect-ratio so layout never shifts */}
                   <div className="relative rounded-2xl overflow-hidden aspect-[3/4] bg-blush-light/30">
                     {product.images?.[0]?.startsWith('http') ? (
-                      <img
+                      <OptimizedImage
                         src={product.images[0]}
                         alt={product.name}
-                        loading={idx < 6 ? 'eager' : 'lazy'}
-                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                        width={280}
+                        height={373}
+                        /* Featured slider is below the fold on mobile, so
+                           default to lazy. The auto-scrolling animation will
+                           reveal images as they come into view. */
+                        targetWidth={560}
+                        srcSetWidths={[280, 420, 560, 720]}
+                        sizes="(max-width: 640px) 70vw, 280px"
+                        wrapperClassName="absolute inset-0 w-full h-full"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                       />
                     ) : (
                       <div className="absolute inset-0" style={{ backgroundColor: '#E8D5CC' }} />

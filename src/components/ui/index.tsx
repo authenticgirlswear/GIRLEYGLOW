@@ -6,6 +6,10 @@ import React from 'react';
 import { motion, type HTMLMotionProps } from 'framer-motion';
 import { X } from 'lucide-react';
 
+// Re-export the optimized image so consumers can import it from '@/components/ui'
+export { OptimizedImage, cld, buildSrcSet, isCloudinaryUrl } from './OptimizedImage';
+export type { OptimizedImageProps } from './OptimizedImage';
+
 // ===== Button Component =====
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';

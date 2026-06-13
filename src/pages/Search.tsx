@@ -10,6 +10,7 @@ import { Search as SearchIcon } from 'lucide-react';
 import { ProductCard } from '@/components/home';
 import { Button, EmptyState } from '@/components/ui';
 import { useProductStore } from '@/store';
+import { Helmet } from 'react-helmet-async';
 
 export const SearchPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -58,6 +59,13 @@ export const SearchPage: React.FC = () => {
       setSearchParams({});
     }
   };
+
+  <Helmet>
+    <title>{query ? `"${query}" — Search Results` : 'Search'} | Authentic Girlswear</title>
+    <meta name="description" content={query ? `Search results for "${query}" at Authentic Girlswear. Find bras, shapewear, nightwear and more.` : 'Search our full collection at Authentic Girlswear.'} />
+    <link rel="canonical" href={`https://authentic-girlswear.vercel.app/search${query ? `?q=${encodeURIComponent(query)}` : ''}`} />
+    <meta name="robots" content="noindex, follow" />
+  </Helmet>
 
   return (
     <div className="min-h-screen pt-12 pb-16">

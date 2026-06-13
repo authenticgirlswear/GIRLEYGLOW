@@ -13,6 +13,7 @@ import { ProductCard } from '@/components/home';
 import { FadeIn, Button } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 import { useCategoryStore } from '@/store';
+import { Helmet } from 'react-helmet-async';
 
 export const CategoryPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -122,7 +123,15 @@ export const CategoryPage: React.FC = () => {
       </div>
     );
   }
-
+  <Helmet>
+    <title>{category?.name || 'Category'} | Authentic Girlswear</title>
+    <meta name="description" content={category?.description || `Shop our ${category?.name || ''} collection at Authentic Girlswear. Quality women's fashion in Bangladesh.`} />
+    <link rel="canonical" href={`https://authentic-girlswear.vercel.app/category/${slug}`} />
+    <meta property="og:title" content={`${category?.name || 'Category'} | Authentic Girlswear`} />
+    <meta property="og:description" content={category?.description || `Shop our ${category?.name || ''} collection.`} />
+    <meta property="og:url" content={`https://authentic-girlswear.vercel.app/category/${slug}`} />
+    <meta property="og:type" content="website" />
+  </Helmet>
   return (
     <div className="min-h-screen pt-24 pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
