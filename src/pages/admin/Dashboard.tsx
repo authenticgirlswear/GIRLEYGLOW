@@ -6,7 +6,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { DollarSign, ShoppingCart, Package, AlertTriangle, TrendingUp, ArrowUpRight, ShoppingBag } from 'lucide-react';
+import { DollarSign, ShoppingCart, Package, AlertTriangle, TrendingUp, ShoppingBag } from 'lucide-react';
 import { FadeIn } from '@/components/ui';
 import { useOrderStore, useProductStore, useCategoryStore } from '@/store';
 
@@ -235,8 +235,8 @@ export const AdminDashboard: React.FC = () => {
                       <td className="py-3">
                         <span
                           className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${order.paymentStatus === 'verified'
-                              ? 'bg-green-100 text-green-700'
-                              : 'bg-yellow-100 text-yellow-700'
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-yellow-100 text-yellow-700'
                             }`}
                         >
                           {order.paymentStatus}
