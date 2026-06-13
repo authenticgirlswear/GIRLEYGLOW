@@ -14,7 +14,6 @@ import { FadeIn, Button, Select } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 import { useCategoryStore } from '@/store';
 import { useContentStore } from '@/store/contentStore';
-import { Helmet } from 'react-helmet-async';
 
 /* ─── Fisher-Yates shuffle (returns a new array) ─── */
 const shuffleArray = <T,>(arr: T[]): T[] => {
@@ -305,15 +304,6 @@ export const ShopPage: React.FC = () => {
   return (
     <div className="min-h-screen pt-24 pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
-        <Helmet>
-          <title>{pageTitle} | Authentic Girlswear</title>
-          <meta name="description" content={`Browse our ${pageTitle.toLowerCase()} collection — bras, shapewear, nightwear, dresses and more. Shop now at Authentic Girlswear.`} />
-          <link rel="canonical" href={`https://authentic-girlswear.vercel.app/shop`} />
-          <meta property="og:title" content={`${pageTitle} | Authentic Girlswear`} />
-          <meta property="og:url" content={`https://authentic-girlswear.vercel.app/shop`} />
-          <meta property="og:type" content="website" />
-        </Helmet>
 
         {/* ── Special Hero Banners ── */}
         {newArrivalsFilter && <NewArrivalsHero banner={content.newArrivalBanners?.[0]} />}

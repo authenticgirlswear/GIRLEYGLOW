@@ -3,7 +3,6 @@ import { createRoot } from "react-dom/client";
 import "./index.css";
 import App from "./App";
 import { useContentStore, useCategoryStore } from '@/store';
-import { HelmetProvider } from 'react-helmet-async';
 
 function Root() {
   const loadContent = useContentStore((s) => s.loadContent);
@@ -19,8 +18,6 @@ function Root() {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <HelmetProvider>
-      <Root />
-    </HelmetProvider>
+    <Root />
   </StrictMode>
 );
