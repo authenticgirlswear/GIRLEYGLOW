@@ -1,5 +1,5 @@
 /* ===================================================
-   AUTHENTIC GIRLSWEAR - Shop Page
+   Girley Glow - Shop Page
    Enhanced: Custom hero layouts for New Arrivals & Sale
    =================================================== */
 

@@ -1,5 +1,5 @@
 -- =====================================================
--- AUTHENTIC GIRLSWEAR - Supabase Database Schema
+-- Girley Glow - Supabase Database Schema
 -- Run this SQL in your Supabase SQL Editor
 -- =====================================================
 

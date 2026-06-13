@@ -1,5 +1,5 @@
 /* ===================================================
-   AUTHENTIC GIRLSWEAR - Category Page
+   Girley Glow - Category Page
    FIXED: Fetches products from Supabase directly,
    filters by category_slug column (matches admin upload)
    =================================================== */

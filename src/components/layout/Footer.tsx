@@ -1,5 +1,5 @@
 /* ===================================================
-   AUTHENTIC GIRLSWEAR - Elegant Footer
+   Girley Glow - Elegant Footer
    WITH Luxury Animated Bra Size Guide Modal
    =================================================== */
 
@@ -408,7 +408,7 @@ export const Footer: React.FC = () => {
             <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-white/40">
 
               <p>
-                &copy; {new Date().getFullYear()} Authentic Girlswear.
+                &copy; {new Date().getFullYear()} Girley Glow.
                 All rights reserved.
               </p>
 

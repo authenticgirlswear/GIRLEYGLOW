@@ -1,5 +1,5 @@
 /* ===================================================
-   AUTHENTIC GIRLSWEAR - Product Detail Page
+   Girley Glow - Product Detail Page
    FIXED:
    1. Thumbnails in a single horizontal scrollable row
       with left/right arrow navigation buttons.

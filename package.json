@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build:sitemap": "node scripts/generate-sitemap.js",
+    "build": "npm run build:sitemap && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -35,6 +36,7 @@
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "react-facebook-pixel": "^1.0.4",
+    "react-helmet-async": "^2.0.5",
     "react-router-dom": "^7.15.1",
     "tailwind-merge": "^3.4.0",
     "tailwindcss": "4.1.17",
@@ -46,6 +48,7 @@
     "zustand": "^5.0.13"
   },
   "devDependencies": {
-    "@types/nearest-color": "^0.4.1"
+    "@types/nearest-color": "^0.4.1",
+    "dotenv": "^16.4.5"
   }
 }

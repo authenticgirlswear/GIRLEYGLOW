@@ -1,5 +1,5 @@
 /* ===================================================
-   AUTHENTIC GIRLSWEAR - Admin Dashboard
+   Girley Glow - Admin Dashboard
    Fixed: uses REAL orders instead of fake demo data
    =================================================== */
 
@@ -235,8 +235,8 @@ export const AdminDashboard: React.FC = () => {
                       <td className="py-3">
                         <span
                           className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${order.paymentStatus === 'verified'
-                              ? 'bg-green-100 text-green-700'
-                              : 'bg-yellow-100 text-yellow-700'
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-yellow-100 text-yellow-700'
                             }`}
                         >
                           {order.paymentStatus}

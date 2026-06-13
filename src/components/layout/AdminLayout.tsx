@@ -1,5 +1,5 @@
 /* ===================================================
-   AUTHENTIC GIRLSWEAR - Admin Layout (Sidebar + Topbar)
+   Girley Glow - Admin Layout (Sidebar + Topbar)
    =================================================== */
 
 import React, { useState } from 'react';
@@ -58,8 +58,8 @@ export const AdminLayout: React.FC = () => {
               to={item.path}
               onClick={() => setSidebarOpen(false)}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${isActive
-                  ? 'bg-rose-gold text-white shadow-md shadow-rose-gold/20'
-                  : 'text-[#6B5B55] hover:bg-blush-light/50 hover:text-charcoal'
+                ? 'bg-rose-gold text-white shadow-md shadow-rose-gold/20'
+                : 'text-[#6B5B55] hover:bg-blush-light/50 hover:text-charcoal'
                 }`}
             >
               <Icon size={18} />

@@ -1,5 +1,5 @@
 /* ===================================================
-   AUTHENTIC GIRLSWEAR - Cart Page
+   Girley Glow - Cart Page
    =================================================== */
 
 declare global { interface Window { dataLayer: any[]; } }

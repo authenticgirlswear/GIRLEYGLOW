@@ -1,5 +1,5 @@
 /* ===================================================
-   AUTHENTIC GIRLSWEAR - Admin Orders Management
+   Girley Glow - Admin Orders Management
    FIXED:
    1. fetchOrders() called on mount so search works
    2. Admin can edit order total inline

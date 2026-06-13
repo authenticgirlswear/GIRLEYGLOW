@@ -1,5 +1,5 @@
 /* ===================================================
-   AUTHENTIC GIRLSWEAR - Main App with Routing
+   Girley Glow - Main App with Routing
    =================================================== */
 
 import React from 'react';

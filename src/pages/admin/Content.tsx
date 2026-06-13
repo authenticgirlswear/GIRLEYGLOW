@@ -1,5 +1,5 @@
 /* ===================================================
-   AUTHENTIC GIRLSWEAR - Admin Content Editor
+   Girley Glow - Admin Content Editor
    Fixed: uses saveContent from store, guards undefined messages
    =================================================== */
 
