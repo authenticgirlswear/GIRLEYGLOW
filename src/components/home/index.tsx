@@ -1,5 +1,5 @@
 /* ===================================================
-   Girley Glow - Home Page Components
+   AUTHENTIC GIRLSWEAR - Home Page Components
    FIXED: 
    - Hero reads from useContentStore (image + texts)
    - BannerSlider reads from useContentStore (images + texts)

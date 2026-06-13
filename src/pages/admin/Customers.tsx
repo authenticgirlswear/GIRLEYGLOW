@@ -1,5 +1,5 @@
 /* ===================================================
-   Girley Glow - Admin Customers
+   AUTHENTIC GIRLSWEAR - Admin Customers
    FIXED:
    - TypeScript errors fixed (RealOrder type imported properly)
    - Cancel order button on each order in modal

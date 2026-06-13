@@ -1,5 +1,5 @@
 /* ===================================================
-   Girley Glow - Checkout Page
+   AUTHENTIC GIRLSWEAR - Checkout Page
    - Single page form (no steps)
    - Bangla labels
    - Payment method selection inline

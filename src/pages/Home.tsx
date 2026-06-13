@@ -1,5 +1,5 @@
 /* ===================================================
-   Girley Glow - Home Page
+   AUTHENTIC GIRLSWEAR - Home Page
    =================================================== */
 
 import React from 'react';

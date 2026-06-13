@@ -1,5 +1,5 @@
 /* ===================================================
-   Girley Glow - Type Definitions
+   AUTHENTIC GIRLSWEAR - Type Definitions
    =================================================== */
 
 // ===== Product Types =====

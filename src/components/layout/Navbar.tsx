@@ -1,5 +1,5 @@
 /* ===================================================
-   Girley Glow - Floating Pill Navbar
+   AUTHENTIC GIRLSWEAR - Floating Pill Navbar
    - Takes ZERO layout space — purely overlays the hero
    - Transparent outside the pill (no white gaps)
    - Full viewport width pill with tiny edge margins
@@ -160,10 +160,10 @@ export const Navbar: React.FC<NavbarProps> = ({ barVisible = false }) => {
               <Link to="/" className="flex-shrink-0 group">
                 <div className="flex flex-col items-start leading-none">
                   <span className="font-serif text-[22px] md:text-[22px] font-semibold tracking-[0.15em] text-[#FF5349] group-hover:text-[#B07D6B] transition-colors duration-300">
-                    Girley
+                    AUTHENTIC
                   </span>
                   <span className="font-serif text-[18px] md:text-[18px] font-semibold tracking-[0.15em] text-[#2C2C2C] mt-0.5">
-                    Glow
+                    GIRLSWEAR
                   </span>
                 </div>
               </Link>
@@ -319,8 +319,8 @@ export const Navbar: React.FC<NavbarProps> = ({ barVisible = false }) => {
               <div className="p-5">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex flex-col items-start leading-none">
-                    <span className="font-serif text-sm font-semibold tracking-[0.2em] text-[#2C2C2C]">GIRLEY</span>
-                    <span className="font-serif text-[8px] font-normal tracking-[0.5em] text-[#B07D6B] mt-0.5">GLOW</span>
+                    <span className="font-serif text-sm font-semibold tracking-[0.2em] text-[#2C2C2C]">AUTHENTIC</span>
+                    <span className="font-serif text-[8px] font-normal tracking-[0.5em] text-[#B07D6B] mt-0.5">GIRLSWEAR</span>
                   </div>
                   <button onClick={() => setMobileMenuOpen(false)} className="p-2 rounded-full hover:bg-white/50">
                     <X size={17} />

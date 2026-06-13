@@ -1,5 +1,5 @@
 /* ===================================================
-   Girley Glow - Search Page
+   AUTHENTIC GIRLSWEAR - Search Page
    FIXED: Now searches Supabase products via useProductStore
    =================================================== */
 declare global { interface Window { dataLayer: any[]; } }
