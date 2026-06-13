@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://authentic-girlswear.vercel.app/sitemap.xml

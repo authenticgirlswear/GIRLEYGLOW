@@ -3,7 +3,7 @@
    =================================================== */
 
 import React from 'react';
-import { HashRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 // Layout Components
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -90,7 +90,7 @@ const AdminProtectedRoute: React.FC = () => {
 // ===== Main App =====
 const App: React.FC = () => {
   return (
-    <HashRouter>
+    <BrowserRouter>
       <PixelTracker />
       <ScrollToTop />
       <Routes>
@@ -132,7 +132,7 @@ const App: React.FC = () => {
         {/* 404 Catch-all */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </HashRouter>
+    </BrowserRouter>
   );
 };
 
