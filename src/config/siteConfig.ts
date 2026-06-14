@@ -14,7 +14,7 @@ export const SITE = {
 
     /** SEO / meta */
     domain: 'https://authenticgirlswear.com',
-    defaultTitle: 'Girley Glow - Luxury Feminine Fashion',
+    defaultTitle: 'Authentic Girlswear - Luxury Feminine Fashion',
     defaultDescription: 'Discover luxury feminine fashion at Authentic Girlswear. Dresses, tops, accessories and more — crafted for the modern woman.',
     keywords: [
         'girlswear',
@@ -22,7 +22,7 @@ export const SITE = {
         'dresses',
         'tops',
         'bangladesh fashion',
-        'girley glow',
+        'authentic girlswear',
     ],
     ogImage: '/images/og-image.jpg',
 } as const;
@@ -31,8 +31,8 @@ export type SiteConfig = typeof SITE;
 
 // ─── Legacy alias kept for any file still importing siteConfig ───────────────
 export const siteConfig = {
-    websiteName: 'Girley Glow',
-    websiteShortName: 'GG',
+    websiteName: 'Authentic Girlswear',
+    websiteShortName: 'AG',
     defaultTitle: SITE.defaultTitle,
     defaultDescription: SITE.defaultDescription,
     keywords: SITE.keywords,
