@@ -9,8 +9,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingBag, Search, Menu, X, ChevronDown } from 'lucide-react';
+import { ShoppingBag, Search, Menu, X, ChevronDown, Heart, Package } from 'lucide-react';
 import { useCartStore, useUIStore, useCategoryStore } from '@/store';
+import { BRAND } from '@/config/brandingConfig';
+import { CONTACT } from '@/config/contactConfig';
 
 interface NavbarProps {
   barVisible?: boolean;
@@ -156,75 +158,76 @@ export const Navbar: React.FC<NavbarProps> = ({ barVisible = false }) => {
           >
             <div className="flex items-center justify-between h-14 md:h-16 px-5 md:px-10 lg:px-14">
 
-              {/* Logo */}
+              {/* Logo — pulled from brandingConfig */}
               <Link to="/" className="flex-shrink-0 group">
                 <div className="flex flex-col items-start leading-none">
                   <span className="font-serif text-[22px] md:text-[22px] font-semibold tracking-[0.15em] text-[#FF5349] group-hover:text-[#B07D6B] transition-colors duration-300">
-                    AUTHENTIC
+                    {BRAND.nameTop}
                   </span>
                   <span className="font-serif text-[18px] md:text-[18px] font-semibold tracking-[0.15em] text-[#2C2C2C] mt-0.5">
-                    GIRLSWEAR
+                    {BRAND.nameBottom}
                   </span>
                 </div>
               </Link>
-
               {/* Desktop Nav Links — centered */}
-              <div className="hidden md:flex items-center gap-5 lg:gap-8 absolute left-1/2 -translate-x-1/2">
-                {navLinks.map(link => (
-                  <Link
-                    key={link.path}
-                    to={link.path}
-                    className={`
+              <div className="hidden md:flex items-center gap-5 lg:gap-8">                {navLinks.map(link => (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  className={`
                       text-[13px] lg:text-[14px] font-semibold tracking-[0.25em] uppercase
                       transition-colors duration-300 hover:text-[#B07D6B] relative py-1
                       ${isActive(link.path) ? 'text-[#B07D6B]' : 'text-[#2C2C2C]'}
                     `}
-                  >
-                    {link.label}
-                    {isActive(link.path) && (
-                      <motion.span
-                        layoutId="activeNavUnderline"
-                        className="absolute -bottom-0.5 left-0 right-0 h-px bg-[#B07D6B]"
-                        transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                      />
-                    )}
-                  </Link>
-                ))}
-
-                {/* Categories Dropdown */}
-                <div
-                  className="relative"
-                  onMouseEnter={() => setCategoriesOpen(true)}
-                  onMouseLeave={() => setCategoriesOpen(false)}
                 >
-                  <button className="text-[12px] lg:text-[13px] font-semibold tracking-[0.25em] uppercase text-[#2C2C2C] hover:text-[#B07D6B] transition-colors duration-300 flex items-center gap-1 py-1">
-                    Categories
-                    <ChevronDown
-                      size={11}
-                      className={`transition-transform duration-300 ${categoriesOpen ? 'rotate-180' : ''}`}
+                  {link.label}
+                  {isActive(link.path) && (
+                    <motion.span
+                      layoutId="activeNavUnderline"
+                      className="absolute -bottom-0.5 left-0 right-0 h-px bg-[#B07D6B]"
+                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                     />
-                  </button>
+                  )}
 
-                  <AnimatePresence>
-                    {categoriesOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 8, scale: 0.97 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 8, scale: 0.97 }}
-                        transition={{ duration: 0.18, ease: 'easeOut' }}
-                        className="absolute top-full left-1/2 -translate-x-1/2 pt-4"
-                      >
-                        <div className="bg-[#F5E6DC]/95 backdrop-blur-xl rounded-2xl p-1.5 shadow-xl shadow-black/10 min-w-[180px] border border-white/50">
-                          {renderCategoryLinks()}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
+                </Link>
+
+              ))}
               </div>
+              {/* Categories Dropdown */}
+              <div
+                className="relative"
+                onMouseEnter={() => setCategoriesOpen(true)}
+                onMouseLeave={() => setCategoriesOpen(false)}
+              >
+                <button className="text-[12px] lg:text-[13px] font-semibold tracking-[0.25em] uppercase text-[#2C2C2C] hover:text-[#B07D6B] transition-colors duration-300 flex items-center gap-1 py-1">
+                  Categories
+                  <ChevronDown
+                    size={11}
+                    className={`transition-transform duration-300 ${categoriesOpen ? 'rotate-180' : ''}`}
+                  />
+                </button>
+
+                <AnimatePresence>
+                  {categoriesOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.97 }}
+                      transition={{ duration: 0.18, ease: 'easeOut' }}
+                      className="absolute top-full left-1/2 -translate-x-1/2 pt-4"
+                    >
+                      <div className="bg-[#F5E6DC]/95 backdrop-blur-xl rounded-2xl p-1.5 shadow-xl shadow-black/10 min-w-[180px] border border-white/50">
+                        {renderCategoryLinks()}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
 
               {/* Right Icons */}
               <div className="flex items-center gap-0.5 md:gap-1">
+                {/* Mobile menu toggle */}
                 <button
                   onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                   className="md:hidden p-2 rounded-full hover:bg-white/40 transition-colors text-[#2C2C2C]"
@@ -232,6 +235,7 @@ export const Navbar: React.FC<NavbarProps> = ({ barVisible = false }) => {
                   {mobileMenuOpen ? <X size={17} /> : <Menu size={17} />}
                 </button>
 
+                {/* Search */}
                 <button
                   onClick={() => setSearchOpen(!searchOpen)}
                   className="p-2 rounded-full hover:bg-white/40 transition-all duration-300 text-[#2C2C2C] hover:text-[#B07D6B]"
@@ -240,6 +244,7 @@ export const Navbar: React.FC<NavbarProps> = ({ barVisible = false }) => {
                   <Search size={20} />
                 </button>
 
+                {/* Cart */}
                 <Link
                   to="/cart"
                   className="relative p-2 rounded-full hover:bg-white/40 transition-all duration-300 text-[#2C2C2C] hover:text-[#B07D6B]"
@@ -274,7 +279,7 @@ export const Navbar: React.FC<NavbarProps> = ({ barVisible = false }) => {
                       <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9A8880]" />
                       <input
                         type="text"
-                        placeholder="Search dresses, tops, accessories..."
+                        placeholder={`Search ${BRAND.tagline ?? 'dresses, tops, accessories'}...`}
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
                         autoFocus
@@ -317,16 +322,22 @@ export const Navbar: React.FC<NavbarProps> = ({ barVisible = false }) => {
               className="fixed left-0 top-0 bottom-0 w-72 bg-[#F5E6DC] z-[80] shadow-2xl overflow-y-auto md:hidden"
             >
               <div className="p-5">
+                {/* Mobile drawer header */}
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex flex-col items-start leading-none">
-                    <span className="font-serif text-sm font-semibold tracking-[0.2em] text-[#2C2C2C]">AUTHENTIC</span>
-                    <span className="font-serif text-[8px] font-normal tracking-[0.5em] text-[#B07D6B] mt-0.5">GIRLSWEAR</span>
+                    <span className="font-serif text-sm font-semibold tracking-[0.2em] text-[#2C2C2C]">
+                      {BRAND.nameTop}
+                    </span>
+                    <span className="font-serif text-[8px] font-normal tracking-[0.5em] text-[#B07D6B] mt-0.5">
+                      {BRAND.nameBottom}
+                    </span>
                   </div>
                   <button onClick={() => setMobileMenuOpen(false)} className="p-2 rounded-full hover:bg-white/50">
                     <X size={17} />
                   </button>
                 </div>
 
+                {/* Mobile search */}
                 <form onSubmit={handleSearch} className="mb-5">
                   <div className="relative">
                     <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9A8880]" />
@@ -340,12 +351,15 @@ export const Navbar: React.FC<NavbarProps> = ({ barVisible = false }) => {
                   </div>
                 </form>
 
+                {/* Main nav links */}
                 <div className="space-y-0.5 mb-5">
                   {navLinks.map(link => (
                     <Link
                       key={link.path}
                       to={link.path}
-                      className={`block px-4 py-2.5 rounded-xl text-[10px] font-semibold tracking-[0.25em] uppercase transition-colors ${isActive(link.path) ? 'bg-white/70 text-[#B07D6B]' : 'text-[#2C2C2C] hover:bg-white/40'
+                      className={`block px-4 py-2.5 rounded-xl text-[10px] font-semibold tracking-[0.25em] uppercase transition-colors ${isActive(link.path)
+                        ? 'bg-white/70 text-[#B07D6B]'
+                        : 'text-[#2C2C2C] hover:bg-white/40'
                         }`}
                     >
                       {link.label}
@@ -355,15 +369,52 @@ export const Navbar: React.FC<NavbarProps> = ({ barVisible = false }) => {
 
                 <div className="h-px bg-[#2C2C2C]/10 my-4" />
 
-                <p className="px-4 text-[9px] font-semibold text-[#9A8880] uppercase tracking-[0.3em] mb-2">Categories</p>
+                {/* Categories */}
+                <p className="px-4 text-[9px] font-semibold text-[#9A8880] uppercase tracking-[0.3em] mb-2">
+                  Categories
+                </p>
                 <div className="space-y-0.5 mb-5">
                   {renderCategoryLinks(() => setMobileMenuOpen(false))}
                 </div>
 
                 <div className="h-px bg-[#2C2C2C]/10 my-4" />
 
+                {/* Account / utility links */}
+                <p className="px-4 text-[9px] font-semibold text-[#9A8880] uppercase tracking-[0.3em] mb-2">
+                  My Account
+                </p>
+                <div className="space-y-0.5 mb-5">
+                  <Link
+                    to="/wishlist"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[10px] font-semibold tracking-[0.25em] uppercase transition-colors ${isActive('/wishlist')
+                      ? 'bg-white/70 text-[#B07D6B]'
+                      : 'text-[#2C2C2C] hover:bg-white/40'
+                      }`}
+                  >
+                    <Heart size={13} />
+                    Wishlist
+                  </Link>
+
+                  <Link
+                    to="/track-order"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[10px] font-semibold tracking-[0.25em] uppercase transition-colors ${isActive('/track-order')
+                      ? 'bg-white/70 text-[#B07D6B]'
+                      : 'text-[#2C2C2C] hover:bg-white/40'
+                      }`}
+                  >
+                    <Package size={13} />
+                    Track Order
+                  </Link>
+                </div>
+
+                <div className="h-px bg-[#2C2C2C]/10 my-4" />
+
+                {/* Cart */}
                 <Link
                   to="/cart"
+                  onClick={() => setMobileMenuOpen(false)}
                   className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/50 hover:bg-white/70 transition-colors"
                 >
                   <ShoppingBag size={16} />
@@ -371,6 +422,19 @@ export const Navbar: React.FC<NavbarProps> = ({ barVisible = false }) => {
                     Shopping Bag ({itemCount})
                   </span>
                 </Link>
+
+                {/* Contact info from contactConfig */}
+                {CONTACT?.phone && (
+                  <>
+                    <div className="h-px bg-[#2C2C2C]/10 my-4" />
+                    <a
+                      href={`tel:${CONTACT.phone}`}
+                      className="flex items-center gap-2 px-4 py-2 text-[9px] text-[#9A8880] tracking-wider"
+                    >
+                      📞 {CONTACT.phone}
+                    </a>
+                  </>
+                )}
               </div>
             </motion.div>
           </>

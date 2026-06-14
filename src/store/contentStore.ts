@@ -1,6 +1,10 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
+import { SITE, siteConfig } from '@/config/siteConfig';
 
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const CONTENT_ROW_ID = 'global-content';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -25,6 +29,45 @@ export interface AnnouncementSettings {
   dismissible: boolean;
 }
 
+/**
+ * SiteSettings — overridable site-wide config stored in Supabase.
+ * Falls back to siteConfig.ts values when not set in DB.
+ */
+export interface SiteSettings {
+  // Identity
+  siteName: string;
+  siteShortName: string;
+  domain: string;
+  logoUrl: string;
+
+  // SEO / meta
+  defaultTitle: string;
+  defaultDescription: string;
+  keywords: string[];
+  ogImage: string;
+
+  // Social links
+  instagram: string;
+  facebook: string;
+  tiktok: string;
+  youtube: string;
+
+  // Contact
+  email: string;
+  phone: string;
+  address: string;
+
+  // Commerce
+  currency: string;
+  currencySymbol: string;
+  paymentMethods: string[];
+
+  // Policies
+  returnPolicy: string;
+  shippingPolicy: string;
+  privacyPolicy: string;
+}
+
 export interface ContentData {
   // Hero
   heroEnabled: boolean;
@@ -35,11 +78,7 @@ export interface ContentData {
 
   // Banners
   banners: Banner[];
-
-  // New Arrival Banners
   newArrivalBanners: Banner[];
-
-  // Sale Banners
   saleBanners: Banner[];
 
   // Announcement bar
@@ -52,9 +91,53 @@ export interface ContentData {
   trendingSubtitle: string;
   newsletterTitle: string;
   newsletterSubtitle: string;
+
+  // Centralised site settings (editable from admin, seeded from siteConfig.ts)
+  siteSettings: SiteSettings;
+}
+
+export interface ContentError {
+  code: 'LOAD_FAILED' | 'SAVE_FAILED' | 'UNKNOWN';
+  message: string;
+  at: number; // Date.now()
+}
+
+export interface ContentLoadingState {
+  load: boolean;
+  save: boolean;
 }
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
+// Seeded from siteConfig.ts so the two sources stay in sync out of the box.
+
+export const defaultSiteSettings: SiteSettings = {
+  siteName: siteConfig.websiteName,
+  siteShortName: siteConfig.websiteShortName,
+  domain: SITE.domain,
+  logoUrl: '',
+
+  defaultTitle: SITE.defaultTitle,
+  defaultDescription: SITE.defaultDescription,
+  keywords: [...SITE.keywords],
+  ogImage: SITE.ogImage,
+
+  instagram: SITE.instagram,
+  facebook: SITE.facebook,
+  tiktok: '',
+  youtube: '',
+
+  email: '',
+  phone: '',
+  address: '',
+
+  currency: 'BDT',
+  currencySymbol: '৳',
+  paymentMethods: [...SITE.paymentMethods],
+
+  returnPolicy: '',
+  shippingPolicy: '',
+  privacyPolicy: '',
+};
 
 export const defaultContent: ContentData = {
   heroEnabled: true,
@@ -66,9 +149,10 @@ export const defaultContent: ContentData = {
   banners: [],
   newArrivalBanners: [],
   saleBanners: [],
+
   announcement: {
     enabled: true,
-    messages: ['Free shipping on orders over $50!'],
+    messages: ['Free shipping on orders over ৳500!'],
     animation: 'marquee',
     bgColor: '#000000',
     textColor: '#ffffff',
@@ -82,60 +166,106 @@ export const defaultContent: ContentData = {
   trendingSubtitle: 'What everyone is wearing right now',
   newsletterTitle: 'Stay in the Loop',
   newsletterSubtitle: 'Get the latest drops, exclusive offers, and style inspiration.',
+
+  siteSettings: defaultSiteSettings,
 };
 
-// ─── Store ────────────────────────────────────────────────────────────────────
-
-interface ContentStore {
-  content: ContentData;
-  loading: boolean;
-  hasFetched: boolean;
-  error: string | null;
-
-  /** Used by Admin Content editor for local edits before saving */
-  setContent: (data: ContentData) => void;
-
-  loadContent: () => Promise<void>;
-  saveContent: (data: ContentData) => Promise<void>;
-}
-
-const CONTENT_ROW_ID = 'global-content';
+// ─── Merge helpers ────────────────────────────────────────────────────────────
 
 /** Deep-merge loaded data with defaults so missing keys never cause crashes */
 function mergeWithDefaults(loaded: Partial<ContentData>): ContentData {
   return {
     ...defaultContent,
     ...loaded,
+
     announcement: {
       ...defaultContent.announcement,
       ...(loaded.announcement ?? {}),
-      // Always ensure messages is a non-empty array
       messages:
         Array.isArray(loaded.announcement?.messages) && loaded.announcement.messages.length > 0
           ? loaded.announcement.messages
           : defaultContent.announcement.messages,
     },
+
     banners: Array.isArray(loaded.banners) ? loaded.banners : [],
     newArrivalBanners: Array.isArray(loaded.newArrivalBanners) ? loaded.newArrivalBanners : [],
-    saleBanners: Array.isArray(loaded.saleBanners)
-      ? loaded.saleBanners
-      : [],
+    saleBanners: Array.isArray(loaded.saleBanners) ? loaded.saleBanners : [],
+
+    // Merge siteSettings: DB value wins; anything missing falls back to siteConfig.ts defaults
+    siteSettings: {
+      ...defaultSiteSettings,
+      ...(loaded.siteSettings ?? {}),
+    },
   };
 }
 
+// ─── Store interface ──────────────────────────────────────────────────────────
+
+interface ContentStore {
+  content: ContentData;
+  loading: ContentLoadingState;
+  hasFetched: boolean;
+  error: ContentError | null;
+
+  // ── Actions ───────────────────────────────────────────────────────────────
+  /** Local setter — used by admin editor for live preview before save */
+  setContent: (data: ContentData) => void;
+  /** Patch only siteSettings without touching the rest of content */
+  setSiteSettings: (settings: Partial<SiteSettings>) => void;
+
+  loadContent: () => Promise<void>;
+  saveContent: (data: ContentData) => Promise<void>;
+  /** Convenience: save only siteSettings changes */
+  saveSiteSettings: (settings: Partial<SiteSettings>) => Promise<void>;
+
+  // ── Selectors (synchronous, zero-cost) ───────────────────────────────────
+  getSiteSettings: () => SiteSettings;
+  /** Returns the best available page title for <title> / og:title */
+  getPageTitle: (pageTitle?: string) => string;
+  /** Returns active banners from a given banner list */
+  getActiveBanners: (type: 'banners' | 'newArrivalBanners' | 'saleBanners') => Banner[];
+
+  // ── Internal helpers ──────────────────────────────────────────────────────
+  _setError: (code: ContentError['code'], message: string) => void;
+  _clearError: () => void;
+}
+
+// ─── Store implementation ─────────────────────────────────────────────────────
+
 export const useContentStore = create<ContentStore>()((set, get) => ({
   content: defaultContent,
-  loading: false,
+  loading: { load: false, save: false },
   hasFetched: false,
   error: null,
 
-  // ── Local setter (used by admin editor for live preview before save) ─────────
+  // ── Internal helpers ──────────────────────────────────────────────────────
+
+  _setError: (code, message) =>
+    set({ error: { code, message, at: Date.now() } }),
+
+  _clearError: () => set({ error: null }),
+
+  // ── Local setters ─────────────────────────────────────────────────────────
+
   setContent: (data) => set({ content: data }),
 
-  // ── Load from Supabase ───────────────────────────────────────────────────────
+  setSiteSettings: (settings) =>
+    set((s) => ({
+      content: {
+        ...s.content,
+        siteSettings: { ...s.content.siteSettings, ...settings },
+      },
+    })),
+
+  // ── Load from Supabase ────────────────────────────────────────────────────
+
   loadContent: async () => {
-    if (get().hasFetched || get().loading) return;
-    set({ loading: true, error: null });
+    const { hasFetched, loading, _setError, _clearError } = get();
+    if (hasFetched || loading.load) return;
+
+    _clearError();
+    set((s) => ({ loading: { ...s.loading, load: true } }));
+
     try {
       const { data, error } = await supabase
         .from('site_content')
@@ -143,37 +273,84 @@ export const useContentStore = create<ContentStore>()((set, get) => ({
         .eq('id', CONTENT_ROW_ID)
         .single();
 
-      // PGRST116 = row not found — that's fine, use defaults
+      // PGRST116 = row not found — fine, use defaults
       if (error && error.code !== 'PGRST116') throw error;
 
       set({
         content: data?.content ? mergeWithDefaults(data.content) : defaultContent,
-        loading: false,
+        loading: { load: false, save: false },
         hasFetched: true,
+        error: null,
       });
     } catch (err) {
       console.error('[ContentStore] loadContent:', err);
-      set({
+      _setError(
+        'LOAD_FAILED',
+        err instanceof Error ? err.message : 'Failed to load content',
+      );
+      set((s) => ({
         content: defaultContent,
-        loading: false,
+        loading: { ...s.loading, load: false },
         hasFetched: true,
-        error: err instanceof Error ? err.message : 'Failed to load content',
-      });
+      }));
     }
   },
 
-  // ── Save to Supabase (called by admin Content.tsx handleSave) ────────────────
+  // ── Save to Supabase ──────────────────────────────────────────────────────
+
   saveContent: async (data) => {
-    const { error } = await supabase
-      .from('site_content')
-      .upsert(
-        { id: CONTENT_ROW_ID, content: data, updated_at: new Date().toISOString() },
-        { onConflict: 'id' },
+    const { _setError, _clearError } = get();
+    _clearError();
+    set((s) => ({ loading: { ...s.loading, save: true } }));
+
+    try {
+      const { error } = await supabase
+        .from('site_content')
+        .upsert(
+          { id: CONTENT_ROW_ID, content: data, updated_at: new Date().toISOString() },
+          { onConflict: 'id' },
+        );
+
+      if (error) throw error;
+
+      // Sync confirmed write into local state
+      set((s) => ({
+        content: data,
+        loading: { ...s.loading, save: false },
+        error: null,
+      }));
+    } catch (err) {
+      console.error('[ContentStore] saveContent:', err);
+      _setError(
+        'SAVE_FAILED',
+        err instanceof Error ? err.message : 'Failed to save content',
       );
-
-    if (error) throw error;
-
-    // Sync into local state after confirmed DB write
-    set({ content: data });
+      set((s) => ({ loading: { ...s.loading, save: false } }));
+      throw err; // Let the UI surface this
+    }
   },
+
+  // ── Save only siteSettings ────────────────────────────────────────────────
+
+  saveSiteSettings: async (settings) => {
+    const { content, saveContent } = get();
+    const updated: ContentData = {
+      ...content,
+      siteSettings: { ...content.siteSettings, ...settings },
+    };
+    await saveContent(updated);
+  },
+
+  // ── Selectors ─────────────────────────────────────────────────────────────
+
+  getSiteSettings: () => get().content.siteSettings,
+
+  getPageTitle: (pageTitle) => {
+    const { defaultTitle, siteName } = get().content.siteSettings;
+    if (!pageTitle) return defaultTitle;
+    return `${pageTitle} — ${siteName}`;
+  },
+
+  getActiveBanners: (type) =>
+    get().content[type].filter((b) => b.active),
 }));
