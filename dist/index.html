@@ -1,95 +1,129 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-BD">
 
 <head>
+  <!-- ═══════════════════════════════════════════════════════════════════
+       ENCODING & VIEWPORT
+       viewport-fit=cover: fills the iPhone notch / Dynamic Island area
+       so the hero image extends edge-to-edge on notched devices.
+  ═══════════════════════════════════════════════════════════════════ -->
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
-  <!--
-    ═══════════════════════════════════════════════════════════════════
-    THEME & COLOR SCHEME
-    theme-color: brandingConfig.ts → primaryLight (#F5E6DC) — used by
-    Chrome/Android to tint the browser chrome / PWA status bar.
-    ═══════════════════════════════════════════════════════════════════
-  -->
-  <meta name="theme-color" content="#F5E6DC" />
+  <!-- ═══════════════════════════════════════════════════════════════════
+       THEME & COLOR SCHEME
+       theme-color: matches brandingConfig.ts → primaryLight (#F5E6DC)
+       Dual theme-color: light mode warm blush, dark mode dark rose.
+       media attribute lets Chrome 93+ pick the right one automatically.
+  ═══════════════════════════════════════════════════════════════════ -->
+  <meta name="theme-color" content="#F5E6DC" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#2C2C2C" media="(prefers-color-scheme: dark)" />
   <meta name="color-scheme" content="light" />
-
-  <!--
-    ═══════════════════════════════════════════════════════════════════
-    GOOGLE SEARCH CONSOLE VERIFICATION
-    Value comes from: trackingConfig.ts → googleSearchConsoleVerification
-    Replace the content value below with the actual token from your
-    Search Console "HTML tag" verification method.
-    ═══════════════════════════════════════════════════════════════════
-  -->
-  <!-- <meta name="google-site-verification" content="REPLACE_WITH_trackingConfig.googleSearchConsoleVerification" /> -->
-
-  <!--
-    ═══════════════════════════════════════════════════════════════════
-    CRAWL DIRECTIVES
-    ═══════════════════════════════════════════════════════════════════
-  -->
+  <meta name="google-site-verification" content="S_qDJr2t5ntRG4FAH_n9NqEUkde824Aea7M7hoVuSFk" />
+  <!-- ═══════════════════════════════════════════════════════════════════
+       CRAWL DIRECTIVES
+       Static fallback — React Helmet overrides these per-page.
+       max-image-preview:large is critical for Google Discover & Shopping.
+  ═══════════════════════════════════════════════════════════════════ -->
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
   <meta name="googlebot" content="index, follow, max-image-preview:large" />
+  <meta name="bingbot" content="index, follow" />
 
-  <!--
-    ═══════════════════════════════════════════════════════════════════
-    PRIMARY SEO META
-    Source: siteConfig.ts → siteName, siteDescription
-    ═══════════════════════════════════════════════════════════════════
-  -->
-  <title>Girley Glow — Premium Women's Fashion in Bangladesh</title>
+  <!-- ═══════════════════════════════════════════════════════════════════
+       PRIMARY SEO META
+       Brand name is "GIrley GLow" throughout (matches siteConfig.ts).
+       React Helmet overwrites title + description on every page navigation.
+       These are the STATIC fallback values shown before React hydrates
+       and when JavaScript is disabled (Googlebot, social crawlers).
+  ═══════════════════════════════════════════════════════════════════ -->
+  <title>GIrley GLow — Premium Women's Fashion in Bangladesh</title>
 
   <meta name="description"
-    content="Shop Girley Glow — Bangladesh's premium destination for push-up bras, maternity wear, shapewear, nightwear, and elegant western dresses. Fast delivery across Bangladesh." />
+    content="Shop GIrley GLow — Bangladesh's premium destination for push-up bras, maternity wear, shapewear, nightwear, couple nightwear, and elegant western dresses. Fast delivery across Bangladesh." />
 
   <meta name="keywords"
-    content="women's fashion Bangladesh, push-up bra, maternity wear, shapewear, nightwear, western dresses, innerwear, Girley Glow" />
+    content="women's fashion Bangladesh, push-up bra, maternity wear, shapewear, nightwear, western dresses, innerwear, bra, panties, lingerie, Girley Glow, GIrley GLow" />
 
-  <meta name="author" content="Girley Glow" />
-  <meta name="copyright" content="Girley Glow" />
-  <meta name="language" content="Bengali, English" />
+  <meta name="author" content="GIrley Glow" />
+  <meta name="copyright" content="GIrley Glow" />
+  <meta name="language" content="English, Bengali" />
 
-  <!--
-    ═══════════════════════════════════════════════════════════════════
-    CANONICAL URL
-    Source: siteConfig.ts → siteUrl
-    ═══════════════════════════════════════════════════════════════════
-  -->
-  <link rel="canonical" href="https://authentic-girlswear.vercel.app/" />
+  <!-- ═══════════════════════════════════════════════════════════════════
+       WEBMASTER VERIFICATION
+       ────────────────────────────────────────────────────────────────
+       GOOGLE SEARCH CONSOLE
+         1. Go to https://search.google.com/search-console
+         2. Add property → URL prefix → https://girleyglow.vercel.app/
+         3. Choose "HTML tag" verification
+         4. Copy ONLY the content="..." value (not the whole tag)
+         5. Replace GOOGLE_VERIFICATION_TOKEN below with that value
+         6. Uncomment the line and deploy
+       ────────────────────────────────────────────────────────────────
+       BING WEBMASTER TOOLS
+         1. Go to https://www.bing.com/webmasters
+         2. Add site → https://girleyglow.vercel.app/
+         3. Choose "HTML Meta Tag" verification
+         4. Copy ONLY the content="..." value
+         5. Replace BING_VERIFICATION_TOKEN below with that value
+         6. Uncomment the line and deploy
+       ────────────────────────────────────────────────────────────────
+       YANDEX WEBMASTER (optional — if targeting Russian-speaking market)
+         Uncomment and fill in from https://webmaster.yandex.com
+  ═══════════════════════════════════════════════════════════════════ -->
+  <!-- <meta name="google-site-verification" content="GOOGLE_VERIFICATION_TOKEN" /> -->
+  <!-- <meta name="msvalidate.01"            content="BING_VERIFICATION_TOKEN" /> -->
+  <!-- <meta name="yandex-verification"      content="YANDEX_VERIFICATION_TOKEN" /> -->
 
-  <!--
-    ═══════════════════════════════════════════════════════════════════
-    FAVICONS & PWA ICONS
-    ═══════════════════════════════════════════════════════════════════
-  -->
+  <!-- ═══════════════════════════════════════════════════════════════════
+       CANONICAL URL
+       Points to the production domain. React Helmet overrides this
+       per-page for all inner routes.
+  ═══════════════════════════════════════════════════════════════════ -->
+  <link rel="canonical" href="https://girleyglow.vercel.app/" />
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       FAVICONS & PWA ICONS
+       Ordered from most-specific to fallback so browsers pick correctly:
+         favicon.svg      → modern browsers (scalable, supports dark mode)
+         favicon-96x96    → legacy PNG fallback
+         favicon.ico      → IE / very old browsers
+         apple-touch-icon → iOS home screen icon (180×180 preferred)
+         site.webmanifest → PWA manifest (install prompt, splash screen)
+  ═══════════════════════════════════════════════════════════════════ -->
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <link rel="apple-touch-icon" href="/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
+  <link rel="shortcut icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/site.webmanifest" />
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       PWA / MOBILE WEB APP META
+       apple-mobile-web-app-capable: enables standalone mode on iOS
+       apple-mobile-web-app-status-bar-style: "black-translucent" lets
+         the hero image bleed behind the iOS status bar for full-bleed look.
+       mobile-web-app-capable: Chrome on Android standalone mode.
+  ═══════════════════════════════════════════════════════════════════ -->
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="Girley Glow" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="GIrley GLow" />
+  <meta name="application-name" content="GIrley Glow" />
+  <!-- msapplication: Windows tile / Edge PWA install -->
+  <meta name="msapplication-TileColor" content="#B07D6B" />
+  <meta name="msapplication-config" content="none" />
 
-  <!--
-    ═══════════════════════════════════════════════════════════════════
-    OPEN GRAPH — FACEBOOK / WHATSAPP / LINKEDIN SHARING
-    Source: siteConfig.ts + brandingConfig.ts
-    og:locale:alternate added for Bengali market (WhatsApp previews).
-    og:image dimensions explicitly set for Facebook crawler compliance.
-    ═══════════════════════════════════════════════════════════════════
-  -->
+  <!-- ═══════════════════════════════════════════════════════════════════
+       OPEN GRAPH — FACEBOOK / WHATSAPP / LINKEDIN / MESSENGER
+       Static fallback. React Helmet provides per-page OG on navigation.
+  ═══════════════════════════════════════════════════════════════════ -->
   <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="Girley Glow" />
+  <meta property="og:site_name" content="GIrley Glow" />
   <meta property="og:locale" content="en_US" />
   <meta property="og:locale:alternate" content="bn_BD" />
-
-  <meta property="og:title" content="Girley Glow — Premium Women's Fashion in Bangladesh" />
+  <meta property="og:title" content="GIrley Glow — Premium Women's Fashion in Bangladesh" />
   <meta property="og:description"
-    content="Shop Girley Glow — Bangladesh's premium destination for push-up bras, maternity wear, shapewear, nightwear, and elegant western dresses. Fast delivery across Bangladesh." />
-  <meta property="og:url" content="https://authentic-girlswear.vercel.app/" />
-
-  <!-- OG Image: siteConfig.ts → ogImage (Cloudinary, 1200×630) -->
+    content="Shop GIrley GLow — Bangladesh's premium destination for push-up bras, maternity wear, shapewear, nightwear, and elegant western dresses. Fast delivery across Bangladesh." />
+  <meta property="og:url" content="https://girleyglow.vercel.app/" />
   <meta property="og:image"
     content="https://res.cloudinary.com/dss2bt2fu/image/upload/f_auto,q_auto,w_1200,h_630,c_fill/girlswear/og-banner.jpg" />
   <meta property="og:image:secure_url"
@@ -97,265 +131,286 @@
   <meta property="og:image:type" content="image/jpeg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
-  <meta property="og:image:alt" content="Girley Glow — Premium Women's Fashion in Bangladesh" />
+  <meta property="og:image:alt" content="GIrley Glow — Premium Women's Fashion in Bangladesh" />
 
-  <!--
-    ═══════════════════════════════════════════════════════════════════
-    TWITTER / X CARD
-    twitter:site / twitter:creator: fill in your @handle if you have one.
-    Large image card chosen for maximum visual impact in feed.
-    ═══════════════════════════════════════════════════════════════════
-  -->
+  <!-- ═══════════════════════════════════════════════════════════════════
+       TWITTER / X CARD
+       Uncomment twitter:site and twitter:creator when you have a handle.
+  ═══════════════════════════════════════════════════════════════════ -->
   <meta name="twitter:card" content="summary_large_image" />
-  <!-- <meta name="twitter:site" content="@YourTwitterHandle" /> -->
-  <!-- <meta name="twitter:creator" content="@YourTwitterHandle" /> -->
-  <meta name="twitter:title" content="Girley Glow — Premium Women's Fashion in Bangladesh" />
+  <!-- <meta name="twitter:site"    content="@AuthenticGirlswear" /> -->
+  <!-- <meta name="twitter:creator" content="@AuthenticGirlswear" /> -->
+  <meta name="twitter:title" content="GIrley GLow — Premium Women's Fashion in Bangladesh" />
   <meta name="twitter:description"
-    content="Shop Girley Glow — Bangladesh's premium destination for push-up bras, maternity wear, shapewear, nightwear, and elegant western dresses. Fast delivery across Bangladesh." />
+    content="Shop GIrley GLow — Bangladesh's premium destination for push-up bras, maternity wear, shapewear, nightwear, and elegant western dresses. Fast delivery across Bangladesh." />
   <meta name="twitter:image"
     content="https://res.cloudinary.com/dss2bt2fu/image/upload/f_auto,q_auto,w_1200,h_630,c_fill/girlswear/og-banner.jpg" />
-  <meta name="twitter:image:alt" content="Girley Glow — Premium Women's Fashion in Bangladesh" />
+  <meta name="twitter:image:alt" content="GIrley GLow — Premium Women's Fashion in Bangladesh" />
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       PERFORMANCE — RESOURCE HINTS
+       ────────────────────────────────────────────────────────────────
+       ORDER MATTERS: hints are processed top-to-bottom.
+       Put the most critical origins first.
+
+       preconnect  → opens TCP + TLS handshake immediately.
+                     Use for origins whose resources you will definitely
+                     download on first paint (Cloudinary, GTM, Pixel).
+                     Max 6 simultaneous — don't overuse.
+
+       dns-prefetch → resolves DNS only (cheaper than preconnect).
+                     Use for origins that are used later in the page
+                     lifecycle (Supabase, Sheets, analytics).
+
+       crossorigin attr on preconnect:
+         Required when the resource is fetched with CORS (fonts, scripts
+         from a CDN). Without it the browser opens TWO connections —
+         one anonymous, one with credentials — doubling TLS cost.
+  ═══════════════════════════════════════════════════════════════════ -->
 
   <!--
-    ═══════════════════════════════════════════════════════════════════
-    PERFORMANCE: RESOURCE HINTS
-    Open TCP+TLS+DNS to critical third-party origins BEFORE React boots
-    so the first image bytes fly in parallel with the JS download.
-    This dramatically improves LCP on mobile (Bangladesh 4G network).
-    ═══════════════════════════════════════════════════════════════════
+    TIER 1 — LCP CRITICAL
+    These origins serve content visible on first paint.
+    Open connections before the browser has even parsed the <body>.
   -->
 
-  <!-- Cloudinary: product images, OG image -->
+  <!-- Cloudinary: hero image, product images, OG image (LCP critical) -->
   <link rel="preconnect" href="https://res.cloudinary.com" crossorigin />
   <link rel="dns-prefetch" href="https://res.cloudinary.com" />
 
-  <!-- Facebook Pixel -->
+  <!-- Google Fonts: Cormorant Garamond + Inter
+       Add these when/if you load fonts from Google Fonts CDN.
+       They have zero cost if fonts are self-hosted (just remove them).
+       Two separate preconnects required: fonts.googleapis.com serves
+       the CSS, fonts.gstatic.com serves the actual font files.
+  -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+  <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+
+  <!--
+    FONT LOADING STRATEGY — Google Fonts with preload
+    display=swap: text renders in fallback immediately, swaps when font arrives.
+    Preloading the CSS prevents render-blocking font discovery.
+  -->
+  <link rel="preload" as="style"
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" />
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap"
+    media="print" onload="this.media='all'" />
+  <noscript>
+    <link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" />
+  </noscript>
+
+  <!--
+    TIER 2 — ANALYTICS (fires on/after first interaction)
+    These don't affect first paint but should resolve quickly.
+  -->
+
+  <!-- Facebook Pixel script host -->
   <link rel="preconnect" href="https://connect.facebook.net" crossorigin />
   <link rel="dns-prefetch" href="https://connect.facebook.net" />
+  <!-- Facebook events / CAPI endpoints -->
   <link rel="dns-prefetch" href="https://www.facebook.com" />
 
-  <!-- Google Tag Manager / Analytics -->
+  <!-- Google Tag Manager container + GA4 -->
   <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin />
   <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
   <link rel="dns-prefetch" href="https://www.google-analytics.com" />
-
-  <!-- Supabase API (auth, data fetching) -->
-  <link rel="dns-prefetch" href="https://supabase.co" />
+  <!-- GA4 regional data collection endpoint -->
+  <link rel="dns-prefetch" href="https://region1.google-analytics.com" />
 
   <!--
-    ═══════════════════════════════════════════════════════════════════
-    STRUCTURED DATA: Organization
-    Source: brandingConfig.ts + contactConfig.ts + siteConfig.ts
-    telephone:  contactConfig.ts → phone
-    sameAs:     brandingConfig.ts → facebookUrl
-    logo:       brandingConfig.ts → logoUrl (Cloudinary)
-    ═══════════════════════════════════════════════════════════════════
+    TIER 3 — DATA / API (used after React boots)
+    DNS only — these are hit after the page has hydrated.
   -->
+
+  <!-- Supabase: auth + database queries -->
+  <link rel="dns-prefetch" href="https://supabase.co" />
+  <!-- Your specific Supabase project subdomain (faster than the root) -->
+  <link rel="dns-prefetch" href="https://rhygsqbjrfxvlhsnaldr.supabase.co" />
+
+  <!-- Google Sheets webhook (order sync) -->
+  <link rel="dns-prefetch" href="https://script.google.com" />
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       STRUCTURED DATA: Organization
+       telephone uses contactConfig.ts → phone (support line, not payment).
+       sameAs includes both Facebook and Instagram for entity disambiguation.
+  ═══════════════════════════════════════════════════════════════════ -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "Organization",
-    "name": "Girley Glow",
-    "alternateName": "Authentic Girlswear",
-    "url": "https://authentic-girlswear.vercel.app/",
+    "@id": "https://girleyglow.vercel.app//#organization",
+    "name": "GIrley GLow",
+    "url": "https://girleyglow.vercel.app/",
     "logo": {
       "@type": "ImageObject",
       "url": "https://res.cloudinary.com/dss2bt2fu/image/upload/girlswear/logo.png",
-      "width": "512",
-      "height": "512"
+      "width": 512,
+      "height": 512
     },
     "image": "https://res.cloudinary.com/dss2bt2fu/image/upload/f_auto,q_auto,w_1200,h_630,c_fill/girlswear/og-banner.jpg",
-    "description": "Bangladesh's premium destination for women's western dresses and innerwear.",
+    "description": "Bangladesh's premium destination for women's western dresses, bras, innerwear, shapewear, nightwear, and maternity wear.",
+    "foundingDate": "2023",
+    "areaServed": {
+      "@type": "Country",
+      "name": "Bangladesh"
+    },
+    "priceRange": "৳৳",
     "sameAs": [
-      "https://www.facebook.com/authenticgirlswear"
+      "https://www.facebook.com/authenticgirlswear",
+      "https://www.instagram.com/auntheticgirlswear"
     ],
     "contactPoint": {
       "@type": "ContactPoint",
-      "telephone": "+8801623124760",
+      "telephone": "+880-1610-563060",
       "contactType": "customer service",
       "areaServed": "BD",
       "availableLanguage": ["Bengali", "English"]
     },
     "address": {
       "@type": "PostalAddress",
+      "streetAddress": "Kaderabad Housing, Road No 6",
+      "addressLocality": "Mohammadpur",
+      "addressRegion": "Dhaka",
       "addressCountry": "BD"
     }
   }
   </script>
 
-  <!--
-    ═══════════════════════════════════════════════════════════════════
-    STRUCTURED DATA: WebSite with SearchAction
-    Enables Google Sitelinks Search Box in SERPs.
-    Source: siteConfig.ts → siteUrl, siteName
-    ═══════════════════════════════════════════════════════════════════
-  -->
+  <!-- ═══════════════════════════════════════════════════════════════════
+       STRUCTURED DATA: WebSite with SearchAction
+       Enables the Google Sitelinks Search Box in SERPs.
+       urlTemplate must match the /search route in App.tsx.
+  ═══════════════════════════════════════════════════════════════════ -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    "name": "Girley Glow",
-    "alternateName": "Authentic Girlswear",
-    "url": "https://authentic-girlswear.vercel.app/",
+    "@id": "https://girleyglow.vercel.app/#website",
+    "name": "GIrley GLow",
+    "url": "https://girleyglow.vercel.app/",
     "inLanguage": ["en", "bn"],
+    "publisher": {
+      "@id": "https://girleyglow.vercel.app//#organization"
+    },
     "potentialAction": {
       "@type": "SearchAction",
       "target": {
         "@type": "EntryPoint",
-        "urlTemplate": "https://authentic-girlswear.vercel.app/search?q={search_term_string}"
+        "urlTemplate": "https://girleyglow.vercel.app//search?q={search_term_string}"
       },
       "query-input": "required name=search_term_string"
     }
   }
   </script>
 
-  <!--
-    ═══════════════════════════════════════════════════════════════════
-    STRUCTURED DATA: OnlineStore (BreadcrumbList stub for homepage)
-    Helps Google understand this is an e-commerce storefront.
-    ═══════════════════════════════════════════════════════════════════
-  -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebPage",
-    "@id": "https://authentic-girlswear.vercel.app/#webpage",
-    "url": "https://authentic-girlswear.vercel.app/",
-    "name": "Girley Glow — Premium Women's Fashion in Bangladesh",
-    "description": "Shop Girley Glow — Bangladesh's premium destination for push-up bras, maternity wear, shapewear, nightwear, and elegant western dresses.",
-    "isPartOf": {
-      "@type": "WebSite",
-      "url": "https://authentic-girlswear.vercel.app/"
-    },
-    "about": {
-      "@type": "Store",
-      "name": "Girley Glow",
-      "url": "https://authentic-girlswear.vercel.app/"
-    },
-    "breadcrumb": {
-      "@type": "BreadcrumbList",
-      "itemListElement": [
-        {
-          "@type": "ListItem",
-          "position": 1,
-          "name": "Home",
-          "item": "https://authentic-girlswear.vercel.app/"
-        }
-      ]
-    }
-  }
-  </script>
+  <!-- ═══════════════════════════════════════════════════════════════════
+       ANALYTICS — FACEBOOK PIXEL
+       ID: 517991158551582 (matches trackingConfig.ts → facebookPixelId)
 
-  <!--
-    ═══════════════════════════════════════════════════════════════════
-    ANALYTICS — FACEBOOK PIXEL
-    ID source: trackingConfig.ts → facebookPixelId ('517991158551582')
+       Uses `defer` so the Pixel script NEVER blocks the LCP paint.
+       The script creates window.fbq and queues events before the
+       fbevents.js bundle downloads — no events are lost.
 
-    Loaded with `defer` so it NEVER blocks the LCP paint.
-    ⚠ PageView is intentionally NOT fired here.
-       It is fired by <PixelTracker> in App.tsx on every route change,
-       which correctly handles SPA navigation (React Router).
-    ═══════════════════════════════════════════════════════════════════
-  -->
+       ⚠  PageView is intentionally NOT fired here.
+          PixelTracker in App.tsx fires it on every React Router
+          navigation, correctly handling SPA page changes.
+  ═══════════════════════════════════════════════════════════════════ -->
   <script defer>
     !function (f, b, e, v, n, t, s) {
       if (f.fbq) return;
-      n = f.fbq = function () {
-        n.callMethod
-          ? n.callMethod.apply(n, arguments)
-          : n.queue.push(arguments);
-      };
+      n = f.fbq = function () { n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments) };
       if (!f._fbq) f._fbq = n;
-      n.push = n;
-      n.loaded = true;
-      n.version = '2.0';
-      n.queue = [];
-      t = b.createElement(e);
-      t.async = true;
-      t.src = v;
-      s = b.getElementsByTagName(e)[0];
-      s.parentNode.insertBefore(t, s);
-    }(
-      window,
-      document,
-      'script',
-      'https://connect.facebook.net/en_US/fbevents.js'
-    );
-
-    /* trackingConfig.ts → facebookPixelId */
+      n.push = n; n.loaded = !0; n.version = '2.0'; n.queue = [];
+      t = b.createElement(e); t.async = !0; t.src = v;
+      s = b.getElementsByTagName(e)[0]; s.parentNode.insertBefore(t, s);
+    }(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
     fbq('init', '517991158551582');
-
-    /* PageView intentionally NOT fired here.
-       Handled by PixelTracker in App.tsx on every route change. */
+    /* PageView fired per-route by PixelTracker in App.tsx */
   </script>
 
-  <!--
-    ═══════════════════════════════════════════════════════════════════
-    ANALYTICS — GOOGLE TAG MANAGER
-    ID source: trackingConfig.ts → gtmId ('GTM-TWN3NF5S')
+  <!-- ═══════════════════════════════════════════════════════════════════
+       ANALYTICS — GOOGLE TAG MANAGER
+       ID: GTM-TWN3NF5S (matches trackingConfig.ts → gtmId)
 
-    Loaded with `defer` so it NEVER blocks the LCP paint.
-    The noscript iframe fallback is in <body> below.
-    ═══════════════════════════════════════════════════════════════════
-  -->
+       Uses `defer` so GTM NEVER blocks the LCP paint.
+       The dataLayer array is pre-created so push() calls before GTM
+       loads are queued and replayed once the container initialises.
+       noscript fallback iframe is in <body> below.
+  ═══════════════════════════════════════════════════════════════════ -->
   <script defer>
     (function (w, d, s, l, i) {
       w[l] = w[l] || [];
-      w[l].push({
-        'gtm.start': new Date().getTime(),
-        event: 'gtm.js'
-      });
+      w[l].push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
       var f = d.getElementsByTagName(s)[0],
         j = d.createElement(s),
-        dl = l !== 'dataLayer' ? '&l=' + l : '';
+        dl = l != 'dataLayer' ? '&l=' + l : '';
       j.async = true;
-      /* trackingConfig.ts → gtmId */
       j.src = 'https://www.googletagmanager.com/gtm.js?id=' + i + dl;
       f.parentNode.insertBefore(j, f);
     })(window, document, 'script', 'dataLayer', 'GTM-TWN3NF5S');
   </script>
 
-  <script type="module" crossorigin src="/assets/index-DvmiPSQo.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/vendor-react-vCJmeiA8.js">
-  <link rel="modulepreload" crossorigin href="/assets/vendor-misc-Ce5WMLOL.js">
-  <link rel="modulepreload" crossorigin href="/assets/vendor-helmet-BFrwUADI.js">
-  <link rel="modulepreload" crossorigin href="/assets/vendor-router-CZzRrDxu.js">
-  <link rel="modulepreload" crossorigin href="/assets/vendor-motion-jZOvX3kc.js">
-  <link rel="modulepreload" crossorigin href="/assets/vendor-icons-DBmNAQcB.js">
-  <link rel="modulepreload" crossorigin href="/assets/vendor-color-COAqDPEp.js">
-  <link rel="modulepreload" crossorigin href="/assets/vendor-zustand-50wwS1mr.js">
-  <link rel="modulepreload" crossorigin href="/assets/vendor-supabase-xjLS3DwE.js">
-  <link rel="modulepreload" crossorigin href="/assets/app-admin-FhNNlrb7.js">
-  <link rel="stylesheet" crossorigin href="/assets/css/index-CFNozy7S.css">
+  <script type="module" crossorigin src="/assets/index-DQo6mOlF.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/vendor-react-BTvygAcc.js">
+  <link rel="modulepreload" crossorigin href="/assets/vendor-misc-CHZdaO7o.js">
+  <link rel="modulepreload" crossorigin href="/assets/vendor-helmet-Cuk8pjQh.js">
+  <link rel="modulepreload" crossorigin href="/assets/vendor-router-Cu5BRNtu.js">
+  <link rel="modulepreload" crossorigin href="/assets/vendor-motion-wQ-EsFJC.js">
+  <link rel="modulepreload" crossorigin href="/assets/vendor-icons-CY78abzo.js">
+  <link rel="modulepreload" crossorigin href="/assets/vendor-color-4Ityweae.js">
+  <link rel="modulepreload" crossorigin href="/assets/vendor-zustand-Bcy-Q25q.js">
+  <link rel="modulepreload" crossorigin href="/assets/vendor-supabase-CntDPFoY.js">
+  <link rel="modulepreload" crossorigin href="/assets/app-admin-B80oUvLe.js">
+  <link rel="stylesheet" crossorigin href="/assets/css/index-Dm7fjKwb.css">
 </head>
 
 <body>
 
-  <!--
-    ═══════════════════════════════════════════════════════════════════
-    NO-SCRIPT FALLBACKS
-    Fires basic tracking for users with JavaScript disabled.
-    IDs match trackingConfig.ts values above.
-    ═══════════════════════════════════════════════════════════════════
-  -->
+  <!-- ═══════════════════════════════════════════════════════════════════
+       NO-SCRIPT FALLBACKS
+       Fires basic tracking for users / crawlers with JS disabled.
+       IDs match the inline scripts above.
+  ═══════════════════════════════════════════════════════════════════ -->
 
-  <!-- GTM noscript: trackingConfig.ts → gtmId -->
+  <!-- GTM noscript iframe (must be first element inside <body>) -->
   <noscript>
     <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-TWN3NF5S" height="0" width="0"
-      style="display:none;visibility:hidden" title="Google Tag Manager">
+      style="display:none;visibility:hidden" title="Google Tag Manager" aria-hidden="true">
     </iframe>
   </noscript>
 
-  <!-- Facebook Pixel noscript: trackingConfig.ts → facebookPixelId -->
+  <!-- Facebook Pixel noscript image pixel -->
   <noscript>
     <img height="1" width="1" style="display:none"
-      src="https://www.facebook.com/tr?id=517991158551582&ev=PageView&noscript=1" alt="" />
+      src="https://www.facebook.com/tr?id=517991158551582&ev=PageView&noscript=1" alt="" aria-hidden="true" />
   </noscript>
 
-  <!-- React root -->
-  <div id="root"></div>
+  <!-- ═══════════════════════════════════════════════════════════════════
+       REACT ROOT
+       id="root" is the mount point for createRoot() in main.tsx.
+       The noscript message is shown to search engines / users without JS.
+  ═══════════════════════════════════════════════════════════════════ -->
+  <div id="root">
+    <noscript>
+      <div
+        style="display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:system-ui,sans-serif;text-align:center;padding:2rem;">
+        <div>
+          <h1 style="font-size:1.5rem;margin-bottom:1rem;color:#B07D6B;">GIrley GLow</h1>
+          <p style="color:#6B5B55;">Please enable JavaScript to use this website.</p>
+          <p style="margin-top:0.5rem;"><a href="https://www.facebook.com/authenticgirlswear"
+              style="color:#B07D6B;">Visit us on Facebook</a></p>
+        </div>
+      </div>
+    </noscript>
+  </div>
 
-  <!-- App entry point -->
+  <!-- App entry point — Vite injects the hashed bundle URLs at build time -->
 
 </body>
 

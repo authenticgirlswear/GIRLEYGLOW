@@ -13,6 +13,7 @@ import { ArrowRight, ArrowLeft, ShoppingBag, Star, Sparkles } from 'lucide-react
 import { FadeIn, SectionHeader, PriceDisplay, Badge, StarRating, Button } from '@/components/ui';
 import { useProductStore } from '@/store';
 import { useContentStore } from '@/store/contentStore';
+import { getOptimizedImageUrl, getResponsiveSrcSet } from '@/lib/cloudinary';
 import type { Product } from '@/types';
 
 // ==========================================
@@ -386,9 +387,15 @@ export const NewArrivals: React.FC = () => {
                   <div className="relative rounded-2xl overflow-hidden aspect-[3/4] bg-blush-light/30">
                     {product.images?.[0]?.startsWith('http') ? (
                       <img
-                        src={product.images[0]}
+                        src={getOptimizedImageUrl(product.images[0], { width: 560 })}
+                        srcSet={getResponsiveSrcSet(product.images[0], { widths: [280, 420, 560] })}
+                        sizes="280px"
                         alt={product.name}
                         loading={idx < 6 ? 'eager' : 'lazy'}
+                        decoding={idx < 6 ? 'sync' : 'async'}
+                        fetchPriority={idx < 3 ? 'high' : 'auto'}
+                        width={280}
+                        height={373}
                         className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                       />
                     ) : (
@@ -464,16 +471,25 @@ export const BannerSlider: React.FC = () => {
               exit={{ opacity: 0, x: -100 }}
               transition={{ duration: 0.6, ease: 'easeInOut' }}
               className="absolute inset-0 flex items-center"
-              style={
-                banner.imageUrl
-                  ? {
-                    backgroundImage: `url(${banner.imageUrl})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                  }
-                  : { background: banner.gradient }
-              }
+              style={!banner.imageUrl ? { background: banner.gradient } : undefined}
             >
+              {/* Real <img> for LCP — invisible to preload scanner when used as CSS background */}
+              {banner.imageUrl && (
+                <img
+                  src={getOptimizedImageUrl(banner.imageUrl, { width: 1280 })}
+                  srcSet={getResponsiveSrcSet(banner.imageUrl, { widths: [640, 960, 1280, 1920] })}
+                  sizes="(max-width: 768px) 100vw, (max-width: 1280px) 90vw, 1280px"
+                  alt=""
+                  aria-hidden="true"
+                  loading={current === 0 ? 'eager' : 'lazy'}
+                  fetchPriority={current === 0 ? 'high' : 'low'}
+                  decoding={current === 0 ? 'sync' : 'async'}
+                  width={1280}
+                  height={512}
+                  className="absolute inset-0 w-full h-full object-cover object-center"
+                />
+              )}
+
               {/* Dark overlay for text readability when image is used */}
               {banner.imageUrl && <div className="absolute inset-0 bg-black/30" />}
 
@@ -603,8 +619,14 @@ export const CategoryShowcase: React.FC = () => {
                   >
                     {category.image && (
                       <img
-                        src={category.image}
+                        src={getOptimizedImageUrl(category.image, { width: 520 })}
+                        srcSet={getResponsiveSrcSet(category.image, { widths: [260, 390, 520] })}
+                        sizes="260px"
                         alt={category.name}
+                        loading="lazy"
+                        decoding="async"
+                        width={260}
+                        height={347}
                         className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                       />
                     )}
@@ -846,9 +868,15 @@ export const TrendingProducts: React.FC = () => {
                   <div className="relative rounded-2xl overflow-hidden aspect-[3/4] bg-blush-light/30">
                     {product.images?.[0]?.startsWith('http') ? (
                       <img
-                        src={product.images[0]}
+                        src={getOptimizedImageUrl(product.images[0], { width: 560 })}
+                        srcSet={getResponsiveSrcSet(product.images[0], { widths: [280, 420, 560] })}
+                        sizes="280px"
                         alt={product.name}
                         loading={idx < 6 ? 'eager' : 'lazy'}
+                        decoding={idx < 6 ? 'sync' : 'async'}
+                        fetchPriority={idx < 3 ? 'high' : 'auto'}
+                        width={280}
+                        height={373}
                         className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                       />
                     ) : (
@@ -1206,9 +1234,14 @@ export const FeaturedCollection: React.FC = () => {
                   <div className="relative rounded-2xl overflow-hidden aspect-[3/4] bg-blush-light/30">
                     {product.images?.[0]?.startsWith('http') ? (
                       <img
-                        src={product.images[0]}
+                        src={getOptimizedImageUrl(product.images[0], { width: 560 })}
+                        srcSet={getResponsiveSrcSet(product.images[0], { widths: [280, 420, 560] })}
+                        sizes="280px"
                         alt={product.name}
                         loading={idx < 6 ? 'eager' : 'lazy'}
+                        decoding={idx < 6 ? 'sync' : 'async'}
+                        width={280}
+                        height={373}
                         className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                       />
                     ) : (

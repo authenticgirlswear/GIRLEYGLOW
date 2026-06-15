@@ -23,15 +23,30 @@ import { useLoadingStore } from '@/store/useLoadingStore';
 import { FullScreenLoader } from '@/components/ui/FullScreenLoader';
 import { supabase } from '@/lib/supabase';
 
-// Customer pages — eager (needed for first paint)
+// Customer pages — Home is eager (LCP critical), rest are lazy
 import { HomePage } from '@/pages/Home';
-import { ShopPage } from '@/pages/Shop';
-import { ProductDetailPage } from '@/pages/ProductDetail';
-import { CartPage } from '@/pages/Cart';
-import { CheckoutPage } from '@/pages/Checkout';
-import { SearchPage } from '@/pages/Search';
-import { CategoryPage } from '@/pages/CategoryPage';
-import { NotFoundPage } from '@/pages/NotFound';
+
+const ShopPage = lazy(() =>
+  import('@/pages/Shop').then((m) => ({ default: m.ShopPage })),
+);
+const ProductDetailPage = lazy(() =>
+  import('@/pages/ProductDetail').then((m) => ({ default: m.ProductDetailPage })),
+);
+const CartPage = lazy(() =>
+  import('@/pages/Cart').then((m) => ({ default: m.CartPage })),
+);
+const CheckoutPage = lazy(() =>
+  import('@/pages/Checkout').then((m) => ({ default: m.CheckoutPage })),
+);
+const SearchPage = lazy(() =>
+  import('@/pages/Search').then((m) => ({ default: m.SearchPage })),
+);
+const CategoryPage = lazy(() =>
+  import('@/pages/CategoryPage').then((m) => ({ default: m.CategoryPage })),
+);
+const NotFoundPage = lazy(() =>
+  import('@/pages/NotFound').then((m) => ({ default: m.NotFoundPage })),
+);
 
 // Admin pages — lazy loaded (shoppers never download these)
 import { AdminLoginPage } from '@/pages/admin/AdminLogin';
@@ -65,13 +80,16 @@ const AdminReports = lazy(() =>
 
 import { trackPageView } from '@/lib/facebookPixel';
 
-// ─── Admin lazy-load fallback ─────────────────────────────────────────────────
+// ─── Lazy-load fallback (shared for admin + customer secondary pages) ─────────
 
-const AdminFallback = () => (
+const PageFallback = () => (
   <div className="flex items-center justify-center min-h-[60vh]">
     <p className="text-[#6B5B55] text-sm animate-pulse">Loading...</p>
   </div>
 );
+
+// Keep alias for clarity in admin routes
+const AdminFallback = PageFallback;
 
 // ─── Facebook Pixel tracker ───────────────────────────────────────────────────
 
@@ -85,18 +103,14 @@ function PixelTracker() {
   return null;
 }
 
-// ─── Scroll to top + route-change loader ─────────────────────────────────────
+// ─── Scroll to top on route change ───────────────────────────────────────────
 
 const ScrollToTop: React.FC = () => {
   const { pathname, search } = useLocation();
-  const setLoading = useLoadingStore((s) => s.setLoading);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
-    setLoading(true, 50, 'Preparing View...');
-    const timer = setTimeout(() => setLoading(false), 300);
-    return () => clearTimeout(timer);
-  }, [pathname, search, setLoading]);
+  }, [pathname, search]);
 
   return null;
 };
@@ -186,14 +200,35 @@ const App: React.FC = () => {
         {/* Customer routes */}
         <Route element={<CustomerLayout />}>
           <Route path="/" element={<HomePage />} />
-          <Route path="/shop" element={<ShopPage />} />
-          <Route path="/product/:slug" element={<ProductDetailPage />} />
-          <Route path="/cart" element={<CartPage />} />
-          <Route path="/checkout" element={<CheckoutPage />} />
-          <Route path="/search" element={<SearchPage />} />
-          <Route path="/category/:slug" element={<CategoryPage />} />
+          <Route
+            path="/shop"
+            element={<Suspense fallback={<PageFallback />}><ShopPage /></Suspense>}
+          />
+          <Route
+            path="/product/:slug"
+            element={<Suspense fallback={<PageFallback />}><ProductDetailPage /></Suspense>}
+          />
+          <Route
+            path="/cart"
+            element={<Suspense fallback={<PageFallback />}><CartPage /></Suspense>}
+          />
+          <Route
+            path="/checkout"
+            element={<Suspense fallback={<PageFallback />}><CheckoutPage /></Suspense>}
+          />
+          <Route
+            path="/search"
+            element={<Suspense fallback={<PageFallback />}><SearchPage /></Suspense>}
+          />
+          <Route
+            path="/category/:slug"
+            element={<Suspense fallback={<PageFallback />}><CategoryPage /></Suspense>}
+          />
           <Route path="/sale" element={<Navigate to="/shop?sale=true" replace />} />
-          <Route path="/404" element={<NotFoundPage />} />
+          <Route
+            path="/404"
+            element={<Suspense fallback={<PageFallback />}><NotFoundPage /></Suspense>}
+          />
         </Route>
 
         {/* Admin login (public) */}

@@ -21,17 +21,29 @@ import { trackViewContent } from '../lib/facebookPixel';
 import { siteConfig, SITE } from '@/config/siteConfig';
 import { BRAND } from '@/config/brandingConfig';
 
-// ─── Color libraries ──────────────────────────────────────────────────────────
-import { colornames as _colorNameList } from 'color-name-list';
-import nearestColor from 'nearest-color';
+// ─── Color libraries — lazy loaded to avoid blocking main bundle ─────────────
+// These are resolved asynchronously the first time a color needs to be looked up.
+// On first call they import the heavy libs; subsequent calls use the module cache.
 
-const _nameToHex: Record<string, string> = {};
-const _nearestMap: Record<string, string> = {};
-_colorNameList.forEach((c: { name: string; hex: string }) => {
-  _nameToHex[c.name.toLowerCase()] = c.hex;
-  _nearestMap[c.name] = c.hex;
-});
-const _getNearestColor = nearestColor.from(_nearestMap);
+let _colorLibLoaded = false;
+let _nameToHex: Record<string, string> = {};
+let _getNearestColor: ((name: string) => { value: string } | null) | null = null;
+
+async function loadColorLibs() {
+  if (_colorLibLoaded) return;
+  const [{ colornames }, nearestColorMod] = await Promise.all([
+    import('color-name-list'),
+    import('nearest-color'),
+  ]);
+  const nearestColor = nearestColorMod.default ?? nearestColorMod;
+  const nearestMap: Record<string, string> = {};
+  colornames.forEach((c: { name: string; hex: string }) => {
+    _nameToHex[c.name.toLowerCase()] = c.hex;
+    nearestMap[c.name] = c.hex;
+  });
+  _getNearestColor = nearestColor.from(nearestMap);
+  _colorLibLoaded = true;
+}
 
 const _SIMPLE: Record<string, string> = {
   'white': '#FFFFFF', 'off white': '#FAF9F6', 'cream': '#FFFDD0',
@@ -77,11 +89,14 @@ const resolveColor = (() => {
     if (hex) { cache[key] = hex; return hex; }
     if (trimmed.startsWith('linear-gradient')) { cache[key] = trimmed; return trimmed; }
     if (_SIMPLE[key]) { cache[key] = _SIMPLE[key]; return _SIMPLE[key]; }
+    // Use color-name-list if already loaded (loaded async on mount)
     if (_nameToHex[key]) { cache[key] = _nameToHex[key]; return _nameToHex[key]; }
-    try {
-      const result = _getNearestColor(key) as any;
-      if (result?.value) { cache[key] = result.value; return result.value; }
-    } catch { /* skip */ }
+    if (_getNearestColor) {
+      try {
+        const result = _getNearestColor(key) as any;
+        if (result?.value) { cache[key] = result.value; return result.value; }
+      } catch { /* skip */ }
+    }
     try {
       const canvas = document.createElement('canvas');
       canvas.width = 1; canvas.height = 1;
@@ -185,6 +200,11 @@ export const ProductDetailPage: React.FC = () => {
   const [showStickyCart, setShowStickyCart] = useState(false);
 
   const thumbsRef = useRef<HTMLDivElement>(null);
+
+  // ── Preload color libs asynchronously after mount (non-blocking) ───────────
+  useEffect(() => {
+    loadColorLibs().catch(() => {/* color lib failed — fallback colors still work */ });
+  }, []);
 
   // ── Sticky cart visibility on scroll ──────────────────────────────────────
   useEffect(() => {
@@ -680,8 +700,8 @@ export const ProductDetailPage: React.FC = () => {
                           aria-label={`View image ${i + 1} of ${product.images.length}`}
                           aria-pressed={i === selectedImage}
                           className={`flex-shrink-0 w-[72px] h-[86px] rounded-xl overflow-hidden bg-blush-light/30 transition-all duration-200 ${i === selectedImage
-                              ? 'ring-2 ring-rose-gold ring-offset-2'
-                              : 'opacity-60 hover:opacity-100'
+                            ? 'ring-2 ring-rose-gold ring-offset-2'
+                            : 'opacity-60 hover:opacity-100'
                             }`}
                         >
                           {img.startsWith('http') ? (
@@ -710,8 +730,8 @@ export const ProductDetailPage: React.FC = () => {
                           aria-label="View product video"
                           aria-pressed={selectedImage === -1}
                           className={`flex-shrink-0 w-[72px] h-[86px] rounded-xl overflow-hidden bg-blush-light/30 transition-all duration-200 relative ${selectedImage === -1
-                              ? 'ring-2 ring-rose-gold ring-offset-2'
-                              : 'opacity-60 hover:opacity-100'
+                            ? 'ring-2 ring-rose-gold ring-offset-2'
+                            : 'opacity-60 hover:opacity-100'
                             }`}
                         >
                           <video
@@ -780,8 +800,8 @@ export const ProductDetailPage: React.FC = () => {
                           key={i}
                           aria-hidden="true"
                           className={`w-4 h-4 ${i < Math.floor(product.rating)
-                              ? 'fill-yellow-400 text-yellow-400'
-                              : 'text-gray-300'
+                            ? 'fill-yellow-400 text-yellow-400'
+                            : 'text-gray-300'
                             }`}
                         />
                       ))}
@@ -817,8 +837,8 @@ export const ProductDetailPage: React.FC = () => {
                   <div
                     role="alert"
                     className={`flex items-center gap-2 p-3 rounded-lg mb-4 ${stockInfo.color === 'orange'
-                        ? 'bg-orange-50 border border-orange-200'
-                        : 'bg-red-50 border border-red-200'
+                      ? 'bg-orange-50 border border-orange-200'
+                      : 'bg-red-50 border border-red-200'
                       }`}
                   >
                     <AlertCircle
@@ -927,8 +947,8 @@ export const ProductDetailPage: React.FC = () => {
                           aria-label={`Size ${size}${selectedSize === size ? ' (selected)' : ''}`}
                           aria-pressed={selectedSize === size}
                           className={`min-w-[70px] h-9 px-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${selectedSize === size
-                              ? 'bg-rose-gold text-white shadow-md'
-                              : 'bg-blush-light/50 text-[#6B5B55] hover:bg-blush-light'
+                            ? 'bg-rose-gold text-white shadow-md'
+                            : 'bg-blush-light/50 text-[#6B5B55] hover:bg-blush-light'
                             }`}
                         >
                           {size}

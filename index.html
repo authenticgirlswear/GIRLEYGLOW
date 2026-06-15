@@ -190,12 +190,10 @@
   <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
 
   <!--
-    FONT LOADING STRATEGY (OPTIONAL — uncomment if using Google Fonts)
-    display=swap: text renders in a fallback font immediately, swaps to
-    the web font when it arrives — prevents invisible text (FOIT).
-    Uncomment these two lines and remove any @import from index.css:
+    FONT LOADING STRATEGY — Google Fonts with preload
+    display=swap: text renders in fallback immediately, swaps when font arrives.
+    Preloading the CSS prevents render-blocking font discovery.
   -->
-  <!--
   <link rel="preload" as="style"
     href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" />
   <link rel="stylesheet"
@@ -205,7 +203,6 @@
     <link rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" />
   </noscript>
-  -->
 
   <!--
     TIER 2 — ANALYTICS (fires on/after first interaction)

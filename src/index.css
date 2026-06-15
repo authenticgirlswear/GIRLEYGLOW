@@ -96,6 +96,26 @@ body {
   color: #2D2D2D;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Prevent horizontal overflow from carousels on mobile */
+  overflow-x: hidden;
+}
+
+/* ===== Font face — Inter (system fallback chain prevents FOUT) ===== */
+/* If you self-host Inter, declare @font-face blocks here with font-display: swap */
+
+/* ===== Layout Containment — prevents carousels from causing full-page repaints ===== */
+section {
+  contain: layout style;
+}
+
+/* ===== Scrollbar hide utility ===== */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
 /* ===== Scrollbar ===== */
@@ -189,6 +209,20 @@ body {
       #FADBD8 100%);
   background-size: 400% 400%;
   animation: gradientShift 15s ease infinite;
+}
+
+/* Stop decorative animations for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .hero-gradient {
+    animation: none;
+    background-size: 100% 100%;
+  }
+
+  .load,
+  .load::before,
+  .loader-text {
+    animation: none;
+  }
 }
 
 @keyframes gradientShift {
