@@ -1,8 +1,9 @@
 User-agent: *
 Allow: /
+
 Disallow: /admin
 Disallow: /admin/
 Disallow: /cart
 Disallow: /checkout
 
-Sitemap: https://girleyglow.vercel.app//sitemap.xml
+Sitemap: https://girleyglow.vercel.app/sitemap.xml

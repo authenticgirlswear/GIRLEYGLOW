@@ -13,7 +13,7 @@ export const SITE = {
     facebook: 'https://www.facebook.com/authenticgirlswear',
 
     /** SEO / meta */
-    domain: 'https://girleyglow.vercel.app/',
+    domain: 'https://girleyglow.vercel.app',
     defaultTitle: 'GIrley GLow - Luxury Feminine Fashion',
     defaultDescription: 'Discover luxury feminine fashion at GIrley GLow. Dresses, tops, accessories and more — crafted for the modern woman.',
     keywords: [
