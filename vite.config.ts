@@ -2,7 +2,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
+import { defineConfig, } from "vite";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -31,10 +31,9 @@ export default defineConfig({
 
   // ─── Build ─────────────────────────────────────────────────────────────────
   build: {
-    // Target modern browsers only — eliminates legacy JS polyfills (saves ~13 KiB).
-    // Lighthouse "Legacy JavaScript" warning is caused by targeting old browsers.
-    // Bangladesh mobile market is Chrome-heavy; Chrome 90+ covers 98%+ of users.
-    target: ["es2022", "chrome90", "firefox90", "safari15"],
+    // Target modern browsers only — Bangladesh mobile market is Chrome-heavy.
+    // Avoids legacy polyfill bloat; aligns with your browserslist config.
+    target: ["es2020", "chrome80", "firefox78", "safari14"],
 
     // Raise the warning threshold slightly — Framer Motion is legitimately large.
     // Below 600 kB per chunk is still healthy with code splitting in place.
@@ -97,21 +96,16 @@ export default defineConfig({
           }
 
           // ── Utility libs — clsx, tailwind-merge, nanoid, cookie ──────────────
-          // These are small and often tree-shaken to near-zero; let them stay
-          // in the main bundle for better HTTP/2 utilization.
-          // if (
-          //   id.includes("node_modules/clsx") ||
-          //   id.includes("node_modules/tailwind-merge") ||
-          //   id.includes("node_modules/nanoid") ||
-          //   id.includes("node_modules/cookie")
-          // ) {
-          //   return "vendor-utils";
-          // }
+          if (
+            id.includes("node_modules/clsx") ||
+            id.includes("node_modules/tailwind-merge") ||
+            id.includes("node_modules/nanoid") ||
+            id.includes("node_modules/cookie")
+          ) {
+            return "vendor-utils";
+          }
 
           // ── Color utilities — color-name-list + nearest-color ─────────────────
-          // These are large (1MB+). Route them to their own chunk so they don't
-          // bloat vendor-misc. NOTE: if unused they still appear because they
-          // are listed as dependencies — remove from package.json to eliminate.
           if (
             id.includes("node_modules/color-name-list") ||
             id.includes("node_modules/nearest-color")
@@ -171,20 +165,8 @@ export default defineConfig({
     // so they're only accessible to your error-monitoring tool, not end users.
     sourcemap: "hidden",
 
-    // Minify with esbuild — fastest option with good tree-shaking
+    // Minify with esbuild (Vite default) — fastest option, no config needed.
     minify: "esbuild",
-
-    // Remove console.log/debugger from production builds to shrink JS payload
-    // and prevent information leakage to end users.
-    // Note: console.error/warn are kept for error monitoring tools.
-  },
-
-  // ─── esbuild transform options ────────────────────────────────────────────
-  esbuild: {
-    // Drop console.log and debugger statements in production
-    drop: process.env.NODE_ENV === "production" ? ["console", "debugger"] : [],
-    // Slightly better compression than default
-    legalComments: "none",
   },
 
   // ─── Dev server ────────────────────────────────────────────────────────────

@@ -91,18 +91,18 @@ function Root() {
     let isMounted = true;
 
     const initApp = async () => {
-      // Show the page shell immediately — Navbar, Hero skeleton, etc. render at once.
-      // Data loads in the background and sections populate as they arrive.
-      // This makes FCP instant on slow mobile connections.
-      setLoading(true, 20, 'Loading...');
+      setLoading(true, 20, 'Connecting to Database...');
       try {
         await Promise.all([loadContent(), loadCategories()]);
         if (isMounted) {
-          // No artificial delay — dismiss loader as soon as data is ready
+          setLoading(true, 85, 'Optimizing Assets...');
+          // Small delay so the loader doesn't flash for instant connections
+          await new Promise((resolve) => setTimeout(resolve, 150));
           setLoading(false, 100, 'Ready');
         }
       } catch (error) {
-        if (isMounted) setLoading(false);
+        console.error('Failed to initialize app:', error);
+        setLoading(false);
       }
     };
 
@@ -112,6 +112,17 @@ function Root() {
       isMounted = false;
     };
   }, [loadContent, loadCategories, setLoading]);
+
+  // Dev-only console branding
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      console.log(
+        `%c🌸 ${siteConfig.websiteName} %c v1.0.0 `,
+        'background: linear-gradient(135deg, #B07D6B 0%, #D4A59A 100%); color: white; padding: 8px 16px; border-radius: 4px 0 0 4px; font-weight: bold; font-size: 14px;',
+        'background: #f5f5f5; color: #333; padding: 8px 16px; border-radius: 0 4px 4px 0; font-size: 14px;',
+      );
+    }
+  }, []);
 
   return (
     <HelmetProvider>

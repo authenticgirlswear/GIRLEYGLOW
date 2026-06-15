@@ -2,49 +2,120 @@
 <html lang="en-BD">
 
 <head>
+  <!-- ═══════════════════════════════════════════════════════════════════
+       ENCODING & VIEWPORT
+       viewport-fit=cover: fills the iPhone notch / Dynamic Island area
+       so the hero image extends edge-to-edge on notched devices.
+  ═══════════════════════════════════════════════════════════════════ -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
-  <!-- Theme color -->
+  <!-- ═══════════════════════════════════════════════════════════════════
+       THEME & COLOR SCHEME
+       theme-color: matches brandingConfig.ts → primaryLight (#F5E6DC)
+       Dual theme-color: light mode warm blush, dark mode dark rose.
+       media attribute lets Chrome 93+ pick the right one automatically.
+  ═══════════════════════════════════════════════════════════════════ -->
   <meta name="theme-color" content="#F5E6DC" media="(prefers-color-scheme: light)" />
   <meta name="theme-color" content="#2C2C2C" media="(prefers-color-scheme: dark)" />
   <meta name="color-scheme" content="light" />
   <meta name="google-site-verification" content="S_qDJr2t5ntRG4FAH_n9NqEUkde824Aea7M7hoVuSFk" />
-
-  <!-- Crawl directives -->
+  <!-- ═══════════════════════════════════════════════════════════════════
+       CRAWL DIRECTIVES
+       Static fallback — React Helmet overrides these per-page.
+       max-image-preview:large is critical for Google Discover & Shopping.
+  ═══════════════════════════════════════════════════════════════════ -->
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
   <meta name="googlebot" content="index, follow, max-image-preview:large" />
   <meta name="bingbot" content="index, follow" />
 
-  <!-- Primary SEO meta -->
+  <!-- ═══════════════════════════════════════════════════════════════════
+       PRIMARY SEO META
+       Brand name is "GIrley GLow" throughout (matches siteConfig.ts).
+       React Helmet overwrites title + description on every page navigation.
+       These are the STATIC fallback values shown before React hydrates
+       and when JavaScript is disabled (Googlebot, social crawlers).
+  ═══════════════════════════════════════════════════════════════════ -->
   <title>GIrley GLow — Premium Women's Fashion in Bangladesh</title>
+
   <meta name="description"
     content="Shop GIrley GLow — Bangladesh's premium destination for push-up bras, maternity wear, shapewear, nightwear, couple nightwear, and elegant western dresses. Fast delivery across Bangladesh." />
+
   <meta name="keywords"
     content="women's fashion Bangladesh, push-up bra, maternity wear, shapewear, nightwear, western dresses, innerwear, bra, panties, lingerie, Girley Glow, GIrley GLow" />
+
   <meta name="author" content="GIrley Glow" />
+  <meta name="copyright" content="GIrley Glow" />
   <meta name="language" content="English, Bengali" />
 
-  <!-- Canonical -->
+  <!-- ═══════════════════════════════════════════════════════════════════
+       WEBMASTER VERIFICATION
+       ────────────────────────────────────────────────────────────────
+       GOOGLE SEARCH CONSOLE
+         1. Go to https://search.google.com/search-console
+         2. Add property → URL prefix → https://girleyglow.vercel.app/
+         3. Choose "HTML tag" verification
+         4. Copy ONLY the content="..." value (not the whole tag)
+         5. Replace GOOGLE_VERIFICATION_TOKEN below with that value
+         6. Uncomment the line and deploy
+       ────────────────────────────────────────────────────────────────
+       BING WEBMASTER TOOLS
+         1. Go to https://www.bing.com/webmasters
+         2. Add site → https://girleyglow.vercel.app/
+         3. Choose "HTML Meta Tag" verification
+         4. Copy ONLY the content="..." value
+         5. Replace BING_VERIFICATION_TOKEN below with that value
+         6. Uncomment the line and deploy
+       ────────────────────────────────────────────────────────────────
+       YANDEX WEBMASTER (optional — if targeting Russian-speaking market)
+         Uncomment and fill in from https://webmaster.yandex.com
+  ═══════════════════════════════════════════════════════════════════ -->
+  <!-- <meta name="google-site-verification" content="GOOGLE_VERIFICATION_TOKEN" /> -->
+  <!-- <meta name="msvalidate.01"            content="BING_VERIFICATION_TOKEN" /> -->
+  <!-- <meta name="yandex-verification"      content="YANDEX_VERIFICATION_TOKEN" /> -->
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       CANONICAL URL
+       Points to the production domain. React Helmet overrides this
+       per-page for all inner routes.
+  ═══════════════════════════════════════════════════════════════════ -->
   <link rel="canonical" href="https://girleyglow.vercel.app/" />
 
-  <!-- Favicons -->
+  <!-- ═══════════════════════════════════════════════════════════════════
+       FAVICONS & PWA ICONS
+       Ordered from most-specific to fallback so browsers pick correctly:
+         favicon.svg      → modern browsers (scalable, supports dark mode)
+         favicon-96x96    → legacy PNG fallback
+         favicon.ico      → IE / very old browsers
+         apple-touch-icon → iOS home screen icon (180×180 preferred)
+         site.webmanifest → PWA manifest (install prompt, splash screen)
+  ═══════════════════════════════════════════════════════════════════ -->
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
   <link rel="shortcut icon" href="/favicon.ico" />
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
 
-  <!-- PWA meta -->
+  <!-- ═══════════════════════════════════════════════════════════════════
+       PWA / MOBILE WEB APP META
+       apple-mobile-web-app-capable: enables standalone mode on iOS
+       apple-mobile-web-app-status-bar-style: "black-translucent" lets
+         the hero image bleed behind the iOS status bar for full-bleed look.
+       mobile-web-app-capable: Chrome on Android standalone mode.
+  ═══════════════════════════════════════════════════════════════════ -->
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="GIrley GLow" />
   <meta name="application-name" content="GIrley Glow" />
+  <!-- msapplication: Windows tile / Edge PWA install -->
   <meta name="msapplication-TileColor" content="#B07D6B" />
   <meta name="msapplication-config" content="none" />
 
-  <!-- Open Graph -->
+  <!-- ═══════════════════════════════════════════════════════════════════
+       OPEN GRAPH — FACEBOOK / WHATSAPP / LINKEDIN / MESSENGER
+       Static fallback. React Helmet provides per-page OG on navigation.
+  ═══════════════════════════════════════════════════════════════════ -->
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="GIrley Glow" />
   <meta property="og:locale" content="en_US" />
@@ -62,8 +133,13 @@
   <meta property="og:image:height" content="630" />
   <meta property="og:image:alt" content="GIrley Glow — Premium Women's Fashion in Bangladesh" />
 
-  <!-- Twitter Card -->
+  <!-- ═══════════════════════════════════════════════════════════════════
+       TWITTER / X CARD
+       Uncomment twitter:site and twitter:creator when you have a handle.
+  ═══════════════════════════════════════════════════════════════════ -->
   <meta name="twitter:card" content="summary_large_image" />
+  <!-- <meta name="twitter:site"    content="@AuthenticGirlswear" /> -->
+  <!-- <meta name="twitter:creator" content="@AuthenticGirlswear" /> -->
   <meta name="twitter:title" content="GIrley GLow — Premium Women's Fashion in Bangladesh" />
   <meta name="twitter:description"
     content="Shop GIrley GLow — Bangladesh's premium destination for push-up bras, maternity wear, shapewear, nightwear, and elegant western dresses. Fast delivery across Bangladesh." />
@@ -71,52 +147,107 @@
     content="https://res.cloudinary.com/dss2bt2fu/image/upload/f_auto,q_auto,w_1200,h_630,c_fill/girlswear/og-banner.jpg" />
   <meta name="twitter:image:alt" content="GIrley GLow — Premium Women's Fashion in Bangladesh" />
 
+  <!-- ═══════════════════════════════════════════════════════════════════
+       PERFORMANCE — RESOURCE HINTS
+       ────────────────────────────────────────────────────────────────
+       ORDER MATTERS: hints are processed top-to-bottom.
+       Put the most critical origins first.
+
+       preconnect  → opens TCP + TLS handshake immediately.
+                     Use for origins whose resources you will definitely
+                     download on first paint (Cloudinary, GTM, Pixel).
+                     Max 6 simultaneous — don't overuse.
+
+       dns-prefetch → resolves DNS only (cheaper than preconnect).
+                     Use for origins that are used later in the page
+                     lifecycle (Supabase, Sheets, analytics).
+
+       crossorigin attr on preconnect:
+         Required when the resource is fetched with CORS (fonts, scripts
+         from a CDN). Without it the browser opens TWO connections —
+         one anonymous, one with credentials — doubling TLS cost.
+  ═══════════════════════════════════════════════════════════════════ -->
+
   <!--
-    PERFORMANCE — RESOURCE HINTS
-    ─────────────────────────────
-    CRITICAL RULE: Lighthouse penalises more than 2–3 preconnects on mobile.
-    Keep preconnect ONLY for origins that deliver LCP-critical resources
-    (hero image = Cloudinary). Everything else uses dns-prefetch only.
+    TIER 1 — LCP CRITICAL
+    These origins serve content visible on first paint.
+    Open connections before the browser has even parsed the <body>.
   -->
 
-  <!-- #1 LCP critical: hero + product images served from Cloudinary -->
+  <!-- Cloudinary: hero image, product images, OG image (LCP critical) -->
   <link rel="preconnect" href="https://res.cloudinary.com" crossorigin />
-
-  <!-- #2 Google Fonts — needed for text render (FCP critical) -->
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-
-  <!-- DNS prefetch for the rest — cheap, non-blocking -->
   <link rel="dns-prefetch" href="https://res.cloudinary.com" />
+
+  <!-- Google Fonts: Cormorant Garamond + Inter
+       Add these when/if you load fonts from Google Fonts CDN.
+       They have zero cost if fonts are self-hosted (just remove them).
+       Two separate preconnects required: fonts.googleapis.com serves
+       the CSS, fonts.gstatic.com serves the actual font files.
+  -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
   <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
-  <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
-  <link rel="dns-prefetch" href="https://connect.facebook.net" />
-  <link rel="dns-prefetch" href="https://www.facebook.com" />
-  <link rel="dns-prefetch" href="https://www.google-analytics.com" />
-  <link rel="dns-prefetch" href="https://rhygsqbjrfxvlhsnaldr.supabase.co" />
-  <link rel="dns-prefetch" href="https://script.google.com" />
 
   <!--
-    FONTS — Non-render-blocking pattern
-    Uses media="print" trick: browser downloads the CSS in background,
-    then JS switches it to media="all" once loaded. Zero FCP impact.
-    font-display=swap in the font URL means text shows in fallback
-    font immediately — no invisible text (FOIT).
+    FONT LOADING STRATEGY (OPTIONAL — uncomment if using Google Fonts)
+    display=swap: text renders in a fallback font immediately, swaps to
+    the web font when it arrives — prevents invisible text (FOIT).
+    Uncomment these two lines and remove any @import from index.css:
   -->
+  <!--
+  <link rel="preload" as="style"
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" />
   <link rel="stylesheet"
-    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Inter:wght@400;500;600&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap"
     media="print" onload="this.media='all'" />
   <noscript>
     <link rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" />
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" />
   </noscript>
+  -->
 
-  <!-- Structured Data: Organization -->
+  <!--
+    TIER 2 — ANALYTICS (fires on/after first interaction)
+    These don't affect first paint but should resolve quickly.
+  -->
+
+  <!-- Facebook Pixel script host -->
+  <link rel="preconnect" href="https://connect.facebook.net" crossorigin />
+  <link rel="dns-prefetch" href="https://connect.facebook.net" />
+  <!-- Facebook events / CAPI endpoints -->
+  <link rel="dns-prefetch" href="https://www.facebook.com" />
+
+  <!-- Google Tag Manager container + GA4 -->
+  <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin />
+  <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+  <link rel="dns-prefetch" href="https://www.google-analytics.com" />
+  <!-- GA4 regional data collection endpoint -->
+  <link rel="dns-prefetch" href="https://region1.google-analytics.com" />
+
+  <!--
+    TIER 3 — DATA / API (used after React boots)
+    DNS only — these are hit after the page has hydrated.
+  -->
+
+  <!-- Supabase: auth + database queries -->
+  <link rel="dns-prefetch" href="https://supabase.co" />
+  <!-- Your specific Supabase project subdomain (faster than the root) -->
+  <link rel="dns-prefetch" href="https://rhygsqbjrfxvlhsnaldr.supabase.co" />
+
+  <!-- Google Sheets webhook (order sync) -->
+  <link rel="dns-prefetch" href="https://script.google.com" />
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       STRUCTURED DATA: Organization
+       telephone uses contactConfig.ts → phone (support line, not payment).
+       sameAs includes both Facebook and Instagram for entity disambiguation.
+  ═══════════════════════════════════════════════════════════════════ -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "Organization",
-    "@id": "https://girleyglow.vercel.app/#organization",
+    "@id": "https://girleyglow.vercel.app//#organization",
     "name": "GIrley GLow",
     "url": "https://girleyglow.vercel.app/",
     "logo": {
@@ -128,7 +259,10 @@
     "image": "https://res.cloudinary.com/dss2bt2fu/image/upload/f_auto,q_auto,w_1200,h_630,c_fill/girlswear/og-banner.jpg",
     "description": "Bangladesh's premium destination for women's western dresses, bras, innerwear, shapewear, nightwear, and maternity wear.",
     "foundingDate": "2023",
-    "areaServed": { "@type": "Country", "name": "Bangladesh" },
+    "areaServed": {
+      "@type": "Country",
+      "name": "Bangladesh"
+    },
     "priceRange": "৳৳",
     "sameAs": [
       "https://www.facebook.com/authenticgirlswear",
@@ -151,7 +285,11 @@
   }
   </script>
 
-  <!-- Structured Data: WebSite -->
+  <!-- ═══════════════════════════════════════════════════════════════════
+       STRUCTURED DATA: WebSite with SearchAction
+       Enables the Google Sitelinks Search Box in SERPs.
+       urlTemplate must match the /search route in App.tsx.
+  ═══════════════════════════════════════════════════════════════════ -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -160,48 +298,64 @@
     "name": "GIrley GLow",
     "url": "https://girleyglow.vercel.app/",
     "inLanguage": ["en", "bn"],
-    "publisher": { "@id": "https://girleyglow.vercel.app/#organization" },
+    "publisher": {
+      "@id": "https://girleyglow.vercel.app//#organization"
+    },
     "potentialAction": {
       "@type": "SearchAction",
       "target": {
         "@type": "EntryPoint",
-        "urlTemplate": "https://girleyglow.vercel.app/search?q={search_term_string}"
+        "urlTemplate": "https://girleyglow.vercel.app//search?q={search_term_string}"
       },
       "query-input": "required name=search_term_string"
     }
   }
   </script>
 
-  <!--
-    ANALYTICS — deferred until after first paint
-    Both scripts use async+defer so they NEVER block LCP/FCP.
-    On mobile slow-4G this is critical — GTM alone is ~80KB.
-    DataLayer is pre-seeded so no events are lost while GTM loads.
-  -->
+  <!-- ═══════════════════════════════════════════════════════════════════
+       ANALYTICS — FACEBOOK PIXEL
+       ID: 517991158551582 (matches trackingConfig.ts → facebookPixelId)
 
-  <!-- Facebook Pixel — async, non-blocking -->
-  <script>
+       Uses `defer` so the Pixel script NEVER blocks the LCP paint.
+       The script creates window.fbq and queues events before the
+       fbevents.js bundle downloads — no events are lost.
+
+       ⚠  PageView is intentionally NOT fired here.
+          PixelTracker in App.tsx fires it on every React Router
+          navigation, correctly handling SPA page changes.
+  ═══════════════════════════════════════════════════════════════════ -->
+  <script defer>
     !function (f, b, e, v, n, t, s) {
       if (f.fbq) return;
       n = f.fbq = function () { n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments) };
       if (!f._fbq) f._fbq = n;
       n.push = n; n.loaded = !0; n.version = '2.0'; n.queue = [];
-      t = b.createElement(e); t.async = !0; t.defer = !0; t.src = v;
-      s = b.getElementsByTagName(e)[0]; s.parentNode.insertBefore(t, s)
+      t = b.createElement(e); t.async = !0; t.src = v;
+      s = b.getElementsByTagName(e)[0]; s.parentNode.insertBefore(t, s);
     }(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
     fbq('init', '517991158551582');
+    /* PageView fired per-route by PixelTracker in App.tsx */
   </script>
 
-  <!-- Google Tag Manager — async, non-blocking -->
-  <script>
-    window.dataLayer = window.dataLayer || [];
+  <!-- ═══════════════════════════════════════════════════════════════════
+       ANALYTICS — GOOGLE TAG MANAGER
+       ID: GTM-TWN3NF5S (matches trackingConfig.ts → gtmId)
+
+       Uses `defer` so GTM NEVER blocks the LCP paint.
+       The dataLayer array is pre-created so push() calls before GTM
+       loads are queued and replayed once the container initialises.
+       noscript fallback iframe is in <body> below.
+  ═══════════════════════════════════════════════════════════════════ -->
+  <script defer>
     (function (w, d, s, l, i) {
+      w[l] = w[l] || [];
       w[l].push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
       var f = d.getElementsByTagName(s)[0],
-        j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : '';
-      j.async = true; j.defer = true;
+        j = d.createElement(s),
+        dl = l != 'dataLayer' ? '&l=' + l : '';
+      j.async = true;
       j.src = 'https://www.googletagmanager.com/gtm.js?id=' + i + dl;
-      f.parentNode.insertBefore(j, f)
+      f.parentNode.insertBefore(j, f);
     })(window, document, 'script', 'dataLayer', 'GTM-TWN3NF5S');
   </script>
 
@@ -209,18 +363,30 @@
 
 <body>
 
-  <!-- GTM noscript (must be first in body) -->
+  <!-- ═══════════════════════════════════════════════════════════════════
+       NO-SCRIPT FALLBACKS
+       Fires basic tracking for users / crawlers with JS disabled.
+       IDs match the inline scripts above.
+  ═══════════════════════════════════════════════════════════════════ -->
+
+  <!-- GTM noscript iframe (must be first element inside <body>) -->
   <noscript>
     <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-TWN3NF5S" height="0" width="0"
-      style="display:none;visibility:hidden" title="Google Tag Manager" aria-hidden="true"></iframe>
+      style="display:none;visibility:hidden" title="Google Tag Manager" aria-hidden="true">
+    </iframe>
   </noscript>
 
-  <!-- Facebook Pixel noscript -->
+  <!-- Facebook Pixel noscript image pixel -->
   <noscript>
     <img height="1" width="1" style="display:none"
       src="https://www.facebook.com/tr?id=517991158551582&ev=PageView&noscript=1" alt="" aria-hidden="true" />
   </noscript>
 
+  <!-- ═══════════════════════════════════════════════════════════════════
+       REACT ROOT
+       id="root" is the mount point for createRoot() in main.tsx.
+       The noscript message is shown to search engines / users without JS.
+  ═══════════════════════════════════════════════════════════════════ -->
   <div id="root">
     <noscript>
       <div
@@ -235,6 +401,7 @@
     </noscript>
   </div>
 
+  <!-- App entry point — Vite injects the hashed bundle URLs at build time -->
   <script type="module" src="/src/main.tsx"></script>
 
 </body>
