@@ -1,5 +1,5 @@
 /* ===================================================
-   AUTHENTIC GIRLSWEAR - Admin Products Management
+   GIrley GLow - Admin Products Management
    FIXES:
    - Robust image upload: per-file retry (3 attempts) + failed-image alert
    - setUploading(false) always called via finally block
@@ -462,7 +462,7 @@ const MiniWatermarkThumb: React.FC<{
   textWmEnabled?: boolean; textWmText?: string; textWmOpacity?: number;
   textWmSize?: number; textWmAngle?: number; textWmColor?: string;
   textWmSpacingX?: number; textWmSpacingY?: number;
-}> = ({ file, xFrac, yFrac, textWmEnabled = false, textWmText = 'Authentic Girlswear',
+}> = ({ file, xFrac, yFrac, textWmEnabled = false, textWmText = 'GIrley GLow',
   textWmOpacity = 0.18, textWmSize = 22, textWmAngle = -30,
   textWmColor = '#ffffff', textWmSpacingX = 180, textWmSpacingY = 90 }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -566,7 +566,7 @@ interface WatermarkPreviewProps {
 }
 const WatermarkPreview: React.FC<WatermarkPreviewProps> = ({
   file, onPositionChange, sizeMultiplier = 1.0, enabled = true,
-  textWmEnabled = false, textWmText = 'Authentic Girlswear',
+  textWmEnabled = false, textWmText = 'GIrley GLow',
   textWmOpacity = 0.18, textWmSize = 22, textWmAngle = -30,
   textWmColor = '#ffffff', textWmSpacingX = 180, textWmSpacingY = 90,
 }) => {
@@ -724,7 +724,7 @@ export const AdminProducts: React.FC = () => {
   const [wmEnabled, setWmEnabled] = useState<boolean>(true);
   const [wmPanelOpen, setWmPanelOpen] = useState<boolean>(false);
   const [textWmEnabled, setTextWmEnabled] = useState<boolean>(true);
-  const [textWmText, setTextWmText] = useState<string>('Authentic Girlswear');
+  const [textWmText, setTextWmText] = useState<string>('GIrley GLow');
   const [textWmOpacity, setTextWmOpacity] = useState<number>(0.18);
   const [textWmSize, setTextWmSize] = useState<number>(22);
   const [textWmAngle, setTextWmAngle] = useState<number>(-30);
@@ -1475,7 +1475,7 @@ export const AdminProducts: React.FC = () => {
                               value={textWmText}
                               onChange={e => setTextWmText(e.target.value)}
                               className="flex-1 px-2.5 py-1.5 rounded-lg border border-blush/30 bg-white/80 text-xs focus:outline-none focus:ring-1 focus:ring-rose-gold/30"
-                              placeholder="e.g. Authentic Girlswear"
+                              placeholder="e.g. GIrley GLow"
                             />
                           </div>
                           <div className="flex items-center gap-3">

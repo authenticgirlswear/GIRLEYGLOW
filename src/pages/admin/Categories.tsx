@@ -1,5 +1,5 @@
 /* ===================================================
-   AUTHENTIC GIRLSWEAR - Admin Categories Management
+   GIrley GLow - Admin Categories Management
    Fixed: uploads image to Supabase Storage, saves
    public URL to category.image field in DB
    =================================================== */

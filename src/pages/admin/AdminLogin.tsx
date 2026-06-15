@@ -1,5 +1,5 @@
 /* ===================================================
-   AUTHENTIC GIRLSWEAR - Admin Login Page
+   GIrley GLow - Admin Login Page
    Real Supabase Authentication (no demo credentials)
    =================================================== */
 import { useAdminAuthStore } from '@/store';

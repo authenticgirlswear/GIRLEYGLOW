@@ -1,5 +1,5 @@
 /* ===================================================
-   AUTHENTIC GIRLSWEAR - Reusable UI Components
+   GIrley GLow - Reusable UI Components
    =================================================== */
 
 import React from 'react';

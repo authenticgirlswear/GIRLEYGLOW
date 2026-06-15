@@ -23,7 +23,7 @@ import { CONTACT } from '@/config/contactConfig';
 const PAGE_TITLE = `${BRAND.fullName} | Premium Women's Fashion in Bangladesh`;
 
 const PAGE_DESCRIPTION =
-  'Shop Authentic Girlswear — Bangladesh\'s premium destination for push-up bras, maternity wear, shapewear, nightwear, couple nightwear, and elegant western dresses. Fast delivery across Bangladesh.';
+  'Shop GIrley GLow — Bangladesh\'s premium destination for push-up bras, maternity wear, shapewear, nightwear, couple nightwear, and elegant western dresses. Fast delivery across Bangladesh.';
 
 const CANONICAL = `${SITE.domain}/`;
 

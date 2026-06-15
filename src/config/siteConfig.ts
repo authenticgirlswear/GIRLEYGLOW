@@ -13,9 +13,9 @@ export const SITE = {
     facebook: 'https://www.facebook.com/authenticgirlswear',
 
     /** SEO / meta */
-    domain: 'https://authenticgirlswear.com',
-    defaultTitle: 'Authentic Girlswear - Luxury Feminine Fashion',
-    defaultDescription: 'Discover luxury feminine fashion at Authentic Girlswear. Dresses, tops, accessories and more — crafted for the modern woman.',
+    domain: 'https://girleyglow.vercel.app/',
+    defaultTitle: 'GIrley GLow - Luxury Feminine Fashion',
+    defaultDescription: 'Discover luxury feminine fashion at GIrley GLow. Dresses, tops, accessories and more — crafted for the modern woman.',
     keywords: [
         'girlswear',
         'women fashion',
@@ -26,7 +26,7 @@ export const SITE = {
         'innerwear',
         'western dresses bangladesh',
         'bangladesh fashion',
-        'authentic girlswear',
+        'GIrley GLow',
         'buy lingerie online',
         'buy bras online',
         'best bras in Bangladesh',
@@ -78,7 +78,7 @@ export type SiteConfig = typeof SITE;
 
 // ─── Legacy alias kept for any file still importing siteConfig ───────────────
 export const siteConfig = {
-    websiteName: 'Authentic Girlswear',
+    websiteName: 'GIrley GLow',
     websiteShortName: 'AG',
     defaultTitle: SITE.defaultTitle,
     defaultDescription: SITE.defaultDescription,

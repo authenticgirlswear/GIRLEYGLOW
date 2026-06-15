@@ -1,5 +1,5 @@
 /* ===================================================
-   AUTHENTIC GIRLSWEAR - Admin: Coupons, Inventory, Reports
+   GIrley GLow - Admin: Coupons, Inventory, Reports
    FIXED:
    - All yellow warnings removed (unused variables cleaned)
    - Inventory uses real products from useProductStore

@@ -1,5 +1,5 @@
 /* ===================================================
-   AUTHENTIC GIRLSWEAR - Mock Data
+   GIrley GLow - Mock Data
    Production-ready data structure for development.
    Replace with Supabase queries in production.
    =================================================== */

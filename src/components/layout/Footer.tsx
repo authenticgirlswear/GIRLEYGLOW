@@ -1,5 +1,5 @@
 /* ===================================================
-   AUTHENTIC GIRLSWEAR - Elegant Footer
+   GIrley GLow - Elegant Footer
    WITH Luxury Animated Bra Size Guide Modal
    =================================================== */
 

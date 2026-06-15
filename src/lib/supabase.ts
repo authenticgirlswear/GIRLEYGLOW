@@ -1,5 +1,5 @@
 /* ===================================================
-   AUTHENTIC GIRLSWEAR - Supabase Client
+   GIrley GLow - Supabase Client
    Updated with Cloudinary + Google Sheets integration
    =================================================== */
 

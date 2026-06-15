@@ -1,5 +1,5 @@
 /* ===================================================
-   AUTHENTIC GIRLSWEAR - Admin Dashboard
+   GIrley GLow - Admin Dashboard
    Fixed: uses REAL orders instead of fake demo data
    =================================================== */
 

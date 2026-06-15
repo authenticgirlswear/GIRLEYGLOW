@@ -1,5 +1,5 @@
 /* ===================================================
-   AUTHENTIC GIRLSWEAR - Announcement Bar
+   GIrley GLow - Announcement Bar
    FIXED VERSION
    - Fully visible on website
    - Works with floating navbar

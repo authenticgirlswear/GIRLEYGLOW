@@ -1,5 +1,5 @@
 /* ===================================================
-   AUTHENTIC GIRLSWEAR - Home Page Components
+   GIrley GLow - Home Page Components
    FIXED: 
    - Hero reads from useContentStore (image + texts)
    - BannerSlider reads from useContentStore (images + texts)
@@ -922,7 +922,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, priority = fa
     : null;
 
   // Rich alt text for SEO and screen readers
-  const imageAlt = `${product.name} — ${product.category || 'Authentic Girlswear'}`;
+  const imageAlt = `${product.name} — ${product.category || 'GIrley GLow'}`;
 
   return (
     /*

@@ -1,5 +1,5 @@
 /* ===================================================
-   AUTHENTIC GIRLSWEAR - Floating Pill Navbar
+   GIrley GLow - Floating Pill Navbar
    - Takes ZERO layout space — purely overlays the hero
    - Transparent outside the pill (no white gaps)
    - Full viewport width pill with tiny edge margins

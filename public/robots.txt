@@ -5,4 +5,4 @@ Disallow: /admin/
 Disallow: /cart
 Disallow: /checkout
 
-Sitemap: https://authenticgirlswear.com/sitemap.xml
+Sitemap: https://girleyglow.vercel.app//sitemap.xml
