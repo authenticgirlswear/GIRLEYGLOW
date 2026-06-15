@@ -2,8 +2,6 @@
     "buildCommand": "node node_modules/vite/bin/vite.js build",
     "outputDirectory": "dist",
     "framework": "vite",
-    "cleanUrls": true,
-    "trailingSlash": false,
     "headers": [
         {
             "source": "/assets/(.*)",
