@@ -103,11 +103,6 @@ body {
 /* ===== Font face — Inter (system fallback chain prevents FOUT) ===== */
 /* If you self-host Inter, declare @font-face blocks here with font-display: swap */
 
-/* ===== Layout Containment — prevents carousels from causing full-page repaints ===== */
-section {
-  contain: layout style;
-}
-
 /* ===== Scrollbar hide utility ===== */
 .scrollbar-hide {
   -ms-overflow-style: none;

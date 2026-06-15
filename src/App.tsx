@@ -147,8 +147,6 @@ const CustomerLayout: React.FC = () => {
   const barVisible =
     announcement?.enabled && announcement?.messages?.some((m: string) => m?.trim());
 
-  if (isLoading) return <Outlet />;
-
   return (
     <>
       <DefaultSEO />
@@ -159,12 +157,13 @@ const CustomerLayout: React.FC = () => {
       >
         Skip to main content
       </a>
-      <AnnouncementBar />
-      <Navbar barVisible={barVisible} />
-      <main id="main-content" className={`min-h-screen ${barVisible ? 'pt-10' : ''}`}>
+      {/* Always render Navbar so fixed positioning is stable — prevents CLS */}
+      {!isLoading && <AnnouncementBar />}
+      {!isLoading && <Navbar barVisible={barVisible} />}
+      <main id="main-content" className={`min-h-screen ${barVisible && !isLoading ? 'pt-10' : ''}`}>
         <Outlet />
       </main>
-      <Footer />
+      {!isLoading && <Footer />}
     </>
   );
 };

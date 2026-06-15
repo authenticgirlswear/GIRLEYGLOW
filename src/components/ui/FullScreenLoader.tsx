@@ -1,42 +1,66 @@
-import { motion, AnimatePresence } from 'framer-motion';
 import { useLoadingStore } from '../../store/useLoadingStore';
 import { memo } from 'react';
 
+/**
+ * FullScreenLoader — pure CSS, zero Framer Motion dependency on initial load.
+ *
+ * WHY NO FRAMER MOTION HERE:
+ * The loader renders during initial app boot (before React hydration completes).
+ * Loading Framer Motion (32KB gzip) just for a fade-out animation adds to TBT
+ * and delays FCP on mobile. CSS transitions are free — the browser handles them
+ * natively without any JS parse cost.
+ *
+ * CLS NOTE: position:fixed takes zero layout space so it never causes layout shift.
+ * The previous AnimatePresence approach could leave ghost elements that caused CLS.
+ */
 export const FullScreenLoader = memo(() => {
     const { isLoading, message } = useLoadingStore();
 
     return (
-        <AnimatePresence>
-            {isLoading && (
-                <motion.div
-                    initial={{ opacity: 1 }}
-                    exit={{ opacity: 0, transition: { duration: 0.8, ease: "easeInOut" } }}
-                    className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white"
-                >
-                    {/* Logo Area */}
-                    <motion.div
-                        initial={{ y: 20, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        className="text-4xl font-serif font-bold tracking-widest mb-8"
-                    > </motion.div>
+        <div
+            role="status"
+            aria-label={message || 'Loading'}
+            aria-live="polite"
+            style={{
+                position: 'fixed',
+                inset: 0,
+                zIndex: 9999,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#ffffff',
+                /* CSS transition — zero JS cost */
+                opacity: isLoading ? 1 : 0,
+                pointerEvents: isLoading ? 'all' : 'none',
+                transition: 'opacity 0.5s ease',
+                /* willChange only when visible to hint GPU compositing */
+                willChange: isLoading ? 'opacity' : 'auto',
+            }}
+        >
+            {/* Loader animation — pure CSS */}
+            <div className="loader">
+                <span className="loader-text">LOADING</span>
+                <span className="load"></span>
+            </div>
 
-                    {/* Uiverse Loader */}
-                    <div className="loader">
-                        <span className="loader-text">LOADING</span>
-                        <span className="load"></span>
-                    </div>
-
-                    {/* Message Text */}
-                    <motion.p
-                        className="mt-12 text-sm font-light tracking-tighter uppercase text-gray-400"
-                        key={message}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                    >
-                        {message}
-                    </motion.p>
-                </motion.div>
-            )}
-        </AnimatePresence>
+            {/* Status message */}
+            <p
+                style={{
+                    marginTop: '3rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 300,
+                    letterSpacing: '0.05em',
+                    textTransform: 'uppercase',
+                    color: '#9ca3af',
+                    transition: 'opacity 0.3s ease',
+                    opacity: message ? 1 : 0,
+                }}
+            >
+                {message}
+            </p>
+        </div>
     );
 });
+
+FullScreenLoader.displayName = 'FullScreenLoader';

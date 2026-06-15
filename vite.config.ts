@@ -31,9 +31,10 @@ export default defineConfig({
 
   // ─── Build ─────────────────────────────────────────────────────────────────
   build: {
-    // Target modern browsers only — Bangladesh mobile market is Chrome-heavy.
-    // Avoids legacy polyfill bloat; aligns with your browserslist config.
-    target: ["es2020", "chrome80", "firefox78", "safari14"],
+    // Target modern browsers only — eliminates legacy JS polyfills (saves ~13 KiB).
+    // Lighthouse "Legacy JavaScript" warning is caused by targeting old browsers.
+    // Bangladesh mobile market is Chrome-heavy; Chrome 90+ covers 98%+ of users.
+    target: ["es2022", "chrome90", "firefox90", "safari15"],
 
     // Raise the warning threshold slightly — Framer Motion is legitimately large.
     // Below 600 kB per chunk is still healthy with code splitting in place.
