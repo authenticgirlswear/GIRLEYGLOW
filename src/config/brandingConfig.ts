@@ -6,13 +6,13 @@
 
 export const BRAND = {
     /** Top line of the stacked logo wordmark */
-    nameTop: 'AUTHENTIC',
+    nameTop: 'GIRLEY',
 
     /** Bottom line of the stacked logo wordmark */
-    nameBottom: 'GIRLSWEAR',
+    nameBottom: 'GLOW',
 
     /** Combined single-line name used in copyright, page titles, etc. */
-    fullName: 'Authentic Girlswear',
+    fullName: 'GIRLEY GLOW',
 
     /** Short brand description shown in footer */
     description:
@@ -22,7 +22,7 @@ export const BRAND = {
     tagline: 'Designed with love for the modern woman',
 
     /** Search input placeholder hint (replaces hardcoded product list) */
-    searchHint: 'dresses, tops, accessories',
+    searchHint: 'dresses, Western tops, Bra, penties, Slimwear, Lingeries, nightdress, accessories',
 
     /** Logo image path */
     logoUrl: '/images/logo.png',

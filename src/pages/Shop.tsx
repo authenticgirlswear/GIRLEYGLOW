@@ -513,7 +513,7 @@ export const ShopPage: React.FC = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: Math.min(index * 0.05, 0.3) }}
                   >
-                    <ProductCard product={product} />
+                    <ProductCard product={product} priority={index < 4} />
                   </motion.div>
                 ))}
               </motion.div>

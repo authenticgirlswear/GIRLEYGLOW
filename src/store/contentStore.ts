@@ -32,37 +32,61 @@ export interface AnnouncementSettings {
 /**
  * SiteSettings — overridable site-wide config stored in Supabase.
  * Falls back to siteConfig.ts values when not set in DB.
+ *
+ * This is the single source of truth for multi-brand deployments.
+ * Every field can be changed from Admin → Content → Brand Settings
+ * without touching any source files.
  */
 export interface SiteSettings {
-  // Identity
+  // ── Identity ──────────────────────────────────────────────────────────────
   siteName: string;
   siteShortName: string;
   domain: string;
   logoUrl: string;
+  /** Short brand description used in footer and OG fallback */
+  brandDescription: string;
+  /** Tagline shown in footer bottom bar and search placeholder */
+  brandTagline: string;
 
-  // SEO / meta
+  // ── SEO / meta ────────────────────────────────────────────────────────────
   defaultTitle: string;
   defaultDescription: string;
   keywords: string[];
   ogImage: string;
 
-  // Social links
+  // ── Analytics & Tracking ─────────────────────────────────────────────────
+  /** Facebook Pixel ID — e.g. "517991158551582" */
+  facebookPixelId: string;
+  /** Google Tag Manager container ID — e.g. "GTM-TWN3NF5S" */
+  gtmId: string;
+  /** Google Search Console HTML tag verification content value */
+  googleSearchConsoleVerification: string;
+  /** Bing Webmaster Tools verification content value */
+  bingVerification: string;
+
+  // ── Social links ──────────────────────────────────────────────────────────
   instagram: string;
   facebook: string;
   tiktok: string;
   youtube: string;
+  whatsapp: string;
+  messenger: string;
+  /** Twitter / X handle — e.g. "@AuthenticGirlswear" */
+  twitterHandle: string;
 
-  // Contact
+  // ── Contact ───────────────────────────────────────────────────────────────
   email: string;
   phone: string;
   address: string;
 
-  // Commerce
+  // ── Commerce ──────────────────────────────────────────────────────────────
   currency: string;
   currencySymbol: string;
   paymentMethods: string[];
+  /** bKash / Nagad payment number shown at checkout */
+  paymentNumber: string;
 
-  // Policies
+  // ── Policies ──────────────────────────────────────────────────────────────
   returnPolicy: string;
   shippingPolicy: string;
   privacyPolicy: string;
@@ -115,16 +139,26 @@ export const defaultSiteSettings: SiteSettings = {
   siteShortName: siteConfig.websiteShortName,
   domain: SITE.domain,
   logoUrl: '',
+  brandDescription: '',
+  brandTagline: '',
 
   defaultTitle: SITE.defaultTitle,
   defaultDescription: SITE.defaultDescription,
   keywords: [...SITE.keywords],
   ogImage: SITE.ogImage,
 
+  facebookPixelId: '',
+  gtmId: '',
+  googleSearchConsoleVerification: '',
+  bingVerification: '',
+
   instagram: SITE.instagram,
   facebook: SITE.facebook,
   tiktok: '',
   youtube: '',
+  whatsapp: '',
+  messenger: '',
+  twitterHandle: '',
 
   email: '',
   phone: '',
@@ -133,6 +167,7 @@ export const defaultSiteSettings: SiteSettings = {
   currency: 'BDT',
   currencySymbol: '৳',
   paymentMethods: [...SITE.paymentMethods],
+  paymentNumber: '',
 
   returnPolicy: '',
   shippingPolicy: '',
