@@ -102,7 +102,7 @@ export const Navbar: React.FC<NavbarProps> = ({ barVisible = false }) => {
     return false;
   };
 
-  const renderCategoryLinks = (onClick?: () => void) => {
+  const renderCategoryLinks = (onClose?: () => void) => {
     if (categoriesLoading) {
       return (
         <p className="px-4 py-2 text-[10px] text-[#9A8880] text-center">
@@ -118,14 +118,17 @@ export const Navbar: React.FC<NavbarProps> = ({ barVisible = false }) => {
       );
     }
     return categories.map(cat => (
-      <Link
+      <button
         key={cat.id}
-        to={`/shop?category=${cat.slug}`}
-        onClick={onClick}
-        className="block px-4 py-2 text-[10px] font-semibold tracking-wider uppercase text-[#2C2C2C] hover:bg-white/60 hover:text-[#B07D6B] rounded-xl transition-all duration-200"
+        type="button"
+        onClick={() => {
+          onClose?.();
+          navigate(`/category/${cat.slug}`);
+        }}
+        className="block w-full text-left px-4 py-2 text-[10px] font-semibold tracking-wider uppercase text-[#2C2C2C] hover:bg-white/60 hover:text-[#B07D6B] rounded-xl transition-all duration-200"
       >
         {cat.name}
-      </Link>
+      </button>
     ));
   };
 
