@@ -330,14 +330,192 @@ interface LogoWmConfig {
 }
 
 // ─────────────────────────────────────────────────
+// CUSTOM LOGO WATERMARK CONFIG
+// ─────────────────────────────────────────────────
+interface CustomLogoWmConfig {
+  enabled: boolean;         // true = use uploaded logo, false = use AG text logo
+  imageDataUrl: string;     // base64 data URL of the uploaded logo
+  size: number;             // multiplier relative to canvas min edge (0.05 – 0.6)
+  opacity: number;          // 0.0 – 1.0
+  bgEnabled: boolean;       // draw background box behind logo
+  bgColor: string;          // CSS hex colour for background
+  bgOpacity: number;        // 0.0 – 1.0
+  borderRadius: number;     // px (applied as fraction of box size)
+  padding: number;          // px padding inside background box
+  shadowEnabled: boolean;
+  shadowStrength: number;   // 0 – 40
+}
+
+const CUSTOM_LOGO_LS_KEY = 'ag_custom_logo_wm_v1';
+
+const defaultCustomLogoWm: CustomLogoWmConfig = {
+  enabled: false,
+  imageDataUrl: '',
+  size: 0.15,
+  opacity: 0.85,
+  bgEnabled: true,
+  bgColor: '#1a1a1a',
+  bgOpacity: 0.50,
+  borderRadius: 12,
+  padding: 10,
+  shadowEnabled: true,
+  shadowStrength: 18,
+};
+
+const loadCustomLogoWmFromLS = (): CustomLogoWmConfig => {
+  try {
+    const raw = localStorage.getItem(CUSTOM_LOGO_LS_KEY);
+    if (!raw) return { ...defaultCustomLogoWm };
+    return { ...defaultCustomLogoWm, ...JSON.parse(raw) };
+  } catch {
+    return { ...defaultCustomLogoWm };
+  }
+};
+
+const saveCustomLogoWmToLS = (cfg: CustomLogoWmConfig) => {
+  try {
+    localStorage.setItem(CUSTOM_LOGO_LS_KEY, JSON.stringify(cfg));
+  } catch { }
+};
+
+// ─────────────────────────────────────────────────
+// DRAW CUSTOM LOGO WATERMARK (async — loads image)
+// ─────────────────────────────────────────────────
+const drawCustomLogoWatermark = (
+  ctx: CanvasRenderingContext2D,
+  canvasW: number,
+  canvasH: number,
+  xFrac: number,
+  yFrac: number,
+  logoImg: HTMLImageElement,
+  cfg: CustomLogoWmConfig
+): void => {
+  ctx.save();
+
+  // Scale logo so its longest edge = size * min(canvasW, canvasH)
+  const maxLogoEdge = Math.min(canvasW, canvasH) * cfg.size;
+  const aspect = logoImg.naturalWidth / logoImg.naturalHeight;
+  let logoW: number, logoH: number;
+  if (aspect >= 1) {
+    logoW = maxLogoEdge;
+    logoH = maxLogoEdge / aspect;
+  } else {
+    logoH = maxLogoEdge;
+    logoW = maxLogoEdge * aspect;
+  }
+
+  const pad = cfg.bgEnabled ? cfg.padding : 0;
+  const boxW = logoW + pad * 2;
+  const boxH = logoH + pad * 2;
+
+  // Centre the logo on (xFrac * canvasW, yFrac * canvasH)
+  const cx = xFrac * canvasW;
+  const cy = yFrac * canvasH;
+  const boxX = cx - boxW / 2;
+  const boxY = cy - boxH / 2;
+  const r = Math.min(cfg.borderRadius, boxW / 2, boxH / 2);
+
+  // Draw background box
+  if (cfg.bgEnabled) {
+    ctx.globalAlpha = cfg.bgOpacity;
+    ctx.fillStyle = cfg.bgColor;
+    ctx.beginPath();
+    ctx.moveTo(boxX + r, boxY);
+    ctx.lineTo(boxX + boxW - r, boxY);
+    ctx.quadraticCurveTo(boxX + boxW, boxY, boxX + boxW, boxY + r);
+    ctx.lineTo(boxX + boxW, boxY + boxH - r);
+    ctx.quadraticCurveTo(boxX + boxW, boxY + boxH, boxX + boxW - r, boxY + boxH);
+    ctx.lineTo(boxX + r, boxY + boxH);
+    ctx.quadraticCurveTo(boxX, boxY + boxH, boxX, boxY + boxH - r);
+    ctx.lineTo(boxX, boxY + r);
+    ctx.quadraticCurveTo(boxX, boxY, boxX + r, boxY);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Draw shadow
+  if (cfg.shadowEnabled) {
+    ctx.shadowColor = 'rgba(0,0,0,0.7)';
+    ctx.shadowBlur = cfg.shadowStrength;
+    ctx.shadowOffsetX = 2;
+    ctx.shadowOffsetY = 2;
+  }
+
+  // Draw logo image (supports transparent PNGs)
+  ctx.globalAlpha = cfg.opacity;
+  ctx.drawImage(logoImg, boxX + pad, boxY + pad, logoW, logoH);
+
+  ctx.restore();
+};
+
+// ─────────────────────────────────────────────────
+// LOAD IMAGE FROM DATA URL (helper for logo)
+// ─────────────────────────────────────────────────
+const loadImageFromDataUrl = (dataUrl: string): Promise<HTMLImageElement> =>
+  new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+
+// ─────────────────────────────────────────────────
 // APPLY WATERMARK — with pre-resize for large files
 // ─────────────────────────────────────────────────
-const applyWatermark = (file: File, sizeMultiplier = 1.0, textWm?: TextWmConfig, logoWm?: LogoWmConfig): Promise<File> => {
+const applyWatermark = (
+  file: File,
+  sizeMultiplier = 1.0,
+  textWm?: TextWmConfig,
+  logoWm?: LogoWmConfig,
+  customLogoWm?: CustomLogoWmConfig
+): Promise<File> => {
   return new Promise((resolve) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
 
-    img.onload = () => {
+    const applyToCanvas = async (
+      ctx: CanvasRenderingContext2D,
+      targetW: number,
+      targetH: number
+    ) => {
+      // Decide: custom logo or AG text logo
+      const useCustomLogo =
+        customLogoWm?.enabled &&
+        customLogoWm.imageDataUrl &&
+        customLogoWm.imageDataUrl.length > 10;
+
+      if (useCustomLogo) {
+        try {
+          const logoImg = await loadImageFromDataUrl(customLogoWm!.imageDataUrl);
+          drawCustomLogoWatermark(
+            ctx, targetW, targetH,
+            wmPos.xFrac, wmPos.yFrac,
+            logoImg, customLogoWm!
+          );
+        } catch {
+          // fallback to AG logo on error
+          const size = Math.max(18, Math.min(targetW, targetH) * 0.08) * sizeMultiplier;
+          drawAGLogo(ctx, wmPos.xFrac * targetW, wmPos.yFrac * targetH, size, logoWm?.text, logoWm?.colorLeft, logoWm?.colorRight);
+        }
+      } else {
+        // Apply AG logo watermark
+        const size = Math.max(18, Math.min(targetW, targetH) * 0.08) * sizeMultiplier;
+        drawAGLogo(ctx, wmPos.xFrac * targetW, wmPos.yFrac * targetH, size, logoWm?.text, logoWm?.colorLeft, logoWm?.colorRight);
+      }
+
+      // Apply text watermark if enabled
+      if (textWm?.enabled) {
+        drawTextWatermark(
+          ctx, targetW, targetH,
+          textWm.text, Math.max(10, targetW * (textWm.size / 500)),
+          textWm.opacity, textWm.angle, textWm.color,
+          targetW * (textWm.spacingX / 500),
+          targetH * (textWm.spacingY / 500)
+        );
+      }
+    };
+
+    img.onload = async () => {
       // ── Pre-resize: cap at 2400px on the long edge for AI-generated images ──
       const MAX_EDGE = 2400;
       let targetW = img.width;
@@ -356,22 +534,7 @@ const applyWatermark = (file: File, sizeMultiplier = 1.0, textWm?: TextWmConfig,
       const ctx = canvas.getContext('2d')!;
       ctx.drawImage(img, 0, 0, targetW, targetH);
 
-      // Apply AG logo watermark
-      const size = Math.max(18, Math.min(targetW, targetH) * 0.08) * sizeMultiplier;
-      const x = wmPos.xFrac * targetW;
-      const y = wmPos.yFrac * targetH;
-      drawAGLogo(ctx, x, y, size, logoWm?.text, logoWm?.colorLeft, logoWm?.colorRight);
-
-      // Apply text watermark if enabled
-      if (textWm?.enabled) {
-        drawTextWatermark(
-          ctx, targetW, targetH,
-          textWm.text, Math.max(10, targetW * (textWm.size / 500)),
-          textWm.opacity, textWm.angle, textWm.color,
-          targetW * (textWm.spacingX / 500),
-          targetH * (textWm.spacingY / 500)
-        );
-      }
+      await applyToCanvas(ctx, targetW, targetH);
 
       // Determine output format — always use JPEG for large images to avoid
       // canvas toBlob failures on oversized PNGs (common with AI-generated images)
@@ -421,8 +584,7 @@ const applyWatermark = (file: File, sizeMultiplier = 1.0, textWm?: TextWmConfig,
         try {
           const retryUrl = URL.createObjectURL(file);
           const retryImg = new Image();
-          retryImg.onload = () => {
-            // reuse the same onload logic inline
+          retryImg.onload = async () => {
             const MAX_EDGE = 2400;
             let targetW = retryImg.width;
             let targetH = retryImg.height;
@@ -436,14 +598,7 @@ const applyWatermark = (file: File, sizeMultiplier = 1.0, textWm?: TextWmConfig,
             canvas.width = targetW; canvas.height = targetH;
             const ctx = canvas.getContext('2d')!;
             ctx.drawImage(retryImg, 0, 0, targetW, targetH);
-            const size = Math.max(18, Math.min(targetW, targetH) * 0.08) * sizeMultiplier;
-            drawAGLogo(ctx, wmPos.xFrac * targetW, wmPos.yFrac * targetH, size, logoWm?.text, logoWm?.colorLeft, logoWm?.colorRight);
-            if (textWm?.enabled) {
-              drawTextWatermark(ctx, targetW, targetH, textWm.text,
-                Math.max(10, targetW * (textWm.size / 500)),
-                textWm.opacity, textWm.angle, textWm.color,
-                targetW * (textWm.spacingX / 500), targetH * (textWm.spacingY / 500));
-            }
+            await applyToCanvas(ctx, targetW, targetH);
             try { URL.revokeObjectURL(retryUrl); } catch { }
             const isPng = file.type === 'image/png' && targetW * targetH < 4_000_000;
             const fmt = isPng ? 'image/png' : 'image/jpeg';
@@ -476,10 +631,12 @@ const MiniWatermarkThumb: React.FC<{
   textWmSize?: number; textWmAngle?: number; textWmColor?: string;
   textWmSpacingX?: number; textWmSpacingY?: number;
   logoText?: string; logoColorLeft?: string; logoColorRight?: string;
+  customLogoWm?: CustomLogoWmConfig;
 }> = ({ file, xFrac, yFrac, textWmEnabled = false, textWmText = 'GIrley GLow',
   textWmOpacity = 0.18, textWmSize = 22, textWmAngle = -30,
   textWmColor = '#ffffff', textWmSpacingX = 180, textWmSpacingY = 90,
-  logoText = 'AG', logoColorLeft = '#C0C0C0', logoColorRight = '#F5A623' }) => {
+  logoText = 'AG', logoColorLeft = '#C0C0C0', logoColorRight = '#F5A623',
+  customLogoWm }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const imgRef = useRef<HTMLImageElement | null>(null);
     const xRef = useRef(xFrac);
@@ -488,7 +645,7 @@ const MiniWatermarkThumb: React.FC<{
     xRef.current = xFrac;
     yRef.current = yFrac;
 
-    const redraw = () => {
+    const redraw = async () => {
       const canvas = canvasRef.current;
       const img = imgRef.current;
       if (!canvas || !img) return;
@@ -499,8 +656,25 @@ const MiniWatermarkThumb: React.FC<{
       canvas.width = displayW;
       canvas.height = displayH;
       ctx.drawImage(img, 0, 0, displayW, displayH);
-      const size = Math.max(10, Math.min(displayW, displayH) * 0.08);
-      drawAGLogo(ctx, xRef.current * displayW, yRef.current * displayH, size, logoText, logoColorLeft, logoColorRight);
+
+      const useCustomLogo =
+        customLogoWm?.enabled &&
+        customLogoWm.imageDataUrl &&
+        customLogoWm.imageDataUrl.length > 10;
+
+      if (useCustomLogo) {
+        try {
+          const logoImg = await loadImageFromDataUrl(customLogoWm!.imageDataUrl);
+          drawCustomLogoWatermark(ctx, displayW, displayH, xRef.current, yRef.current, logoImg, customLogoWm!);
+        } catch {
+          const size = Math.max(10, Math.min(displayW, displayH) * 0.08);
+          drawAGLogo(ctx, xRef.current * displayW, yRef.current * displayH, size, logoText, logoColorLeft, logoColorRight);
+        }
+      } else {
+        const size = Math.max(10, Math.min(displayW, displayH) * 0.08);
+        drawAGLogo(ctx, xRef.current * displayW, yRef.current * displayH, size, logoText, logoColorLeft, logoColorRight);
+      }
+
       if (textWmEnabled) {
         drawTextWatermark(
           ctx, displayW, displayH,
@@ -551,7 +725,7 @@ const MiniWatermarkThumb: React.FC<{
     }, [file]);
     useEffect(() => {
       redraw();
-    }, [xFrac, yFrac, textWmEnabled, textWmText, textWmOpacity, textWmSize, textWmAngle, textWmColor, textWmSpacingX, textWmSpacingY, logoText, logoColorLeft, logoColorRight]);
+    }, [xFrac, yFrac, textWmEnabled, textWmText, textWmOpacity, textWmSize, textWmAngle, textWmColor, textWmSpacingX, textWmSpacingY, logoText, logoColorLeft, logoColorRight, customLogoWm?.enabled, customLogoWm?.imageDataUrl, customLogoWm?.size, customLogoWm?.opacity, customLogoWm?.bgEnabled, customLogoWm?.bgColor, customLogoWm?.bgOpacity, customLogoWm?.borderRadius, customLogoWm?.padding, customLogoWm?.shadowEnabled, customLogoWm?.shadowStrength]);
 
     return (
       <canvas
@@ -581,6 +755,7 @@ interface WatermarkPreviewProps {
   logoText?: string;
   logoColorLeft?: string;
   logoColorRight?: string;
+  customLogoWm?: CustomLogoWmConfig;
 }
 const WatermarkPreview: React.FC<WatermarkPreviewProps> = ({
   file, onPositionChange, sizeMultiplier = 1.0, enabled = true,
@@ -588,6 +763,7 @@ const WatermarkPreview: React.FC<WatermarkPreviewProps> = ({
   textWmOpacity = 0.18, textWmSize = 22, textWmAngle = -30,
   textWmColor = '#ffffff', textWmSpacingX = 180, textWmSpacingY = 90,
   logoText = 'AG', logoColorLeft = '#C0C0C0', logoColorRight = '#F5A623',
+  customLogoWm,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
@@ -600,14 +776,33 @@ const WatermarkPreview: React.FC<WatermarkPreviewProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const drawFrame = (img: HTMLImageElement) => {
+    const drawFrame = async (img: HTMLImageElement) => {
       const displayW = 800;
       const displayH = Math.round((img.naturalHeight / img.naturalWidth) * displayW);
       canvas.width = displayW;
       canvas.height = displayH;
       ctx.drawImage(img, 0, 0, displayW, displayH);
-      const size = Math.max(18, Math.min(displayW, displayH) * 0.08) * sizeMultiplier;
-      if (enabled) drawAGLogo(ctx, pos.xFrac * displayW, pos.yFrac * displayH, size, logoText, logoColorLeft, logoColorRight);
+
+      if (enabled) {
+        const useCustomLogo =
+          customLogoWm?.enabled &&
+          customLogoWm.imageDataUrl &&
+          customLogoWm.imageDataUrl.length > 10;
+
+        if (useCustomLogo) {
+          try {
+            const logoImg = await loadImageFromDataUrl(customLogoWm!.imageDataUrl);
+            drawCustomLogoWatermark(ctx, displayW, displayH, pos.xFrac, pos.yFrac, logoImg, customLogoWm!);
+          } catch {
+            const size = Math.max(18, Math.min(displayW, displayH) * 0.08) * sizeMultiplier;
+            drawAGLogo(ctx, pos.xFrac * displayW, pos.yFrac * displayH, size, logoText, logoColorLeft, logoColorRight);
+          }
+        } else {
+          const size = Math.max(18, Math.min(displayW, displayH) * 0.08) * sizeMultiplier;
+          drawAGLogo(ctx, pos.xFrac * displayW, pos.yFrac * displayH, size, logoText, logoColorLeft, logoColorRight);
+        }
+      }
+
       if (textWmEnabled) {
         drawTextWatermark(
           ctx, displayW, displayH,
@@ -654,7 +849,7 @@ const WatermarkPreview: React.FC<WatermarkPreviewProps> = ({
       };
       img.src = url;
     }
-  }, [pos, file, sizeMultiplier, enabled, textWmEnabled, textWmText, textWmOpacity, textWmSize, textWmAngle, textWmColor, textWmSpacingX, textWmSpacingY, logoText, logoColorLeft, logoColorRight]);
+  }, [pos, file, sizeMultiplier, enabled, textWmEnabled, textWmText, textWmOpacity, textWmSize, textWmAngle, textWmColor, textWmSpacingX, textWmSpacingY, logoText, logoColorLeft, logoColorRight, customLogoWm?.enabled, customLogoWm?.imageDataUrl, customLogoWm?.size, customLogoWm?.opacity, customLogoWm?.bgEnabled, customLogoWm?.bgColor, customLogoWm?.bgOpacity, customLogoWm?.borderRadius, customLogoWm?.padding, customLogoWm?.shadowEnabled, customLogoWm?.shadowStrength]);
 
   const getFrac = (e: React.MouseEvent<HTMLCanvasElement> | MouseEvent) => {
     const canvas = canvasRef.current!;
@@ -696,7 +891,7 @@ const WatermarkPreview: React.FC<WatermarkPreviewProps> = ({
         onDragStart={(e) => e.preventDefault()}
       />
       <p className="text-[10px] text-[#6B5B55] text-center mt-1 italic">
-        Click or drag to reposition the AG watermark
+        Click or drag to reposition the {customLogoWm?.enabled && customLogoWm?.imageDataUrl ? 'logo' : 'AG'} watermark
       </p>
 
     </div>
@@ -756,6 +951,28 @@ export const AdminProducts: React.FC = () => {
   const [hasEyeDropper] = useState(() => typeof (window as any).EyeDropper !== 'undefined');
   const [detectedColors, setDetectedColors] = useState<string[]>([]);
   const [detectingColors, setDetectingColors] = useState(false);
+
+  // ── Custom Logo Watermark state (persisted in localStorage) ──
+  const [customLogoWm, setCustomLogoWm] = useState<CustomLogoWmConfig>(() => loadCustomLogoWmFromLS());
+  const customLogoFileRef = useRef<HTMLInputElement>(null);
+
+  // Persist custom logo wm config whenever it changes
+  useEffect(() => { saveCustomLogoWmToLS(customLogoWm); }, [customLogoWm]);
+
+  const updateCustomLogoWm = (patch: Partial<CustomLogoWmConfig>) => {
+    setCustomLogoWm(prev => ({ ...prev, ...patch }));
+  };
+
+  const handleCustomLogoUpload = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      if (dataUrl) {
+        updateCustomLogoWm({ imageDataUrl: dataUrl, enabled: true });
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   useEffect(() => { fetchProducts(); }, []);
 
@@ -921,7 +1138,7 @@ export const AdminProducts: React.FC = () => {
           text: agLogoText,
           colorLeft: agLogoColorLeft,
           colorRight: agLogoColorRight,
-        }) : files[i];
+        }, customLogoWm) : files[i];
       } catch {
         watermarked = files[i];
       }
@@ -1428,6 +1645,7 @@ export const AdminProducts: React.FC = () => {
                     logoText={agLogoText}
                     logoColorLeft={agLogoColorLeft}
                     logoColorRight={agLogoColorRight}
+                    customLogoWm={customLogoWm}
                   />
                   <button
                     type="button"
@@ -1540,6 +1758,208 @@ export const AdminProducts: React.FC = () => {
                           </div>
                         </div>
                       )}
+
+                      <div className="border-t border-blush/20" />
+
+                      {/* ── CUSTOM LOGO WATERMARK SECTION ── */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-[#6B5B55]">🖼 Custom Logo Watermark</span>
+                      </div>
+
+                      {/* Upload area */}
+                      <div className="space-y-2.5">
+                        <div
+                          className="relative flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-blush/40 rounded-xl py-3 px-4 cursor-pointer hover:border-rose-gold/60 hover:bg-rose-50/30 transition-colors"
+                          onClick={() => customLogoFileRef.current?.click()}
+                          onDragOver={e => e.preventDefault()}
+                          onDrop={e => {
+                            e.preventDefault();
+                            const f = e.dataTransfer.files[0];
+                            if (f && /image\/(png|svg\+xml|webp|jpeg)/.test(f.type)) handleCustomLogoUpload(f);
+                          }}
+                        >
+                          <input
+                            ref={customLogoFileRef}
+                            type="file"
+                            accept="image/png,image/svg+xml,image/webp,image/jpeg"
+                            className="hidden"
+                            onChange={e => {
+                              const f = e.target.files?.[0];
+                              if (f) handleCustomLogoUpload(f);
+                              e.target.value = '';
+                            }}
+                          />
+                          {customLogoWm.imageDataUrl ? (
+                            <div className="flex items-center gap-3 w-full">
+                              <img
+                                src={customLogoWm.imageDataUrl}
+                                alt="Uploaded logo"
+                                className="h-10 w-auto max-w-[80px] object-contain rounded"
+                                style={{ background: 'repeating-conic-gradient(#ccc 0% 25%, #fff 0% 50%) 0 0 / 10px 10px' }}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[11px] text-charcoal font-medium truncate">Logo uploaded ✓</p>
+                                <p className="text-[10px] text-[#6B5B55]">Click to replace</p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={e => { e.stopPropagation(); updateCustomLogoWm({ imageDataUrl: '', enabled: false }); }}
+                                className="ml-auto text-[10px] text-red-400 hover:text-red-600 transition-colors shrink-0"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <UploadCloud size={20} className="text-[#6B5B55]/60" />
+                              <p className="text-[11px] text-[#6B5B55] text-center">
+                                Drop or click to upload logo<br />
+                                <span className="text-[10px] opacity-70">PNG · SVG · WEBP · JPG — transparent PNGs supported</span>
+                              </p>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Toggle: Use Uploaded Logo vs AG Text Logo */}
+                        {customLogoWm.imageDataUrl && (
+                          <div className="flex items-center gap-2 bg-white/60 rounded-lg px-3 py-2 border border-blush/20">
+                            <span className="text-[11px] text-[#6B5B55] flex-1">
+                              {customLogoWm.enabled ? '🖼 Using uploaded logo' : '🔤 Using AG text logo'}
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => updateCustomLogoWm({ enabled: false })}
+                                className={`text-[10px] px-2 py-1 rounded-md transition-colors ${!customLogoWm.enabled ? 'bg-rose-gold text-white' : 'text-[#6B5B55] hover:bg-blush/40'}`}
+                              >
+                                AG Logo
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => updateCustomLogoWm({ enabled: true })}
+                                className={`text-[10px] px-2 py-1 rounded-md transition-colors ${customLogoWm.enabled ? 'bg-rose-gold text-white' : 'text-[#6B5B55] hover:bg-blush/40'}`}
+                              >
+                                Uploaded Logo
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Controls — only shown when custom logo is active */}
+                        {customLogoWm.enabled && customLogoWm.imageDataUrl && (
+                          <div className="space-y-2 bg-white/40 rounded-xl px-3 py-2.5 border border-blush/20">
+                            {/* Logo Size */}
+                            <div className="flex items-center gap-3">
+                              <span className="text-[11px] text-[#6B5B55] w-20 shrink-0">Logo Size</span>
+                              <input
+                                type="range" min={0.04} max={0.55} step={0.01} value={customLogoWm.size}
+                                onChange={e => updateCustomLogoWm({ size: parseFloat(e.target.value) })}
+                                className="flex-1 accent-rose-gold"
+                              />
+                              <span className="text-[11px] text-[#6B5B55] w-8 text-right">{Math.round(customLogoWm.size * 100)}%</span>
+                            </div>
+
+                            {/* Opacity */}
+                            <div className="flex items-center gap-3">
+                              <span className="text-[11px] text-[#6B5B55] w-20 shrink-0">Opacity</span>
+                              <input
+                                type="range" min={0.05} max={1.0} step={0.05} value={customLogoWm.opacity}
+                                onChange={e => updateCustomLogoWm({ opacity: parseFloat(e.target.value) })}
+                                className="flex-1 accent-rose-gold"
+                              />
+                              <span className="text-[11px] text-[#6B5B55] w-8 text-right">{Math.round(customLogoWm.opacity * 100)}%</span>
+                            </div>
+
+                            {/* Background Box toggle */}
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] text-[#6B5B55]">Background Box</span>
+                              <div
+                                onClick={() => updateCustomLogoWm({ bgEnabled: !customLogoWm.bgEnabled })}
+                                className={`relative w-9 h-5 rounded-full transition-colors cursor-pointer ${customLogoWm.bgEnabled ? 'bg-rose-gold' : 'bg-gray-300'}`}
+                              >
+                                <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${customLogoWm.bgEnabled ? 'left-4' : 'left-0.5'}`} />
+                              </div>
+                            </div>
+
+                            {customLogoWm.bgEnabled && (
+                              <>
+                                {/* Background Color + Opacity */}
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[11px] text-[#6B5B55] w-20 shrink-0">BG Color</span>
+                                  <input
+                                    type="color"
+                                    value={customLogoWm.bgColor}
+                                    onChange={e => updateCustomLogoWm({ bgColor: e.target.value })}
+                                    className="w-8 h-7 rounded cursor-pointer border border-blush/30 p-0.5 bg-white"
+                                  />
+                                  <span className="text-[11px] text-[#6B5B55] ml-1 whitespace-nowrap">BG Opacity</span>
+                                  <input
+                                    type="range" min={0.05} max={1.0} step={0.05} value={customLogoWm.bgOpacity}
+                                    onChange={e => updateCustomLogoWm({ bgOpacity: parseFloat(e.target.value) })}
+                                    className="flex-1 accent-rose-gold"
+                                  />
+                                  <span className="text-[11px] text-[#6B5B55] w-8 text-right">{Math.round(customLogoWm.bgOpacity * 100)}%</span>
+                                </div>
+
+                                {/* Border Radius */}
+                                <div className="flex items-center gap-3">
+                                  <span className="text-[11px] text-[#6B5B55] w-20 shrink-0">Radius</span>
+                                  <input
+                                    type="range" min={0} max={40} step={1} value={customLogoWm.borderRadius}
+                                    onChange={e => updateCustomLogoWm({ borderRadius: parseInt(e.target.value) })}
+                                    className="flex-1 accent-rose-gold"
+                                  />
+                                  <span className="text-[11px] text-[#6B5B55] w-8 text-right">{customLogoWm.borderRadius}px</span>
+                                </div>
+
+                                {/* Padding */}
+                                <div className="flex items-center gap-3">
+                                  <span className="text-[11px] text-[#6B5B55] w-20 shrink-0">Padding</span>
+                                  <input
+                                    type="range" min={0} max={40} step={1} value={customLogoWm.padding}
+                                    onChange={e => updateCustomLogoWm({ padding: parseInt(e.target.value) })}
+                                    className="flex-1 accent-rose-gold"
+                                  />
+                                  <span className="text-[11px] text-[#6B5B55] w-8 text-right">{customLogoWm.padding}px</span>
+                                </div>
+                              </>
+                            )}
+
+                            {/* Shadow toggle */}
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] text-[#6B5B55]">Shadow</span>
+                              <div
+                                onClick={() => updateCustomLogoWm({ shadowEnabled: !customLogoWm.shadowEnabled })}
+                                className={`relative w-9 h-5 rounded-full transition-colors cursor-pointer ${customLogoWm.shadowEnabled ? 'bg-rose-gold' : 'bg-gray-300'}`}
+                              >
+                                <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${customLogoWm.shadowEnabled ? 'left-4' : 'left-0.5'}`} />
+                              </div>
+                            </div>
+
+                            {customLogoWm.shadowEnabled && (
+                              <div className="flex items-center gap-3">
+                                <span className="text-[11px] text-[#6B5B55] w-20 shrink-0">Shadow Strength</span>
+                                <input
+                                  type="range" min={0} max={40} step={1} value={customLogoWm.shadowStrength}
+                                  onChange={e => updateCustomLogoWm({ shadowStrength: parseInt(e.target.value) })}
+                                  className="flex-1 accent-rose-gold"
+                                />
+                                <span className="text-[11px] text-[#6B5B55] w-8 text-right">{customLogoWm.shadowStrength}</span>
+                              </div>
+                            )}
+
+                            {/* Reset button */}
+                            <button
+                              type="button"
+                              onClick={() => updateCustomLogoWm({ ...defaultCustomLogoWm, imageDataUrl: customLogoWm.imageDataUrl, enabled: true })}
+                              className="text-[10px] text-[#6B5B55] underline hover:text-rose-gold transition-colors"
+                            >
+                              Reset logo controls to default
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      {/* ── END CUSTOM LOGO WATERMARK ── */}
 
                       <div className="border-t border-blush/20" />
 
@@ -1673,6 +2093,7 @@ export const AdminProducts: React.FC = () => {
                             logoText={agLogoText}
                             logoColorLeft={agLogoColorLeft}
                             logoColorRight={agLogoColorRight}
+                            customLogoWm={customLogoWm}
                           />
                           <button
                             type="button"
