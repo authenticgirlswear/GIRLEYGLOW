@@ -243,8 +243,24 @@ const drawTextWatermark = (
 
 
 // ─────────────────────────────────────────────────
-// DRAW AG LOGO WATERMARK
+// LOGO WATERMARK
 // ─────────────────────────────────────────────────
+// Cached logo image element for watermark rendering
+let _cachedLogoImg: HTMLImageElement | null = null;
+let _cachedLogoUrl: string = '';
+
+const getLogoImage = (url: string): Promise<HTMLImageElement | null> => {
+  if (!url) return Promise.resolve(null);
+  if (_cachedLogoUrl === url && _cachedLogoImg) return Promise.resolve(_cachedLogoImg);
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => { _cachedLogoImg = img; _cachedLogoUrl = url; resolve(img); };
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+};
+
 const drawAGLogo = (
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -252,63 +268,64 @@ const drawAGLogo = (
   size: number,
   logoText: string = 'AG',
   colorLeft: string = '#C0C0C0',
-  colorRight: string = '#F5A623'
+  colorRight: string = '#F5A623',
+  logoImg?: HTMLImageElement | null
 ) => {
   ctx.save();
-  ctx.textBaseline = 'alphabetic';
 
-  const gap = size * 0.04;
-  const text = logoText.trim() || 'AG';
-  // Split into two halves: left = first half, right = second half
-  const mid = Math.ceil(text.length / 2);
-  const leftPart = text.slice(0, mid);
-  const rightPart = text.slice(mid);
-
-  ctx.font = `900 ${size}px Arial, sans-serif`;
-  const leftWidth = ctx.measureText(leftPart).width;
-  const rightWidth = ctx.measureText(rightPart).width;
-  const totalTextWidth = leftWidth + rightWidth + gap * 2;
-
-  const boxW = totalTextWidth + size * 0.6;
-  const boxH = size + size * 0.5;
-
-  const boxX = x - boxW / 2;
-  const boxY = y - size - size * 0.25;
-  const radius = size * 0.22;
-
-  ctx.globalAlpha = 0.52;
-  ctx.fillStyle = '#1a1a1a';
-  ctx.beginPath();
-  ctx.moveTo(boxX + radius, boxY);
-  ctx.lineTo(boxX + boxW - radius, boxY);
-  ctx.quadraticCurveTo(boxX + boxW, boxY, boxX + boxW, boxY + radius);
-  ctx.lineTo(boxX + boxW, boxY + boxH - radius);
-  ctx.quadraticCurveTo(boxX + boxW, boxY + boxH, boxX + boxW - radius, boxY + boxH);
-  ctx.lineTo(boxX + radius, boxY + boxH);
-  ctx.quadraticCurveTo(boxX, boxY + boxH, boxX, boxY + boxH - radius);
-  ctx.lineTo(boxX, boxY + radius);
-  ctx.quadraticCurveTo(boxX, boxY, boxX + radius, boxY);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.globalAlpha = 0.92;
-  ctx.shadowColor = 'rgba(0,0,0,0.55)';
-  ctx.shadowBlur = size * 0.35;
-  ctx.shadowOffsetX = size * 0.04;
-  ctx.shadowOffsetY = size * 0.04;
-
-  ctx.font = `900 ${size}px Arial, sans-serif`;
-  ctx.fillStyle = colorLeft;
-  ctx.textAlign = 'right';
-  ctx.fillText(leftPart, x - gap, y);
-
-  ctx.fillStyle = colorRight;
-  ctx.textAlign = 'left';
-  ctx.fillText(rightPart, x + gap, y);
+  if (logoImg) {
+    // Draw uploaded image logo
+    const imgW = size * 3;
+    const imgH = (logoImg.naturalHeight / logoImg.naturalWidth) * imgW;
+    ctx.globalAlpha = 0.85;
+    ctx.drawImage(logoImg, x - imgW / 2, y - imgH, imgW, imgH);
+  } else {
+    // Fallback: draw text logo (original behaviour)
+    ctx.textBaseline = 'alphabetic';
+    const gap = size * 0.04;
+    const text = logoText.trim() || 'AG';
+    const mid = Math.ceil(text.length / 2);
+    const leftPart = text.slice(0, mid);
+    const rightPart = text.slice(mid);
+    ctx.font = `900 ${size}px Arial, sans-serif`;
+    const leftWidth = ctx.measureText(leftPart).width;
+    const rightWidth = ctx.measureText(rightPart).width;
+    const totalTextWidth = leftWidth + rightWidth + gap * 2;
+    const boxW = totalTextWidth + size * 0.6;
+    const boxH = size + size * 0.5;
+    const boxX = x - boxW / 2;
+    const boxY = y - size - size * 0.25;
+    const radius = size * 0.22;
+    ctx.globalAlpha = 0.52;
+    ctx.fillStyle = '#1a1a1a';
+    ctx.beginPath();
+    ctx.moveTo(boxX + radius, boxY);
+    ctx.lineTo(boxX + boxW - radius, boxY);
+    ctx.quadraticCurveTo(boxX + boxW, boxY, boxX + boxW, boxY + radius);
+    ctx.lineTo(boxX + boxW, boxY + boxH - radius);
+    ctx.quadraticCurveTo(boxX + boxW, boxY + boxH, boxX + boxW - radius, boxY + boxH);
+    ctx.lineTo(boxX + radius, boxY + boxH);
+    ctx.quadraticCurveTo(boxX, boxY + boxH, boxX, boxY + boxH - radius);
+    ctx.lineTo(boxX, boxY + radius);
+    ctx.quadraticCurveTo(boxX, boxY, boxX + radius, boxY);
+    ctx.closePath();
+    ctx.fill();
+    ctx.globalAlpha = 0.92;
+    ctx.shadowColor = 'rgba(0,0,0,0.55)';
+    ctx.shadowBlur = size * 0.35;
+    ctx.shadowOffsetX = size * 0.04;
+    ctx.shadowOffsetY = size * 0.04;
+    ctx.font = `900 ${size}px Arial, sans-serif`;
+    ctx.fillStyle = colorLeft;
+    ctx.textAlign = 'right';
+    ctx.fillText(leftPart, x - gap, y);
+    ctx.fillStyle = colorRight;
+    ctx.textAlign = 'left';
+    ctx.fillText(rightPart, x + gap, y);
+  }
 
   ctx.restore();
 };
-
 // ─────────────────────────────────────────────────
 // WATERMARK A FILE with retry-safe canvas approach
 // ─────────────────────────────────────────────────
@@ -332,7 +349,7 @@ interface LogoWmConfig {
 // ─────────────────────────────────────────────────
 // APPLY WATERMARK — with pre-resize for large files
 // ─────────────────────────────────────────────────
-const applyWatermark = (file: File, sizeMultiplier = 1.0, textWm?: TextWmConfig, logoWm?: LogoWmConfig): Promise<File> => {
+const applyWatermark = (file: File, sizeMultiplier = 1.0, textWm?: TextWmConfig, logoWm?: LogoWmConfig, logoImg?: HTMLImageElement | null): Promise<File> => {
   return new Promise((resolve) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
@@ -360,7 +377,7 @@ const applyWatermark = (file: File, sizeMultiplier = 1.0, textWm?: TextWmConfig,
       const size = Math.max(18, Math.min(targetW, targetH) * 0.08) * sizeMultiplier;
       const x = wmPos.xFrac * targetW;
       const y = wmPos.yFrac * targetH;
-      drawAGLogo(ctx, x, y, size, logoWm?.text, logoWm?.colorLeft, logoWm?.colorRight);
+      drawAGLogo(ctx, x, y, size, logoWm?.text, logoWm?.colorLeft, logoWm?.colorRight, logoImg);
 
       // Apply text watermark if enabled
       if (textWm?.enabled) {
@@ -437,7 +454,7 @@ const applyWatermark = (file: File, sizeMultiplier = 1.0, textWm?: TextWmConfig,
             const ctx = canvas.getContext('2d')!;
             ctx.drawImage(retryImg, 0, 0, targetW, targetH);
             const size = Math.max(18, Math.min(targetW, targetH) * 0.08) * sizeMultiplier;
-            drawAGLogo(ctx, wmPos.xFrac * targetW, wmPos.yFrac * targetH, size, logoWm?.text, logoWm?.colorLeft, logoWm?.colorRight);
+            drawAGLogo(ctx, wmPos.xFrac * targetW, wmPos.yFrac * targetH, size, logoWm?.text, logoWm?.colorLeft, logoWm?.colorRight, logoImg);
             if (textWm?.enabled) {
               drawTextWatermark(ctx, targetW, targetH, textWm.text,
                 Math.max(10, targetW * (textWm.size / 500)),
@@ -472,11 +489,12 @@ const applyWatermark = (file: File, sizeMultiplier = 1.0, textWm?: TextWmConfig,
 // ─────────────────────────────────────────────────
 const MiniWatermarkThumb: React.FC<{
   file: File; xFrac: number; yFrac: number;
+  logoImg?: HTMLImageElement | null;
   textWmEnabled?: boolean; textWmText?: string; textWmOpacity?: number;
   textWmSize?: number; textWmAngle?: number; textWmColor?: string;
   textWmSpacingX?: number; textWmSpacingY?: number;
   logoText?: string; logoColorLeft?: string; logoColorRight?: string;
-}> = ({ file, xFrac, yFrac, textWmEnabled = false, textWmText = 'GIrley GLow',
+}> = ({ file, xFrac, yFrac, logoImg, textWmEnabled = false, textWmText = 'GIrley GLow',
   textWmOpacity = 0.18, textWmSize = 22, textWmAngle = -30,
   textWmColor = '#ffffff', textWmSpacingX = 180, textWmSpacingY = 90,
   logoText = 'AG', logoColorLeft = '#C0C0C0', logoColorRight = '#F5A623' }) => {
@@ -500,7 +518,7 @@ const MiniWatermarkThumb: React.FC<{
       canvas.height = displayH;
       ctx.drawImage(img, 0, 0, displayW, displayH);
       const size = Math.max(10, Math.min(displayW, displayH) * 0.08);
-      drawAGLogo(ctx, xRef.current * displayW, yRef.current * displayH, size, logoText, logoColorLeft, logoColorRight);
+      drawAGLogo(ctx, xRef.current * displayW, yRef.current * displayH, size, logoText, logoColorLeft, logoColorRight, logoImg);
       if (textWmEnabled) {
         drawTextWatermark(
           ctx, displayW, displayH,
@@ -568,6 +586,7 @@ const MiniWatermarkThumb: React.FC<{
 interface WatermarkPreviewProps {
   file: File;
   onPositionChange: (xFrac: number, yFrac: number) => void;
+  logoImg?: HTMLImageElement | null;
   sizeMultiplier?: number;
   enabled?: boolean;
   textWmEnabled?: boolean;
@@ -583,7 +602,7 @@ interface WatermarkPreviewProps {
   logoColorRight?: string;
 }
 const WatermarkPreview: React.FC<WatermarkPreviewProps> = ({
-  file, onPositionChange, sizeMultiplier = 1.0, enabled = true,
+  file, onPositionChange, sizeMultiplier = 1.0, enabled = true, logoImg,
   textWmEnabled = false, textWmText = 'GIrley GLow',
   textWmOpacity = 0.18, textWmSize = 22, textWmAngle = -30,
   textWmColor = '#ffffff', textWmSpacingX = 180, textWmSpacingY = 90,
@@ -607,7 +626,7 @@ const WatermarkPreview: React.FC<WatermarkPreviewProps> = ({
       canvas.height = displayH;
       ctx.drawImage(img, 0, 0, displayW, displayH);
       const size = Math.max(18, Math.min(displayW, displayH) * 0.08) * sizeMultiplier;
-      if (enabled) drawAGLogo(ctx, pos.xFrac * displayW, pos.yFrac * displayH, size, logoText, logoColorLeft, logoColorRight);
+      if (enabled) drawAGLogo(ctx, pos.xFrac * displayW, pos.yFrac * displayH, size, logoText, logoColorLeft, logoColorRight, logoImg);
       if (textWmEnabled) {
         drawTextWatermark(
           ctx, displayW, displayH,
@@ -753,11 +772,22 @@ export const AdminProducts: React.FC = () => {
   const [agLogoText, setAgLogoText] = useState<string>('AG');
   const [agLogoColorLeft, setAgLogoColorLeft] = useState<string>('#C0C0C0');
   const [agLogoColorRight, setAgLogoColorRight] = useState<string>('#F5A623');
+  const [logoImageUrl, setLogoImageUrl] = useState<string>('');
+  const [logoImageUploading, setLogoImageUploading] = useState(false);
+  const [logoImageEl, setLogoImageEl] = useState<HTMLImageElement | null>(null);
   const [hasEyeDropper] = useState(() => typeof (window as any).EyeDropper !== 'undefined');
   const [detectedColors, setDetectedColors] = useState<string[]>([]);
   const [detectingColors, setDetectingColors] = useState(false);
 
-  useEffect(() => { fetchProducts(); }, []);
+  useEffect(() => {
+    supabase.from('site_settings').select('value').eq('key', 'watermark_logo_url').single()
+      .then(({ data }) => {
+        if (data?.value) {
+          setLogoImageUrl(data.value);
+          getLogoImage(data.value).then(setLogoImageEl);
+        }
+      });
+  }, []);
 
   // Auto-detect colors from first uploaded image
   useEffect(() => {
@@ -890,8 +920,10 @@ export const AdminProducts: React.FC = () => {
   const uploadImages = async (
     files: File[],
     onProgress: (done: number, total: number) => void,
-    sizeMultiplier = 1.0
+    sizeMultiplier = 1.0,
+    logoImgUrl = ''
   ): Promise<{ urls: string[]; failedCount: number }> => {
+    const logoImg = logoImgUrl ? await getLogoImage(logoImgUrl) : null;
     const urls: string[] = [];
     let failedCount = 0;
 
@@ -921,7 +953,7 @@ export const AdminProducts: React.FC = () => {
           text: agLogoText,
           colorLeft: agLogoColorLeft,
           colorRight: agLogoColorRight,
-        }) : files[i];
+        }, logoImg) : files[i];
       } catch {
         watermarked = files[i];
       }
@@ -992,7 +1024,7 @@ export const AdminProducts: React.FC = () => {
         setUploadProgress({ done: 0, total: imageFiles.length });
         const result = await uploadImages(imageFiles, (done, total) => {
           setUploadProgress({ done, total });
-        }, wmSize);
+        }, wmSize, logoImageUrl);
         finalImages = [...finalImages, ...result.urls];
         failedCount = result.failedCount;
       }
@@ -1413,6 +1445,7 @@ export const AdminProducts: React.FC = () => {
                     file={imageFiles[0]}
                     sizeMultiplier={wmSize}
                     enabled={wmEnabled}
+                    logoImg={logoImageEl}
                     onPositionChange={(xFrac: number, yFrac: number) => {
                       wmPos = { xFrac, yFrac };
                       setWmFrac({ xFrac, yFrac });
@@ -1478,6 +1511,56 @@ export const AdminProducts: React.FC = () => {
                       </div>
                       {wmEnabled && (
                         <div className="space-y-2.5">
+                          {/* Logo Image Upload */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] text-[#6B5B55] w-20 shrink-0">Logo Image</span>
+                            {logoImageUrl ? (
+                              <div className="flex items-center gap-2 flex-1">
+                                <img src={logoImageUrl} alt="Logo" className="h-8 rounded border border-blush/30 bg-white object-contain" />
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    await supabase.from('site_settings').delete().eq('key', 'watermark_logo_url');
+                                    setLogoImageUrl('');
+                                    setLogoImageEl(null);
+                                    _cachedLogoImg = null;
+                                    _cachedLogoUrl = '';
+                                  }}
+                                  className="text-[10px] text-red-400 hover:text-red-600 underline"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            ) : (
+                              <label className={`flex-1 flex items-center gap-2 cursor-pointer px-3 py-1.5 rounded-lg border border-dashed border-blush/40 bg-white hover:bg-blush-light/40 transition-colors text-[11px] text-[#6B5B55] ${logoImageUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                                <UploadCloud size={14} />
+                                {logoImageUploading ? 'Uploading...' : 'Upload PNG logo'}
+                                <input
+                                  type="file"
+                                  accept="image/png,image/webp,image/svg+xml"
+                                  className="hidden"
+                                  onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    setLogoImageUploading(true);
+                                    try {
+                                      const url = await uploadToCloudinary(file);
+                                      if (url) {
+                                        await supabase.from('site_settings').upsert({ key: 'watermark_logo_url', value: url });
+                                        setLogoImageUrl(url);
+                                        const img = await getLogoImage(url);
+                                        setLogoImageEl(img);
+                                      }
+                                    } finally {
+                                      setLogoImageUploading(false);
+                                    }
+                                  }}
+                                />
+                              </label>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-[#6B5B55]/60 -mt-1">Upload a transparent PNG. If set, replaces the text logo below.</p>
+
                           {/* Logo Text */}
                           <div className="flex items-center gap-2">
                             <span className="text-[11px] text-[#6B5B55] w-20 shrink-0">Logo Text</span>
@@ -1670,6 +1753,7 @@ export const AdminProducts: React.FC = () => {
                             file={file}
                             xFrac={wmFrac.xFrac}
                             yFrac={wmFrac.yFrac}
+                            logoImg={logoImageEl}
                             textWmEnabled={textWmEnabled}
                             textWmText={textWmText}
                             textWmOpacity={textWmOpacity}
