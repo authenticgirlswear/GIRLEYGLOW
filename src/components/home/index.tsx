@@ -7,13 +7,14 @@
    =================================================== */
 import { useCategoryStore } from '@/store';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, ArrowLeft, ShoppingBag, Star, Sparkles } from 'lucide-react';
 import { FadeIn, SectionHeader, PriceDisplay, Badge, StarRating, Button } from '@/components/ui';
 import { useProductStore } from '@/store';
 import { useContentStore } from '@/store/contentStore';
 import type { Product } from '@/types';
+import { getOptimizedImageUrl, getResponsiveSrcSet } from '@/lib/cloudinary';
 
 // ==========================================
 // HERO SECTION  ← reads from useContentStore
@@ -893,15 +894,16 @@ export const TrendingProducts: React.FC = () => {
 interface ProductCardProps {
   product: Product;
   /**
-   * Pass `priority` for the first N cards in a grid so they load
-   * eagerly (above-the-fold LCP candidates).
-   * All other cards default to lazy + async.
+   * Pass `priority={true}` for the first N cards in a grid so they load
+   * eagerly with high fetchPriority (above-the-fold LCP candidates).
+   * All other cards default to lazy + async + low priority.
    */
   priority?: boolean;
 }
 
-// Colour name → hex lookup used by the swatch dots.
-// Defined once at module level — never recreated per render.
+// ─── Colour name → hex lookup ─────────────────────────────────────────────────
+// Defined at module scope — allocated once, never recreated per render.
+// Covers all common colour names used in product variants.
 const COLOR_MAP: Record<string, string> = {
   red: '#E53E3E', magenta: '#FF00FF', black: '#1A1A1A',
   hotpink: '#FF69B4', white: '#FFFFFF', skin: '#F5CBA7',
@@ -910,176 +912,319 @@ const COLOR_MAP: Record<string, string> = {
   orange: '#ED8936', purple: '#805AD5', grey: '#A0AEC0',
   gray: '#A0AEC0', brown: '#8B4513', maroon: '#800000',
   cream: '#FFFDD0', gold: '#FFD700', silver: '#C0C0C0',
-  coral: '#FF6B6B', peach: '#FFCBA4',
+  coral: '#FF6B6B', peach: '#FFCBA4', rose: '#FF007F',
+  lavender: '#E6E6FA', teal: '#008080', mint: '#98FF98',
+  nude: '#E8C9A0', wine: '#722F37', burgundy: '#800020',
 };
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product, priority = false }) => {
-  const navigate = useNavigate();
+// ─── Stable srcset widths for product card grid images ────────────────────────
+// Cards render at ~25vw on desktop, ~50vw on tablet, 100vw on mobile.
+const CARD_SRCSET_WIDTHS = [240, 360, 480, 640];
 
-  // Resolve the first image — must start with http to be a real URL
-  const imageSrc = product.images?.[0]?.startsWith('http')
-    ? product.images[0]
-    : null;
+// ─── Stable sizes string for product grid cards ───────────────────────────────
+// (max-width 640px) 50vw  → 2-column grid on mobile
+// (max-width 1024px) 33vw → 3-column grid on tablet
+// default 25vw             → 4-column grid on desktop
+const CARD_SIZES = '(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw';
 
-  // Rich alt text for SEO and screen readers
-  const imageAlt = `${product.name} — ${product.category || 'GIrley GLow'}`;
+// ─── Memoised ProductCard ─────────────────────────────────────────────────────
+// memo() prevents re-renders when parent grids re-render but product data
+// hasn't changed — important for long category pages and search results.
+export const ProductCard: React.FC<ProductCardProps> = React.memo(
+  ({ product, priority = false }) => {
+    // Raw first image — only real http URLs are used; others fall back to gradient
+    const rawSrc = product.images?.[0]?.startsWith('http') ? product.images[0] : null;
 
-  return (
     /*
-      Use a <Link> as the outermost interactive element so the card is:
-      - Keyboard navigable (tab-focusable, Enter activates)
-      - Announced correctly by screen readers ("link: Product name")
-      - Crawlable by search engine bots without JavaScript
-      The motion.div is nested inside and handles only visual animation.
+      Cloudinary-optimised src:
+      - width=480: enough for a 25vw card on a 1920px screen at 1x DPR
+      - f_auto + q_auto: lets Cloudinary serve WebP/AVIF where supported
+      Browsers that support srcset will pick a better-matched width anyway;
+      this src is the fallback and the preload scanner hint.
     */
-    <motion.div
-      whileHover={{
-        y: -4,
-        boxShadow: '0 20px 40px rgba(0,0,0,0.14)',
-        transition: { duration: 0.3 },
-      }}
-      // role="article" groups all card content as a single unit for AT
-      role="article"
-      aria-label={`${product.name}, ৳${product.price}`}
-      style={{
-        borderRadius: '20px',
-        boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
-        backdropFilter: 'blur(10px)',
-        transition: 'all 0.3s ease',
-        padding: '8px',
-        backgroundColor: 'rgba(255, 228, 237, 0.35)',
-        cursor: 'pointer',
-      }}
-      onClick={() => navigate(`/product/${product.slug}`)}
-      // Keyboard: activate card on Enter/Space without mouse
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          navigate(`/product/${product.slug}`);
-        }
-      }}
-      tabIndex={0}
-      className="group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-gold focus-visible:ring-offset-2 focus-visible:rounded-[20px]"
-    >
-      {/* ── Image container ──────────────────────────────────────────────── */}
-      <div className="relative rounded-2xl overflow-hidden aspect-[3/4] mb-3 bg-blush-light/30">
-        {imageSrc ? (
-          <img
-            src={imageSrc}
-            alt={imageAlt}
-            /*
-              CLS prevention:
-              - The parent div has aspect-[3/4] which reserves exact space
-                before the image loads — zero layout shift.
-              - Explicit width/height tell the browser the intrinsic ratio
-                even in environments that don't support aspect-ratio CSS.
-              - We use 600×800 (3:4) — the actual display size is determined
-                by the CSS; these attrs are for the browser's preload scanner.
-            */
-            width={600}
-            height={800}
-            /*
-              Loading strategy:
-              - priority=true  → above-the-fold, LCP candidate → eager + sync + high
-              - priority=false → below-the-fold               → lazy + async + low
-            */
-            loading={priority ? 'eager' : 'lazy'}
-            decoding={priority ? 'sync' : 'async'}
-            fetchPriority={priority ? 'high' : 'low'}
-            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-          />
-        ) : (
-          // Gradient placeholder — aria-hidden because it's purely decorative
-          <div
-            className="absolute inset-0 bg-gradient-to-br from-blush via-lavender to-champagne group-hover:scale-105 transition-transform duration-700"
-            aria-hidden="true"
-          />
-        )}
+    const optimisedSrc = rawSrc
+      ? getOptimizedImageUrl(rawSrc, { width: 480, crop: 'fill' })
+      : null;
 
-        {/* Badges */}
-        <div
-          className="absolute top-3 left-3 flex flex-col gap-1.5 z-10"
-          aria-label="Product labels"
+    /*
+      Responsive srcset: 240w → 640w in 4 steps.
+      Empty string when URL is not Cloudinary → <img> falls back to src only.
+    */
+    const srcSet = rawSrc
+      ? getResponsiveSrcSet(rawSrc, { widths: CARD_SRCSET_WIDTHS, crop: 'fill' })
+      : '';
+
+    // Rich alt text — product name + category for SEO and screen readers
+    const imageAlt = `${product.name}${product.category ? ` — ${product.category}` : ''}`;
+
+    // Discount percentage — computed once per render, not on every re-render
+    const discountPct =
+      product.comparePrice && product.comparePrice > product.price
+        ? Math.round(((product.comparePrice - product.price) / product.comparePrice) * 100)
+        : 0;
+
+    // Product URL — stable string, no need for useNavigate inside the card
+    const productUrl = `/product/${product.slug}`;
+
+    return (
+      /*
+        Outermost element is <Link> — the semantically correct pattern for
+        a card that navigates to a detail page:
+
+        ✓ Crawlable by search engines without JavaScript (href is present in HTML)
+        ✓ Keyboard-navigable (Tab → focus, Enter → navigate)
+        ✓ Screen readers announce "link: {product.name}, ৳{price}"
+        ✓ Right-click → "Open in new tab" works correctly
+        ✓ Correct focus ring via focus-visible
+
+        The motion.div is nested inside for animation only — it carries no
+        interactive semantics.
+
+        aria-label gives a concise spoken label. The detailed content
+        (h3 text, price, rating) is still in the DOM for visual users
+        and is reachable by screen readers navigating within the card.
+      */
+      <Link
+        to={productUrl}
+        aria-label={`${product.name}${discountPct > 0 ? `, ${discountPct}% off` : ''}, ৳${product.price}`}
+        className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-gold focus-visible:ring-offset-2 rounded-[20px] group"
+        // Prevent Link from double-firing if a child button is clicked
+        onClick={(e) => {
+          const target = e.target as HTMLElement;
+          if (target.closest('button')) e.preventDefault();
+        }}
+      >
+        <motion.article
+          whileHover={{
+            y: -4,
+            boxShadow: '0 20px 40px rgba(0,0,0,0.14)',
+            transition: { duration: 0.3 },
+          }}
+          /*
+            role="article" is kept on the motion element — screen readers
+            treat this as a self-contained item within the product list.
+            The Link above provides navigation semantics; article provides
+            structural grouping.
+          */
+          style={{
+            borderRadius: '20px',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
+            backdropFilter: 'blur(10px)',
+            transition: 'box-shadow 0.3s ease, transform 0.3s ease',
+            padding: '8px',
+            backgroundColor: 'rgba(255, 228, 237, 0.35)',
+          }}
         >
-          {product.isOnSale && <Badge variant="sale">Sale</Badge>}
-          {product.isNewArrival && <Badge variant="new">New</Badge>}
-          {product.isTrending && <Badge variant="trending">Trending</Badge>}
-        </div>
-
-        {/* Quick View overlay — shown on hover */}
-        <div
-          className="absolute bottom-3 left-3 right-3 flex gap-2 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300"
-          aria-hidden="true"
-        // aria-hidden because keyboard users navigate via the card itself (tabIndex=0)
-        // and this button duplicates the primary action
-        >
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/product/${product.slug}`);
-            }}
-            tabIndex={-1} // excluded from tab order — card itself is the focus target
-            className="flex-1 py-2.5 glass rounded-xl text-xs font-medium text-charcoal hover:bg-white/90 transition-colors flex items-center justify-center gap-1.5"
-          >
-            <ShoppingBag size={14} aria-hidden="true" /> Quick View
-          </button>
-        </div>
-
-        {/* Wishlist icon — hover only, excluded from tab order */}
-        <button
-          onClick={(e) => e.stopPropagation()}
-          tabIndex={-1}
-          aria-hidden="true"
-          className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
-        >
-          <Star size={14} className="text-rose-gold" />
-        </button>
-      </div>
-
-      {/* ── Text info ────────────────────────────────────────────────────── */}
-      <div>
-        <p className="text-xs text-[#6B5B55] mb-0.5">{product.category}</p>
-        <h3 className="text-sm font-medium text-charcoal mb-1 line-clamp-1 group-hover:text-rose-gold transition-colors">
-          {product.name}
-        </h3>
-        <div className="flex items-center gap-2 mb-1">
-          <StarRating rating={product.rating} size={12} />
-        </div>
-        <PriceDisplay
-          price={product.price}
-          comparePrice={product.comparePrice}
-          size="sm"
-        />
-      </div>
-
-      {/* ── Colour swatches ───────────────────────────────────────────────── */}
-      {product.colors && product.colors.length > 0 && (
-        <div
-          className="flex items-center gap-1.5 mt-2"
-          aria-label={`Available colours: ${product.colors
-            .map((c: any) => (typeof c === 'string' ? c : c.name || ''))
-            .filter(Boolean)
-            .join(', ')}`}
-        >
-          {product.colors.map((color: any, index: number) => {
-            const colorName = typeof color === 'string' ? color : color.name || '';
-            const hex = COLOR_MAP[colorName.toLowerCase()] || colorName;
-
-            return (
-              <span
-                key={index}
-                role="img"
-                aria-label={colorName}
-                className="w-3.5 h-3.5 rounded-full border border-charcoal/10 flex-shrink-0"
-                style={{ backgroundColor: hex }}
+          {/* ── Image container ──────────────────────────────────────────── */}
+          {/*
+            aspect-[3/4] reserves the exact image space before bytes arrive.
+            This is the primary CLS prevention mechanism — combined with
+            explicit width/height on <img>, CLS = 0 in all browsers.
+          */}
+          <div className="relative rounded-2xl overflow-hidden aspect-[3/4] mb-3 bg-blush-light/30">
+            {optimisedSrc ? (
+              <img
+                src={optimisedSrc}
+                srcSet={srcSet || undefined}
+                sizes={srcSet ? CARD_SIZES : undefined}
+                alt={imageAlt}
+                /*
+                  Intrinsic dimensions: 3:4 ratio to match aspect-[3/4].
+                  - Tells the preload scanner the image ratio before CSS resolves.
+                  - Prevents CLS in browsers that don't support aspect-ratio CSS.
+                  - Does NOT affect rendered display size (CSS controls that).
+                */
+                width={480}
+                height={640}
+                /*
+                  Loading strategy:
+                    priority=true  → LCP candidate: eager + sync + high
+                    priority=false → below-fold:    lazy  + async + low
+                */
+                loading={priority ? 'eager' : 'lazy'}
+                decoding={priority ? 'sync' : 'async'}
+                fetchPriority={priority ? 'high' : 'low'}
+                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
               />
-            );
-          })}
-        </div>
-      )}
-    </motion.div>
-  );
-};
+            ) : (
+              // Gradient placeholder — decorative, invisible to screen readers
+              <div
+                className="absolute inset-0 bg-gradient-to-br from-blush via-lavender to-champagne group-hover:scale-105 transition-transform duration-700"
+                aria-hidden="true"
+              />
+            )}
+
+            {/* Product status badges */}
+            {(product.isOnSale || product.isNewArrival || product.isTrending || discountPct > 0) && (
+              <div
+                className="absolute top-3 left-3 flex flex-col gap-1.5 z-10"
+                /*
+                  aria-hidden: the badge text is redundant with the card's
+                  aria-label which already includes "X% off". Hiding duplicate
+                  content reduces screen reader verbosity.
+                */
+                aria-hidden="true"
+              >
+                {discountPct > 0 && <Badge variant="sale">{discountPct}% OFF</Badge>}
+                {product.isOnSale && !discountPct && <Badge variant="sale">Sale</Badge>}
+                {product.isNewArrival && <Badge variant="new">New</Badge>}
+                {product.isTrending && <Badge variant="trending">Trending</Badge>}
+              </div>
+            )}
+
+            {/* Quick View overlay — shown on hover, hidden from AT */}
+            <div
+              className="absolute bottom-3 left-3 right-3 flex gap-2 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300"
+              aria-hidden="true"
+            >
+              {/*
+                tabIndex={-1}: excluded from tab order.
+                The card Link is the focus target; this button duplicates it
+                visually for mouse users but adds no keyboard path.
+                type="button" prevents accidental form submission.
+              */}
+              <button
+                type="button"
+                tabIndex={-1}
+                className="flex-1 py-2.5 glass rounded-xl text-xs font-medium text-charcoal hover:bg-white/90 transition-colors flex items-center justify-center gap-1.5"
+              >
+                <ShoppingBag size={14} aria-hidden="true" />
+                Quick View
+              </button>
+            </div>
+
+            {/* Wishlist button — decorative hover affordance, excluded from AT */}
+            <button
+              type="button"
+              tabIndex={-1}
+              aria-hidden="true"
+              /*
+                stopPropagation prevents the Link click handler from also firing
+                when the wishlist button is clicked.
+              */
+              onClick={(e) => e.stopPropagation()}
+              className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+            >
+              <Star size={14} className="text-rose-gold" aria-hidden="true" />
+            </button>
+          </div>
+
+          {/* ── Text info ────────────────────────────────────────────────── */}
+          <div>
+            {/*
+              Category: link to category page — improves internal linking,
+              distributes PageRank to category pages, helps crawlers
+              understand site structure. stopPropagation prevents the outer
+              Link from double-navigating.
+            */}
+            {product.categorySlug ? (
+              <Link
+                to={`/category/${product.categorySlug}`}
+                onClick={(e) => e.stopPropagation()}
+                tabIndex={-1}
+                aria-hidden="true"
+                className="text-xs text-[#6B5B55] hover:text-rose-gold transition-colors mb-0.5 block"
+              >
+                {product.category}
+              </Link>
+            ) : (
+              <p className="text-xs text-[#6B5B55] mb-0.5">{product.category}</p>
+            )}
+
+            {/*
+              h3 — correct heading level for a card within a product grid.
+              The grid's section/aria-label acts as the implicit h2-level context.
+              line-clamp-2 instead of line-clamp-1: shows more of the product
+              name on mobile where cards are 50vw — better UX, no CLS risk
+              because the container height is not fixed.
+            */}
+            <h3 className="text-sm font-medium text-charcoal mb-1 line-clamp-2 leading-snug group-hover:text-rose-gold transition-colors">
+              {product.name}
+            </h3>
+
+            {/* Star rating — only render when review data exists */}
+            {product.reviewCount > 0 && (
+              <div
+                className="flex items-center gap-1 mb-1"
+                aria-label={`Rated ${product.rating.toFixed(1)} out of 5, ${product.reviewCount} reviews`}
+              >
+                <StarRating rating={product.rating} size={12} />
+                <span className="text-xs text-[#6B5B55]">({product.reviewCount})</span>
+              </div>
+            )}
+
+            <PriceDisplay
+              price={product.price}
+              comparePrice={product.comparePrice}
+              size="sm"
+            />
+
+            {/* Out-of-stock indicator */}
+            {product.stock === 0 && (
+              <p className="text-xs text-red-500 font-medium mt-1" aria-label="Out of stock">
+                Out of Stock
+              </p>
+            )}
+          </div>
+
+          {/* ── Colour swatches ──────────────────────────────────────────── */}
+          {product.colors && product.colors.length > 0 && (
+            <div
+              className="flex items-center gap-1.5 mt-2 flex-wrap"
+              /*
+                Announce all available colours as a group label.
+                Individual spans use role="img" + aria-label for each swatch.
+              */
+              aria-label={`Available colours: ${product.colors
+                .map((c: any) => (typeof c === 'string' ? c : c.name || c.label || ''))
+                .filter(Boolean)
+                .join(', ')}`}
+            >
+              {product.colors.slice(0, 6).map((color: any, index: number) => {
+                // Support both string colours and {name, hex, label} objects
+                const colorName =
+                  typeof color === 'string' ? color : color.name || color.label || '';
+                const rawHex =
+                  typeof color === 'string'
+                    ? color
+                    : color.hex || color.value || color.color || '';
+                // Prefer an explicit hex value; fall back to the name → COLOR_MAP lookup
+                const hex =
+                  rawHex.startsWith('#') || rawHex.startsWith('linear-gradient')
+                    ? rawHex
+                    : COLOR_MAP[colorName.toLowerCase()] || '#cccccc';
+
+                return (
+                  <span
+                    key={`${colorName}-${index}`}
+                    role="img"
+                    aria-label={colorName}
+                    className="w-3.5 h-3.5 rounded-full border border-charcoal/10 flex-shrink-0"
+                    style={
+                      hex.startsWith('linear-gradient')
+                        ? { background: hex }
+                        : { backgroundColor: hex }
+                    }
+                  />
+                );
+              })}
+              {/* Overflow indicator when product has more than 6 colours */}
+              {product.colors.length > 6 && (
+                <span
+                  className="text-xs text-[#6B5B55]"
+                  aria-label={`and ${product.colors.length - 6} more colours`}
+                >
+                  +{product.colors.length - 6}
+                </span>
+              )}
+            </div>
+          )}
+        </motion.article>
+      </Link>
+    );
+  },
+);
+ProductCard.displayName = 'ProductCard';
 
 
 // ==========================================

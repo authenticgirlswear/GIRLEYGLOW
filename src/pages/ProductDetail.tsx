@@ -1,10 +1,11 @@
+// dataLayer global type declaration — kept at file scope so GTM pushes are typed
 declare global {
-  interface Window {
-    dataLayer: any[];
-  }
+  interface Window { dataLayer: any[] }
 }
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, {
+  useState, useEffect, useRef, useMemo, useCallback, memo,
+} from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -17,14 +18,15 @@ import { ProductCard } from '@/components/home';
 import { supabase } from '@/lib/supabase';
 import { useCartStore, useRecentlyViewedStore } from '@/store';
 import type { Product } from '@/types';
-import { trackViewContent } from '../lib/facebookPixel';
-import { siteConfig, SITE } from '@/config/siteConfig';
+import { trackViewContent } from '@/lib/facebookPixel';
+import { SITE } from '@/config/siteConfig';
 import { BRAND } from '@/config/brandingConfig';
 
 // ─── Color libraries ──────────────────────────────────────────────────────────
 import { colornames as _colorNameList } from 'color-name-list';
 import nearestColor from 'nearest-color';
 
+// Built once at module level — never rebuilt on re-render
 const _nameToHex: Record<string, string> = {};
 const _nearestMap: Record<string, string> = {};
 _colorNameList.forEach((c: { name: string; hex: string }) => {
@@ -33,6 +35,7 @@ _colorNameList.forEach((c: { name: string; hex: string }) => {
 });
 const _getNearestColor = nearestColor.from(_nearestMap);
 
+// Common color names → hex. Defined at module scope: allocated once, shared across all renders.
 const _SIMPLE: Record<string, string> = {
   'white': '#FFFFFF', 'off white': '#FAF9F6', 'cream': '#FFFDD0',
   'ivory': '#FFFFF0', 'black': '#000000', 'charcoal': '#36454F',
@@ -60,6 +63,7 @@ const _SIMPLE: Record<string, string> = {
   'rainbow': 'linear-gradient(135deg,red,orange,yellow,green,blue,violet)',
 };
 
+// Module-level closure cache — survives across navigations, never GC'd on re-render
 const resolveColor = (() => {
   const cache: Record<string, string> = {};
   const normaliseHex = (h: string): string => {
@@ -93,7 +97,9 @@ const resolveColor = (() => {
       if (parsed !== '#010101' && parsed !== '') {
         const rgb = parsed.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
         const result = rgb
-          ? '#' + [rgb[1], rgb[2], rgb[3]].map(n => parseInt(n).toString(16).padStart(2, '0')).join('')
+          ? '#' + [rgb[1], rgb[2], rgb[3]]
+            .map((n) => parseInt(n).toString(16).padStart(2, '0'))
+            .join('')
           : parsed;
         cache[key] = result;
         return result;
@@ -104,7 +110,7 @@ const resolveColor = (() => {
   };
 })();
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Pure helpers (module-scope — zero allocation per render) ─────────────────
 
 /** Injects Cloudinary transformations into a delivery URL. */
 const getOptimizedImageUrl = (url: string, width = 800, quality = 85): string => {
@@ -114,7 +120,7 @@ const getOptimizedImageUrl = (url: string, width = 800, quality = 85): string =>
   return `${parts[0]}/upload/w_${width},q_${quality},f_auto,dpr_auto/${parts[1]}`;
 };
 
-/** Rich alt text including selected variant and image index for SEO. */
+/** Rich alt text including selected variant and image position for SEO. */
 const getImageAlt = (
   productName: string,
   selectedColor: string,
@@ -144,6 +150,7 @@ const normalise = (p: any): Product => ({
   price: Number(p.price) || 0,
   comparePrice: p.compare_price ? Number(p.compare_price) : undefined,
   images: p.images || [],
+  videoUrl: p.video_url || '',
   category: p.category_name || p.category || '',
   categorySlug: p.category_slug || '',
   sizes: p.sizes || [],
@@ -159,9 +166,38 @@ const normalise = (p: any): Product => ({
   rating: Number(p.rating) || 0,
   reviewCount: Number(p.review_count) || 0,
   createdAt: p.created_at || '',
-  videoUrl: p.video_url || '',
   updatedAt: p.updated_at || '',
 });
+
+// Strip trailing slash once at module scope
+const ORIGIN = SITE.domain.replace(/\/$/, '');
+
+// ─── Skeleton loader — reserves space so CLS = 0 during fetch ────────────────
+const ProductSkeleton = memo(() => (
+  <div
+    className="min-h-screen pt-24 pb-16"
+    aria-busy="true"
+    aria-label="Loading product"
+  >
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Breadcrumb placeholder */}
+      <div className="h-4 w-64 bg-blush-light/60 rounded animate-pulse mb-8" />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-10">
+        {/* Image placeholder — same aspect ratio as real image (3/4) */}
+        <div className="aspect-[3/4] rounded-3xl bg-blush-light/60 animate-pulse" />
+        {/* Info placeholder */}
+        <div className="space-y-4 pt-4">
+          <div className="h-3 w-24 bg-blush-light/60 rounded animate-pulse" />
+          <div className="h-8 w-3/4 bg-blush-light/60 rounded animate-pulse" />
+          <div className="h-6 w-32 bg-blush-light/60 rounded animate-pulse" />
+          <div className="h-24 bg-blush-light/40 rounded animate-pulse" />
+          <div className="h-12 bg-blush-light/60 rounded-xl animate-pulse" />
+        </div>
+      </div>
+    </div>
+  </div>
+));
+ProductSkeleton.displayName = 'ProductSkeleton';
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -175,7 +211,6 @@ export const ProductDetailPage: React.FC = () => {
   const [related, setRelated] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
@@ -185,21 +220,26 @@ export const ProductDetailPage: React.FC = () => {
   const [showStickyCart, setShowStickyCart] = useState(false);
 
   const thumbsRef = useRef<HTMLDivElement>(null);
+  // Store touch start X on window — avoids polluting Window type with a custom prop
+  const touchStartX = useRef(0);
 
-  // ── Sticky cart visibility on scroll ──────────────────────────────────────
+  // ── Sticky cart visibility ─────────────────────────────────────────────────
   useEffect(() => {
     const handleScroll = () => setShowStickyCart(window.scrollY > 500);
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // ── Fetch product from Supabase ───────────────────────────────────────────
+  // ── Fetch product + related from Supabase ──────────────────────────────────
   useEffect(() => {
     if (!slug) return;
+    let cancelled = false;
 
     const fetchProduct = async () => {
       setLoading(true);
       setNotFound(false);
+      // Reset gallery index on slug change to prevent showing a stale image
+      setSelectedImage(0);
 
       const { data, error } = await supabase
         .from('products')
@@ -207,8 +247,9 @@ export const ProductDetailPage: React.FC = () => {
         .eq('slug', slug)
         .single();
 
+      if (cancelled) return;
+
       if (error || !data) {
-        console.error('[ProductDetail] Supabase error:', error);
         setNotFound(true);
         setLoading(false);
         return;
@@ -217,24 +258,26 @@ export const ProductDetailPage: React.FC = () => {
       const normalised = normalise(data);
       setProduct(normalised);
 
-      trackViewContent(normalised.name, normalised.price);
-
-      window.dataLayer = window.dataLayer || [];
-      window.dataLayer.push({ ecommerce: null });
-      window.dataLayer.push({
-        event: 'view_item',
-        ecommerce: {
-          currency: 'BDT',
-          value: normalised.price,
-          items: [{
-            item_id: normalised.id,
-            item_name: normalised.name,
-            item_category: normalised.category,
-            price: normalised.price,
-            quantity: 1,
-          }],
-        },
-      });
+      // Tracking — non-blocking, deferred after paint
+      setTimeout(() => {
+        trackViewContent(normalised.name, normalised.price);
+        window.dataLayer = window.dataLayer || [];
+        window.dataLayer.push({ ecommerce: null });
+        window.dataLayer.push({
+          event: 'view_item',
+          ecommerce: {
+            currency: 'BDT',
+            value: normalised.price,
+            items: [{
+              item_id: normalised.id,
+              item_name: normalised.name,
+              item_category: normalised.category,
+              price: normalised.price,
+              quantity: 1,
+            }],
+          },
+        });
+      }, 0);
 
       setSelectedSize(normalised.sizes[0] || '');
       const firstColor = normalised.colors[0];
@@ -245,68 +288,89 @@ export const ProductDetailPage: React.FC = () => {
       );
       addRecentlyViewed(normalised.id);
 
+      // Fetch related in parallel, non-blocking
       if (normalised.categorySlug) {
-        const { data: relatedData } = await supabase
+        supabase
           .from('products')
           .select('*')
           .eq('category_slug', normalised.categorySlug)
           .neq('id', normalised.id)
-          .limit(4);
-        setRelated((relatedData || []).map(normalise));
+          .limit(8)
+          .then(({ data: relatedData }) => {
+            if (!cancelled) setRelated((relatedData || []).map(normalise));
+          });
       }
 
       setLoading(false);
     };
 
     fetchProduct();
+    return () => { cancelled = true; };
   }, [slug, addRecentlyViewed]);
 
   // ── Keep active thumbnail in view ─────────────────────────────────────────
   useEffect(() => {
     if (!thumbsRef.current) return;
     const strip = thumbsRef.current;
-    const activeThumb = strip.children[
-      selectedImage === -1 ? strip.children.length - 1 : selectedImage
-    ] as HTMLElement;
-    if (activeThumb) {
-      activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-    }
+    const idx = selectedImage === -1 ? strip.children.length - 1 : selectedImage;
+    const activeThumb = strip.children[idx] as HTMLElement | undefined;
+    activeThumb?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
   }, [selectedImage]);
 
-  // ── Add to cart handler ───────────────────────────────────────────────────
-  const handleAddToCart = () => {
-    if (!selectedSize && product!.sizes.length > 0) return;
-    addItem(product!, selectedSize, selectedColor, quantity);
-
+  // ── Add to cart handler (stable reference — never causes child re-renders) ─
+  const handleAddToCart = useCallback(() => {
+    if (!product) return;
+    if (!selectedSize && product.sizes.length > 0) return;
+    addItem(product, selectedSize, selectedColor, quantity);
     window.dataLayer = window.dataLayer || [];
     window.dataLayer.push({ ecommerce: null });
     window.dataLayer.push({
       event: 'add_to_cart',
       ecommerce: {
         currency: 'BDT',
-        value: product!.price * quantity,
+        value: product.price * quantity,
         items: [{
-          item_id: product!.id,
-          item_name: product!.name,
-          item_category: product!.category,
-          price: product!.price,
+          item_id: product.id,
+          item_name: product.name,
+          item_category: product.category,
+          price: product.price,
           quantity,
         }],
       },
     });
-
     setAddedToCart(true);
     setTimeout(() => setAddedToCart(false), 2000);
-  };
+  }, [product, selectedSize, selectedColor, quantity, addItem]);
 
-  // ── SEO data — computed once product is loaded ────────────────────────────
+  // ── Buy Now handler ────────────────────────────────────────────────────────
+  const handleBuyNow = useCallback(() => {
+    if (!product) return;
+    if (!selectedSize && product.sizes.length > 0) return;
+    addItem(product, selectedSize, selectedColor, quantity);
+    navigate('/checkout');
+  }, [product, selectedSize, selectedColor, quantity, addItem, navigate]);
+
+  // ── Touch swipe handlers — use ref instead of window property ─────────────
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.targetTouches[0].clientX;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!product) return;
+    const diff = touchStartX.current - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) setSelectedImage((i) => Math.min(i + 1, product.images.length - 1));
+      else setSelectedImage((i) => Math.max(i - 1, 0));
+    }
+  }, [product]);
+
+  // ── SEO data — recomputed only when product or selectedColor changes ───────
   const seoData = useMemo(() => {
     if (!product) return null;
 
-    const canonical = `${SITE.domain}/product/${product.slug}`;
+    const canonical = `${ORIGIN}/product/${product.slug}`;
     const pageTitle = `${product.name} | ${BRAND.fullName}`;
 
-    // Description: prefer product description, else build from data
     const stockInfo = getStockInfo(product.stock);
     const priceStr = product.comparePrice
       ? `Special price: ৳${product.price} (was ৳${product.comparePrice})`
@@ -314,32 +378,27 @@ export const ProductDetailPage: React.FC = () => {
     const reviewStr = product.reviewCount > 0
       ? ` Rated ${product.rating.toFixed(1)}/5 by ${product.reviewCount} customers.`
       : '';
-    const metaDescription = product.shortDescription || product.description
-      ? (product.shortDescription || product.description).slice(0, 155)
+
+    const rawDesc = product.shortDescription || product.description || '';
+    const metaDescription = rawDesc
+      ? rawDesc.slice(0, 155)
       : `Buy ${product.name} at ${BRAND.fullName}. ${priceStr}. ${stockInfo.message}.${reviewStr}`;
 
     const keywords = [
-      product.name,
-      product.category,
-      BRAND.fullName,
-      `buy ${product.name}`,
-      `${product.name} Bangladesh`,
+      product.name, product.category, BRAND.fullName,
+      `buy ${product.name}`, `${product.name} Bangladesh`,
       ...(product.tags || []),
     ].filter(Boolean).join(', ');
 
-    // Primary OG image — first product image optimised to 1200px
     const ogImage = product.images[0]?.startsWith('http')
       ? getOptimizedImageUrl(product.images[0], 1200, 85)
-      : `${SITE.domain}/images/og-image.jpg`;
+      : `${ORIGIN}/images/og-image.jpg`;
 
-    // ── Product JSON-LD ──────────────────────────────────────────────────────
-    const availability = product.stock === 0
-      ? 'https://schema.org/OutOfStock'
-      : product.stock <= 5
-        ? 'https://schema.org/LimitedAvailability'
-        : 'https://schema.org/InStock';
+    const availability =
+      product.stock === 0 ? 'https://schema.org/OutOfStock'
+        : product.stock <= 5 ? 'https://schema.org/LimitedAvailability'
+          : 'https://schema.org/InStock';
 
-    // priceValidUntil: 30 days from now
     const priceValidUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
       .toISOString().split('T')[0];
 
@@ -349,19 +408,13 @@ export const ProductDetailPage: React.FC = () => {
       '@id': `${canonical}#product`,
       name: product.name,
       description: product.description || product.shortDescription || product.name,
-      // All images, each optimised for structured data crawlers
       image: product.images
         .filter((img) => img.startsWith('http'))
         .map((img) => getOptimizedImageUrl(img, 1200, 85)),
       sku: product.sku || product.id,
       mpn: product.sku || product.id,
-      brand: {
-        '@type': 'Brand',
-        name: BRAND.fullName,
-        url: SITE.domain,
-      },
+      brand: { '@type': 'Brand', name: BRAND.fullName, url: ORIGIN },
       category: product.category,
-      // color and size as product properties
       ...(selectedColor ? { color: selectedColor } : {}),
       ...(product.sizes.length > 0 ? { size: product.sizes.join(', ') } : {}),
       offers: {
@@ -373,52 +426,33 @@ export const ProductDetailPage: React.FC = () => {
         priceValidUntil,
         availability,
         itemCondition: 'https://schema.org/NewCondition',
-        seller: {
-          '@type': 'Organization',
-          name: BRAND.fullName,
-          url: SITE.domain,
-        },
-        // highPrice for comparePrice / original price
+        seller: { '@type': 'Organization', name: BRAND.fullName, url: ORIGIN },
         ...(product.comparePrice && product.comparePrice > product.price
-          ? {
-            priceSpecification: {
-              '@type': 'PriceSpecification',
-              price: product.price,
-              priceCurrency: 'BDT',
-              valueAddedTaxIncluded: true,
-            },
-          }
+          ? { priceSpecification: { '@type': 'PriceSpecification', price: product.price, priceCurrency: 'BDT', valueAddedTaxIncluded: true } }
           : {}),
       },
-      // AggregateRating only when review data exists
-      ...(product.reviewCount > 0
-        ? {
-          aggregateRating: {
-            '@type': 'AggregateRating',
-            ratingValue: product.rating.toFixed(1),
-            reviewCount: product.reviewCount,
-            bestRating: '5',
-            worstRating: '1',
-          },
-        }
-        : {}),
+      ...(product.reviewCount > 0 ? {
+        aggregateRating: {
+          '@type': 'AggregateRating',
+          ratingValue: product.rating.toFixed(1),
+          reviewCount: product.reviewCount,
+          bestRating: '5',
+          worstRating: '1',
+        },
+      } : {}),
     };
 
-    // ── BreadcrumbList JSON-LD ───────────────────────────────────────────────
     const breadcrumbSchema = {
       '@context': 'https://schema.org',
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home', item: `${SITE.domain}/` },
-        { '@type': 'ListItem', position: 2, name: 'Shop', item: `${SITE.domain}/shop` },
-        ...(product.categorySlug
-          ? [{
-            '@type': 'ListItem',
-            position: 3,
-            name: product.category,
-            item: `${SITE.domain}/category/${product.categorySlug}`,
-          }]
-          : []),
+        { '@type': 'ListItem', position: 1, name: 'Home', item: `${ORIGIN}/` },
+        { '@type': 'ListItem', position: 2, name: 'Shop', item: `${ORIGIN}/shop` },
+        ...(product.categorySlug ? [{
+          '@type': 'ListItem', position: 3,
+          name: product.category,
+          item: `${ORIGIN}/category/${product.categorySlug}`,
+        }] : []),
         {
           '@type': 'ListItem',
           position: product.categorySlug ? 4 : 3,
@@ -428,19 +462,17 @@ export const ProductDetailPage: React.FC = () => {
       ],
     };
 
-    return { canonical, pageTitle, metaDescription, keywords, ogImage, productSchema, breadcrumbSchema };
+    return {
+      canonical, pageTitle, metaDescription, keywords, ogImage,
+      productSchema: JSON.stringify(productSchema),
+      breadcrumbSchema: JSON.stringify(breadcrumbSchema),
+    };
   }, [product, selectedColor]);
 
-  // ─── Loading state ─────────────────────────────────────────────────────────
-  if (loading) {
-    return (
-      <div className="min-h-screen pt-24 flex items-center justify-center">
-        <p className="text-[#6B5B55]">Loading product...</p>
-      </div>
-    );
-  }
+  // ─── Loading state — skeleton instead of spinner prevents CLS ─────────────
+  if (loading) return <ProductSkeleton />;
 
-  // ─── Not found state ───────────────────────────────────────────────────────
+  // ─── Not found ─────────────────────────────────────────────────────────────
   if (notFound || !product) {
     return (
       <div className="min-h-screen pt-24 flex items-center justify-center">
@@ -448,6 +480,9 @@ export const ProductDetailPage: React.FC = () => {
           <h1 className="heading-serif text-3xl font-bold text-charcoal mb-4">
             Product Not Found
           </h1>
+          <p className="text-[#6B5B55] mb-6">
+            The product you're looking for doesn't exist or has been removed.
+          </p>
           <Button onClick={() => navigate('/shop')}>Back to Shop</Button>
         </div>
       </div>
@@ -468,16 +503,19 @@ export const ProductDetailPage: React.FC = () => {
       {/* ── SEO HEAD ──────────────────────────────────────────────────────── */}
       {seoData && (
         <Helmet prioritizeSeoTags>
-          {/* Primary */}
+          {/* Primary meta */}
           <title>{seoData.pageTitle}</title>
           <meta name="description" content={seoData.metaDescription} />
           <meta name="keywords" content={seoData.keywords} />
-          <meta name="robots" content="index, follow, max-image-preview:large" />
+          <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
 
           {/* Canonical */}
           <link rel="canonical" href={seoData.canonical} />
 
-          {/* Open Graph — product type */}
+          {/* Preconnect for LCP image origin */}
+          <link rel="preconnect" href="https://res.cloudinary.com" crossOrigin="anonymous" />
+
+          {/* Open Graph — og:type "product" triggers product cards on Facebook/WhatsApp */}
           <meta property="og:type" content="product" />
           <meta property="og:site_name" content={BRAND.fullName} />
           <meta property="og:title" content={seoData.pageTitle} />
@@ -488,18 +526,12 @@ export const ProductDetailPage: React.FC = () => {
           <meta property="og:image:type" content="image/jpeg" />
           <meta property="og:image:width" content="1200" />
           <meta property="og:image:height" content="1200" />
-          <meta
-            property="og:image:alt"
-            content={`${product.name} — ${BRAND.fullName}`}
-          />
+          <meta property="og:image:alt" content={`${product.name} — ${BRAND.fullName}`} />
           <meta property="og:locale" content="en_US" />
-          {/* Facebook Commerce product tags */}
+          {/* Facebook Commerce / Catalog product meta */}
           <meta property="product:price:amount" content={String(product.price)} />
           <meta property="product:price:currency" content="BDT" />
-          <meta
-            property="product:availability"
-            content={product.stock > 0 ? 'in stock' : 'out of stock'}
-          />
+          <meta property="product:availability" content={product.stock > 0 ? 'in stock' : 'out of stock'} />
           <meta property="product:condition" content="new" />
           {product.sku && <meta property="product:retailer_item_id" content={product.sku} />}
           {product.category && <meta property="product:category" content={product.category} />}
@@ -509,20 +541,12 @@ export const ProductDetailPage: React.FC = () => {
           <meta name="twitter:title" content={seoData.pageTitle} />
           <meta name="twitter:description" content={seoData.metaDescription} />
           <meta name="twitter:image" content={seoData.ogImage} />
-          <meta
-            name="twitter:image:alt"
-            content={`${product.name} — ${BRAND.fullName}`}
-          />
+          <meta name="twitter:image:alt" content={`${product.name} — ${BRAND.fullName}`} />
 
-          {/* JSON-LD — Product with Offer, AggregateRating, Availability */}
-          <script type="application/ld+json">
-            {JSON.stringify(seoData.productSchema)}
-          </script>
-
-          {/* JSON-LD — BreadcrumbList */}
-          <script type="application/ld+json">
-            {JSON.stringify(seoData.breadcrumbSchema)}
-          </script>
+          {/* JSON-LD: Product + Offer + AggregateRating */}
+          <script type="application/ld+json">{seoData.productSchema}</script>
+          {/* JSON-LD: BreadcrumbList */}
+          <script type="application/ld+json">{seoData.breadcrumbSchema}</script>
         </Helmet>
       )}
 
@@ -530,15 +554,11 @@ export const ProductDetailPage: React.FC = () => {
       <div className="min-h-screen pt-24 pb-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-          {/* ── Breadcrumb — semantic nav with aria-label ── */}
+          {/* Breadcrumb — semantic nav, aria-label, aria-current */}
           <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm text-[#6B5B55] mb-8">
-            <Link to="/" className="hover:text-rose-gold focus-visible:outline-rose-gold">
-              Home
-            </Link>
+            <Link to="/" className="hover:text-rose-gold focus-visible:outline-rose-gold">Home</Link>
             <ChevronRight size={14} aria-hidden="true" />
-            <Link to="/shop" className="hover:text-rose-gold focus-visible:outline-rose-gold">
-              Shop
-            </Link>
+            <Link to="/shop" className="hover:text-rose-gold focus-visible:outline-rose-gold">Shop</Link>
             {product.categorySlug && (
               <>
                 <ChevronRight size={14} aria-hidden="true" />
@@ -551,10 +571,7 @@ export const ProductDetailPage: React.FC = () => {
               </>
             )}
             <ChevronRight size={14} aria-hidden="true" />
-            {/* Current page — aria-current="page" */}
-            <span className="text-charcoal" aria-current="page">
-              {product.name}
-            </span>
+            <span className="text-charcoal" aria-current="page">{product.name}</span>
           </nav>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-10">
@@ -562,21 +579,12 @@ export const ProductDetailPage: React.FC = () => {
             {/* ── IMAGE GALLERY ──────────────────────────────────────────── */}
             <FadeIn>
               <div>
-                {/* Main image container */}
+                {/* Main image — aspect-[3/4] reserves space before image loads → zero CLS */}
                 <motion.div
                   className="relative rounded-3xl overflow-hidden aspect-[3/4] bg-blush-light/30"
-                  role="img"
-                  aria-label={`${product.name} — main product image`}
-                  onTouchStart={(e) => {
-                    (window as any)._touchX = e.targetTouches[0].clientX;
-                  }}
-                  onTouchEnd={(e) => {
-                    const diff = (window as any)._touchX - e.changedTouches[0].clientX;
-                    if (Math.abs(diff) > 50) {
-                      if (diff > 0) setSelectedImage((i) => Math.min(i + 1, product.images.length - 1));
-                      else setSelectedImage((i) => Math.max(i - 1, 0));
-                    }
-                  }}
+                  aria-label={`${product.name} — product image gallery`}
+                  onTouchStart={handleTouchStart}
+                  onTouchEnd={handleTouchEnd}
                 >
                   {selectedImage === -1 && product.videoUrl ? (
                     <video
@@ -584,6 +592,7 @@ export const ProductDetailPage: React.FC = () => {
                       className="absolute inset-0 w-full h-full object-cover"
                       autoPlay
                       loop
+                      muted
                       playsInline
                       aria-label={`${product.name} — product video`}
                     />
@@ -592,16 +601,16 @@ export const ProductDetailPage: React.FC = () => {
                       src={getOptimizedImageUrl(product.images[selectedImage], 800)}
                       alt={getImageAlt(product.name, selectedColor, selectedSize, selectedImage)}
                       /*
-                        First image (index 0) is the LCP candidate — load eagerly.
-                        All subsequent images are below-fold — load lazily.
+                        LCP image (index 0): eager + sync decode + fetchpriority=high.
+                        All other gallery positions: lazy + async.
+                        This ensures only the first-paint image blocks no resources.
                       */
                       loading={selectedImage === 0 ? 'eager' : 'lazy'}
                       decoding={selectedImage === 0 ? 'sync' : 'async'}
                       fetchPriority={selectedImage === 0 ? 'high' : 'low'}
                       /*
-                        Explicit dimensions prevent CLS. The aspect-[3/4] container
-                        already reserves the space, but width/height on <img> helps
-                        browsers that don't support aspect-ratio CSS yet.
+                        Explicit width/height help browsers that don't support
+                        aspect-ratio CSS to pre-allocate space and avoid CLS.
                       */
                       width={800}
                       height={1067}
@@ -614,7 +623,7 @@ export const ProductDetailPage: React.FC = () => {
                     />
                   )}
 
-                  {/* Badges */}
+                  {/* Product badges */}
                   <div className="absolute top-4 left-4 flex flex-col gap-2" aria-label="Product badges">
                     {product.isOnSale && <Badge variant="sale">Sale</Badge>}
                     {product.isNewArrival && <Badge variant="new">New</Badge>}
@@ -624,28 +633,32 @@ export const ProductDetailPage: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Wishlist button */}
+                  {/* Wishlist — type="button" prevents accidental form submit */}
                   <button
-                    className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors"
+                    type="button"
+                    className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors focus-visible:ring-2 focus-visible:ring-rose-gold"
                     aria-label="Add to wishlist"
                   >
                     <Heart size={18} className="text-rose-gold" aria-hidden="true" />
                   </button>
 
-                  {/* Image nav arrows */}
+                  {/* Prev image arrow */}
                   {selectedImage > 0 && (
                     <button
+                      type="button"
                       onClick={() => setSelectedImage((i) => i - 1)}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white shadow-md transition-all"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white shadow-md transition-all focus-visible:ring-2 focus-visible:ring-rose-gold"
                       aria-label="Previous image"
                     >
                       <ArrowLeft size={16} className="text-charcoal" aria-hidden="true" />
                     </button>
                   )}
+                  {/* Next image arrow */}
                   {selectedImage < product.images.length - 1 && (
                     <button
+                      type="button"
                       onClick={() => setSelectedImage((i) => i + 1)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white shadow-md transition-all"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white shadow-md transition-all focus-visible:ring-2 focus-visible:ring-rose-gold"
                       aria-label="Next image"
                     >
                       <ArrowRight size={16} className="text-charcoal" aria-hidden="true" />
@@ -657,12 +670,12 @@ export const ProductDetailPage: React.FC = () => {
                 {totalThumbs > 1 && (
                   <div className="flex items-center gap-2 mt-4" role="group" aria-label="Product image thumbnails">
                     <button
-                      onClick={() => setSelectedImage((i) => {
-                        const prev = i === -1 ? product.images.length - 1 : Math.max(0, i - 1);
-                        return prev;
-                      })}
+                      type="button"
+                      onClick={() => setSelectedImage((i) =>
+                        i === -1 ? product.images.length - 1 : Math.max(0, i - 1)
+                      )}
                       disabled={activeStripIndex === 0}
-                      className="flex-shrink-0 w-8 h-8 rounded-full border border-blush/40 flex items-center justify-center disabled:opacity-30 hover:border-rose-gold transition-colors bg-white/70"
+                      className="flex-shrink-0 w-8 h-8 rounded-full border border-blush/40 flex items-center justify-center disabled:opacity-30 hover:border-rose-gold transition-colors bg-white/70 focus-visible:ring-2 focus-visible:ring-rose-gold"
                       aria-label="Previous thumbnail"
                     >
                       <ArrowLeft size={14} aria-hidden="true" />
@@ -676,10 +689,11 @@ export const ProductDetailPage: React.FC = () => {
                       {product.images.map((img, i) => (
                         <button
                           key={i}
+                          type="button"
                           onClick={() => setSelectedImage(i)}
                           aria-label={`View image ${i + 1} of ${product.images.length}`}
                           aria-pressed={i === selectedImage}
-                          className={`flex-shrink-0 w-[72px] h-[86px] rounded-xl overflow-hidden bg-blush-light/30 transition-all duration-200 ${i === selectedImage
+                          className={`flex-shrink-0 w-[72px] h-[86px] rounded-xl overflow-hidden bg-blush-light/30 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-rose-gold ${i === selectedImage
                             ? 'ring-2 ring-rose-gold ring-offset-2'
                             : 'opacity-60 hover:opacity-100'
                             }`}
@@ -706,10 +720,11 @@ export const ProductDetailPage: React.FC = () => {
                       {/* Video thumbnail */}
                       {product.videoUrl && (
                         <button
+                          type="button"
                           onClick={() => setSelectedImage(-1)}
                           aria-label="View product video"
                           aria-pressed={selectedImage === -1}
-                          className={`flex-shrink-0 w-[72px] h-[86px] rounded-xl overflow-hidden bg-blush-light/30 transition-all duration-200 relative ${selectedImage === -1
+                          className={`flex-shrink-0 w-[72px] h-[86px] rounded-xl overflow-hidden bg-blush-light/30 transition-all duration-200 relative focus-visible:ring-2 focus-visible:ring-rose-gold ${selectedImage === -1
                             ? 'ring-2 ring-rose-gold ring-offset-2'
                             : 'opacity-60 hover:opacity-100'
                             }`}
@@ -723,8 +738,7 @@ export const ProductDetailPage: React.FC = () => {
                           />
                           <div className="absolute inset-0 flex items-center justify-center bg-black/20">
                             <div className="w-8 h-8 rounded-full bg-white/80 flex items-center justify-center">
-                              {/* Play icon */}
-                              <svg width="12" height="14" viewBox="0 0 12 14" fill="none" aria-hidden="true">
+                              <svg width="12" height="14" viewBox="0 0 12 14" fill="none" aria-hidden="true" focusable="false">
                                 <path d="M1 1l10 6-10 6V1z" fill="#B07D6B" />
                               </svg>
                             </div>
@@ -734,12 +748,13 @@ export const ProductDetailPage: React.FC = () => {
                     </div>
 
                     <button
+                      type="button"
                       onClick={() => setSelectedImage((i) => {
                         if (product.videoUrl && i === product.images.length - 1) return -1;
                         return Math.min(product.images.length - 1, i + 1);
                       })}
                       disabled={activeStripIndex === totalThumbs - 1}
-                      className="flex-shrink-0 w-8 h-8 rounded-full border border-blush/40 flex items-center justify-center disabled:opacity-30 hover:border-rose-gold transition-colors bg-white/70"
+                      className="flex-shrink-0 w-8 h-8 rounded-full border border-blush/40 flex items-center justify-center disabled:opacity-30 hover:border-rose-gold transition-colors bg-white/70 focus-visible:ring-2 focus-visible:ring-rose-gold"
                       aria-label="Next thumbnail"
                     >
                       <ArrowRight size={14} aria-hidden="true" />
@@ -752,19 +767,28 @@ export const ProductDetailPage: React.FC = () => {
             {/* ── PRODUCT INFO ───────────────────────────────────────────── */}
             <FadeIn delay={0.2}>
               <div>
-                {/* Category label */}
-                <p className="text-sm text-rose-gold font-medium mb-1">{product.category}</p>
+                {/* Category — visible label, links to category page (internal link) */}
+                <p className="text-sm text-rose-gold font-medium mb-1">
+                  {product.categorySlug ? (
+                    <Link
+                      to={`/category/${product.categorySlug}`}
+                      className="hover:underline focus-visible:outline-rose-gold"
+                      aria-label={`Browse all ${product.category}`}
+                    >
+                      {product.category}
+                    </Link>
+                  ) : product.category}
+                </p>
 
                 {/*
-                  H1 — The product name is the primary heading on this page.
-                  One H1 per page is correct here (no global sr-only H1 needed
-                  because the product is always defined when we reach this JSX).
+                  H1 — product name is the sole top-level heading on this page.
+                  One H1 per URL is correct here; no duplicate sr-only H1 needed.
                 */}
                 <h1 className="heading-serif text-3xl md:text-4xl font-bold text-charcoal mb-3">
                   {product.name}
                 </h1>
 
-                {/* Rating — shown only when review data exists */}
+                {/* Rating — microdata for Google rich snippets, rendered only when data exists */}
                 {product.reviewCount > 0 && (
                   <div
                     className="flex items-center gap-4 mb-3"
@@ -787,16 +811,10 @@ export const ProductDetailPage: React.FC = () => {
                       ))}
                     </div>
                     <div className="flex items-center gap-2 text-sm">
-                      <span
-                        className="font-semibold text-gray-900"
-                        itemProp="ratingValue"
-                      >
+                      <span className="font-semibold text-gray-900" itemProp="ratingValue">
                         {product.rating.toFixed(1)}
                       </span>
-                      <span
-                        className="text-gray-500"
-                        itemProp="reviewCount"
-                      >
+                      <span className="text-gray-500" itemProp="reviewCount">
                         ({product.reviewCount} reviews)
                       </span>
                     </div>
@@ -805,14 +823,10 @@ export const ProductDetailPage: React.FC = () => {
 
                 {/* Price */}
                 <div className="mb-4">
-                  <PriceDisplay
-                    price={product.price}
-                    comparePrice={product.comparePrice}
-                    size="lg"
-                  />
+                  <PriceDisplay price={product.price} comparePrice={product.comparePrice} size="lg" />
                 </div>
 
-                {/* Stock urgency */}
+                {/* Stock urgency — role="alert" ensures screen readers announce it */}
                 {stockInfo.urgent && stockInfo.status !== 'out-of-stock' && (
                   <div
                     role="alert"
@@ -823,28 +837,22 @@ export const ProductDetailPage: React.FC = () => {
                   >
                     <AlertCircle
                       aria-hidden="true"
-                      className={`w-5 h-5 ${stockInfo.color === 'orange' ? 'text-orange-600' : 'text-red-600'
-                        }`}
+                      className={`w-5 h-5 ${stockInfo.color === 'orange' ? 'text-orange-600' : 'text-red-600'}`}
                     />
-                    <span
-                      className={`font-medium ${stockInfo.color === 'orange' ? 'text-orange-700' : 'text-red-700'
-                        }`}
-                    >
+                    <span className={`font-medium ${stockInfo.color === 'orange' ? 'text-orange-700' : 'text-red-700'}`}>
                       {stockInfo.message}
                     </span>
                   </div>
                 )}
 
                 {stockInfo.status === 'out-of-stock' && (
-                  <div
-                    role="alert"
-                    className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg mb-4"
-                  >
+                  <div role="alert" className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg mb-4">
                     <AlertCircle aria-hidden="true" className="w-5 h-5 text-red-600" />
                     <span className="text-red-700 font-medium">{stockInfo.message}</span>
                   </div>
                 )}
 
+                {/* Description — plain text, visible to crawlers */}
                 <p className="text-[#6B5B55] leading-relaxed mb-0">{product.description}</p>
 
                 <div className="luxury-line mb-3" />
@@ -856,16 +864,10 @@ export const ProductDetailPage: React.FC = () => {
                       Color:{' '}
                       <span className="text-[#6B5B55] font-normal">{selectedColor}</span>
                     </p>
-                    <div
-                      className="flex flex-wrap gap-3"
-                      role="group"
-                      aria-labelledby="color-label"
-                    >
+                    <div className="flex flex-wrap gap-3" role="group" aria-labelledby="color-label">
                       {product.colors.map((color: any) => {
                         const colorName =
-                          typeof color === 'string'
-                            ? color
-                            : color.name || color.label || String(color);
+                          typeof color === 'string' ? color : color.name || color.label || String(color);
                         const rawValue =
                           typeof color === 'string'
                             ? color
@@ -877,26 +879,21 @@ export const ProductDetailPage: React.FC = () => {
                         return (
                           <button
                             key={colorName}
+                            type="button"
                             onClick={() => setSelectedColor(colorName)}
                             title={colorName}
                             aria-label={`Color: ${colorName}${isSelected ? ' (selected)' : ''}`}
                             aria-pressed={isSelected}
-                            className="relative flex-shrink-0 transition-all duration-200"
+                            className="relative flex-shrink-0 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-gold focus-visible:ring-offset-2"
                             style={{
-                              width: 32,
-                              height: 32,
+                              width: 32, height: 32,
                               borderRadius: '50%',
-                              ...(isGradient
-                                ? { background: resolvedBg }
-                                : { backgroundColor: resolvedBg }),
-                              border: isSelected
-                                ? '3px solid #B07D6B'
-                                : '2px solid rgba(0,0,0,0.12)',
+                              ...(isGradient ? { background: resolvedBg } : { backgroundColor: resolvedBg }),
+                              border: isSelected ? '3px solid #B07D6B' : '2px solid rgba(0,0,0,0.12)',
                               transform: isSelected ? 'scale(1.18)' : 'scale(1)',
                               boxShadow: isSelected
                                 ? '0 0 0 2px white, 0 0 0 4px #B07D6B'
                                 : '0 1px 3px rgba(0,0,0,0.15)',
-                              outline: 'none',
                               cursor: 'pointer',
                             }}
                           />
@@ -915,18 +912,15 @@ export const ProductDetailPage: React.FC = () => {
                         <span className="text-[#6B5B55] font-normal">{selectedSize}</span>
                       </p>
                     </div>
-                    <div
-                      className="flex flex-wrap gap-2"
-                      role="group"
-                      aria-labelledby="size-label"
-                    >
+                    <div className="flex flex-wrap gap-2" role="group" aria-labelledby="size-label">
                       {product.sizes.map((size) => (
                         <button
                           key={String(size)}
+                          type="button"
                           onClick={() => setSelectedSize(size)}
                           aria-label={`Size ${size}${selectedSize === size ? ' (selected)' : ''}`}
                           aria-pressed={selectedSize === size}
-                          className={`min-w-[70px] h-9 px-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${selectedSize === size
+                          className={`min-w-[70px] h-9 px-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap focus-visible:ring-2 focus-visible:ring-rose-gold ${selectedSize === size
                             ? 'bg-rose-gold text-white shadow-md'
                             : 'bg-blush-light/50 text-[#6B5B55] hover:bg-blush-light'
                             }`}
@@ -952,16 +946,13 @@ export const ProductDetailPage: React.FC = () => {
                   <p className="text-sm font-medium text-charcoal mb-3" id="quantity-label">
                     Quantity
                   </p>
-                  <div
-                    className="flex items-center gap-3"
-                    role="group"
-                    aria-labelledby="quantity-label"
-                  >
+                  <div className="flex items-center gap-3" role="group" aria-labelledby="quantity-label">
                     <button
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      type="button"
+                      onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                       disabled={stockInfo.status === 'out-of-stock'}
                       aria-label="Decrease quantity"
-                      className="w-9 h-9 rounded-xl bg-blush-light/50 flex items-center justify-center hover:bg-blush-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-9 h-9 rounded-xl bg-blush-light/50 flex items-center justify-center hover:bg-blush-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-rose-gold"
                     >
                       <Minus size={16} aria-hidden="true" />
                     </button>
@@ -974,10 +965,11 @@ export const ProductDetailPage: React.FC = () => {
                       {quantity}
                     </span>
                     <button
-                      onClick={() => setQuantity(Math.min(product.stock || 99, quantity + 1))}
+                      type="button"
+                      onClick={() => setQuantity((q) => Math.min(product.stock || 99, q + 1))}
                       disabled={stockInfo.status === 'out-of-stock' || quantity >= product.stock}
                       aria-label="Increase quantity"
-                      className="w-9 h-9 rounded-xl bg-blush-light/50 flex items-center justify-center hover:bg-blush-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-9 h-9 rounded-xl bg-blush-light/50 flex items-center justify-center hover:bg-blush-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-rose-gold"
                     >
                       <Plus size={16} aria-hidden="true" />
                     </button>
@@ -991,18 +983,11 @@ export const ProductDetailPage: React.FC = () => {
                 <div className="flex gap-2 mb-6">
                   <Button
                     size="lg"
-                    onClick={() => {
-                      if (!selectedSize && product.sizes.length > 0) return;
-                      addItem(product, selectedSize, selectedColor, quantity);
-                      navigate('/checkout');
-                    }}
+                    onClick={handleBuyNow}
                     disabled={product.stock === 0}
                     aria-label={product.stock === 0 ? 'Out of stock' : `Buy ${product.name} now`}
                     className="flex-[3] h-12 text-base font-semibold rounded-xl border-0"
-                    style={{
-                      background: 'linear-gradient(135deg, #1eff77 0%, #1eff77 100%)',
-                      color: 'Black',
-                    }}
+                    style={{ background: 'linear-gradient(135deg,#1eff77 0%,#1eff77 100%)', color: '#000000' }}
                   >
                     <ShoppingBag size={17} aria-hidden="true" />
                     {product.stock === 0 ? 'Out of Stock' : 'Buy Now'}
@@ -1015,55 +1000,62 @@ export const ProductDetailPage: React.FC = () => {
                     disabled={product.stock === 0}
                     aria-label={addedToCart ? 'Added to bag' : `Add ${product.name} to bag`}
                     aria-live="polite"
-                    className={`flex-1 h-12 text-sm rounded-xl ${addedToCart ? '!border-green-500 !text-green-500' : ''
+                    className={`flex-1 h-12 text-sm rounded-xl focus-visible:ring-2 focus-visible:ring-rose-gold ${addedToCart ? '!border-green-500 !text-green-500' : ''
                       }`}
                   >
                     {addedToCart ? '✓ Added' : 'Add to Bag'}
                   </Button>
                 </div>
 
-                {/* Trust badges */}
-                <div className="grid grid-cols-3 gap-3" aria-label="Trust indicators">
-                  {[
+                {/* Trust badges — static, so rendered as a plain dl for semantics */}
+                <dl className="grid grid-cols-3 gap-3" aria-label="Trust indicators">
+                  {([
                     { icon: '🚚', label: 'Fast Delivery' },
                     { icon: '✅', label: '100% Authentic' },
                     { icon: '🔒', label: 'Secure Payment' },
-                  ].map((item) => (
+                  ] as const).map((item) => (
                     <div
                       key={item.label}
                       className="flex flex-col items-center gap-1.5 text-center p-3 rounded-xl bg-blush-light/30"
                     >
-                      <span className="text-xl" aria-hidden="true">{item.icon}</span>
-                      <span className="text-xs text-[#6B5B55]">{item.label}</span>
+                      <dt className="text-xl" aria-hidden="true">{item.icon}</dt>
+                      <dd className="text-xs text-[#6B5B55]">{item.label}</dd>
                     </div>
                   ))}
-                </div>
+                </dl>
               </div>
             </FadeIn>
           </div>
 
-          {/* ── Related Products ───────────────────────────────────────────── */}
+          {/* ── Related Products ─────────────────────────────────────────── */}
           {related.length > 0 && (
-            <section className="mt-16" aria-label="Related products">
+            <section className="mt-16" aria-labelledby="related-heading">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="heading-serif text-2xl md:text-3xl font-bold text-charcoal">
+                {/*
+                  H2 — correct heading hierarchy: H1 is the product name above.
+                  id="related-heading" is referenced by aria-labelledby on <section>.
+                */}
+                <h2
+                  id="related-heading"
+                  className="heading-serif text-2xl md:text-3xl font-bold text-charcoal"
+                >
                   You May Also Like
                 </h2>
                 <div className="flex gap-2" role="group" aria-label="Browse related products">
                   <button
+                    type="button"
                     onClick={() => setSimilarPage((p) => Math.max(0, p - 1))}
                     disabled={similarPage === 0}
-                    className="w-9 h-9 rounded-full border border-blush/40 flex items-center justify-center disabled:opacity-30 hover:border-rose-gold transition-colors"
+                    className="w-9 h-9 rounded-full border border-blush/40 flex items-center justify-center disabled:opacity-30 hover:border-rose-gold transition-colors focus-visible:ring-2 focus-visible:ring-rose-gold"
                     aria-label="Previous related products"
                   >
                     <ArrowLeft size={16} aria-hidden="true" />
                   </button>
                   <button
-                    onClick={() =>
-                      setSimilarPage((p) => Math.min(Math.ceil(related.length / 4) - 1, p + 1))
-                    }
+                    type="button"
+                    onClick={() => setSimilarPage((p) => Math.min(Math.ceil(related.length / 4) - 1, p + 1))}
                     disabled={similarPage >= Math.ceil(related.length / 4) - 1}
-                    className="w-9 h-9 rounded-full border border-blush/40 flex items-center justify-center disabled:opacity-30 hover:border-rose-gold transition-colors"
+                    className="w-9 h-9 rounded-full border border-blush/40 flex items-center justify-center disabled:opacity-30 hover:border-rose-gold transition-colors focus-visible:ring-2 focus-visible:ring-rose-gold"
                     aria-label="Next related products"
                   >
                     <ArrowRight size={16} aria-hidden="true" />
@@ -1082,7 +1074,7 @@ export const ProductDetailPage: React.FC = () => {
 
         </div>
 
-        {/* ── Sticky mobile Add to Cart ─────────────────────────────────── */}
+        {/* ── Sticky mobile Add to Cart ──────────────────────────────────── */}
         <AnimatePresence>
           {showStickyCart && (
             <motion.div
@@ -1096,21 +1088,22 @@ export const ProductDetailPage: React.FC = () => {
               <div className="flex items-center gap-4">
                 <div className="flex-1">
                   <div className="text-sm text-gray-600">Price</div>
+                  {/* ৳ character spelled out directly — avoids Unicode encoding issues */}
                   <div className="text-xl font-bold text-pink-600">৳{product.price}</div>
                 </div>
                 <Button
+                  type="button"
                   onClick={handleAddToCart}
                   disabled={product.stock === 0}
                   aria-label={
                     product.stock === 0 ? 'Out of stock' : `Add ${product.name} to cart`
                   }
-                  className="flex items-center gap-2 px-6 py-3 rounded-lg font-semibold"
+                  className="flex items-center gap-2 px-6 py-3 rounded-lg font-semibold focus-visible:ring-2 focus-visible:ring-rose-gold"
                   style={{
-                    background:
-                      product.stock === 0
-                        ? '#ccc'
-                        : 'linear-gradient(135deg, #1eff77 0%, #1eff77 100%)',
-                    color: 'Black',
+                    background: product.stock === 0
+                      ? '#ccc'
+                      : 'linear-gradient(135deg,#1eff77 0%,#1eff77 100%)',
+                    color: '#000000',
                   }}
                 >
                   <ShoppingBag size={18} aria-hidden="true" />
