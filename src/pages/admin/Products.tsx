@@ -249,19 +249,27 @@ const drawAGLogo = (
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
-  size: number
+  size: number,
+  logoText: string = 'AG',
+  colorLeft: string = '#C0C0C0',
+  colorRight: string = '#F5A623'
 ) => {
   ctx.save();
   ctx.textBaseline = 'alphabetic';
 
   const gap = size * 0.04;
+  const text = logoText.trim() || 'AG';
+  // Split into two halves: left = first half, right = second half
+  const mid = Math.ceil(text.length / 2);
+  const leftPart = text.slice(0, mid);
+  const rightPart = text.slice(mid);
 
   ctx.font = `900 ${size}px Arial, sans-serif`;
-  const aWidth = ctx.measureText('A').width;
-  const gWidth = ctx.measureText('G').width;
-  const totalAGWidth = aWidth + gWidth + gap * 2;
+  const leftWidth = ctx.measureText(leftPart).width;
+  const rightWidth = ctx.measureText(rightPart).width;
+  const totalTextWidth = leftWidth + rightWidth + gap * 2;
 
-  const boxW = totalAGWidth + size * 0.6;
+  const boxW = totalTextWidth + size * 0.6;
   const boxH = size + size * 0.5;
 
   const boxX = x - boxW / 2;
@@ -290,15 +298,13 @@ const drawAGLogo = (
   ctx.shadowOffsetY = size * 0.04;
 
   ctx.font = `900 ${size}px Arial, sans-serif`;
-  ctx.fillStyle = '#C0C0C0';
+  ctx.fillStyle = colorLeft;
   ctx.textAlign = 'right';
-  ctx.fillText('A', x - gap, y);
+  ctx.fillText(leftPart, x - gap, y);
 
-  ctx.fillStyle = '#F5A623';
+  ctx.fillStyle = colorRight;
   ctx.textAlign = 'left';
-  ctx.fillText('G', x + gap, y);
-
-  // subtitle removed — AG only
+  ctx.fillText(rightPart, x + gap, y);
 
   ctx.restore();
 };
@@ -316,10 +322,17 @@ interface TextWmConfig {
   spacingX: number;
   spacingY: number;
 }
+
+interface LogoWmConfig {
+  text: string;
+  colorLeft: string;
+  colorRight: string;
+}
+
 // ─────────────────────────────────────────────────
 // APPLY WATERMARK — with pre-resize for large files
 // ─────────────────────────────────────────────────
-const applyWatermark = (file: File, sizeMultiplier = 1.0, textWm?: TextWmConfig): Promise<File> => {
+const applyWatermark = (file: File, sizeMultiplier = 1.0, textWm?: TextWmConfig, logoWm?: LogoWmConfig): Promise<File> => {
   return new Promise((resolve) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
@@ -347,7 +360,7 @@ const applyWatermark = (file: File, sizeMultiplier = 1.0, textWm?: TextWmConfig)
       const size = Math.max(18, Math.min(targetW, targetH) * 0.08) * sizeMultiplier;
       const x = wmPos.xFrac * targetW;
       const y = wmPos.yFrac * targetH;
-      drawAGLogo(ctx, x, y, size);
+      drawAGLogo(ctx, x, y, size, logoWm?.text, logoWm?.colorLeft, logoWm?.colorRight);
 
       // Apply text watermark if enabled
       if (textWm?.enabled) {
@@ -424,7 +437,7 @@ const applyWatermark = (file: File, sizeMultiplier = 1.0, textWm?: TextWmConfig)
             const ctx = canvas.getContext('2d')!;
             ctx.drawImage(retryImg, 0, 0, targetW, targetH);
             const size = Math.max(18, Math.min(targetW, targetH) * 0.08) * sizeMultiplier;
-            drawAGLogo(ctx, wmPos.xFrac * targetW, wmPos.yFrac * targetH, size);
+            drawAGLogo(ctx, wmPos.xFrac * targetW, wmPos.yFrac * targetH, size, logoWm?.text, logoWm?.colorLeft, logoWm?.colorRight);
             if (textWm?.enabled) {
               drawTextWatermark(ctx, targetW, targetH, textWm.text,
                 Math.max(10, targetW * (textWm.size / 500)),
@@ -462,9 +475,11 @@ const MiniWatermarkThumb: React.FC<{
   textWmEnabled?: boolean; textWmText?: string; textWmOpacity?: number;
   textWmSize?: number; textWmAngle?: number; textWmColor?: string;
   textWmSpacingX?: number; textWmSpacingY?: number;
+  logoText?: string; logoColorLeft?: string; logoColorRight?: string;
 }> = ({ file, xFrac, yFrac, textWmEnabled = false, textWmText = 'GIrley GLow',
   textWmOpacity = 0.18, textWmSize = 22, textWmAngle = -30,
-  textWmColor = '#ffffff', textWmSpacingX = 180, textWmSpacingY = 90 }) => {
+  textWmColor = '#ffffff', textWmSpacingX = 180, textWmSpacingY = 90,
+  logoText = 'AG', logoColorLeft = '#C0C0C0', logoColorRight = '#F5A623' }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const imgRef = useRef<HTMLImageElement | null>(null);
     const xRef = useRef(xFrac);
@@ -485,7 +500,7 @@ const MiniWatermarkThumb: React.FC<{
       canvas.height = displayH;
       ctx.drawImage(img, 0, 0, displayW, displayH);
       const size = Math.max(10, Math.min(displayW, displayH) * 0.08);
-      drawAGLogo(ctx, xRef.current * displayW, yRef.current * displayH, size);
+      drawAGLogo(ctx, xRef.current * displayW, yRef.current * displayH, size, logoText, logoColorLeft, logoColorRight);
       if (textWmEnabled) {
         drawTextWatermark(
           ctx, displayW, displayH,
@@ -536,7 +551,7 @@ const MiniWatermarkThumb: React.FC<{
     }, [file]);
     useEffect(() => {
       redraw();
-    }, [xFrac, yFrac, textWmEnabled, textWmText, textWmOpacity, textWmSize, textWmAngle, textWmColor, textWmSpacingX, textWmSpacingY]);
+    }, [xFrac, yFrac, textWmEnabled, textWmText, textWmOpacity, textWmSize, textWmAngle, textWmColor, textWmSpacingX, textWmSpacingY, logoText, logoColorLeft, logoColorRight]);
 
     return (
       <canvas
@@ -563,12 +578,16 @@ interface WatermarkPreviewProps {
   textWmColor?: string;
   textWmSpacingX?: number;
   textWmSpacingY?: number;
+  logoText?: string;
+  logoColorLeft?: string;
+  logoColorRight?: string;
 }
 const WatermarkPreview: React.FC<WatermarkPreviewProps> = ({
   file, onPositionChange, sizeMultiplier = 1.0, enabled = true,
   textWmEnabled = false, textWmText = 'GIrley GLow',
   textWmOpacity = 0.18, textWmSize = 22, textWmAngle = -30,
   textWmColor = '#ffffff', textWmSpacingX = 180, textWmSpacingY = 90,
+  logoText = 'AG', logoColorLeft = '#C0C0C0', logoColorRight = '#F5A623',
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
@@ -588,7 +607,7 @@ const WatermarkPreview: React.FC<WatermarkPreviewProps> = ({
       canvas.height = displayH;
       ctx.drawImage(img, 0, 0, displayW, displayH);
       const size = Math.max(18, Math.min(displayW, displayH) * 0.08) * sizeMultiplier;
-      if (enabled) drawAGLogo(ctx, pos.xFrac * displayW, pos.yFrac * displayH, size);
+      if (enabled) drawAGLogo(ctx, pos.xFrac * displayW, pos.yFrac * displayH, size, logoText, logoColorLeft, logoColorRight);
       if (textWmEnabled) {
         drawTextWatermark(
           ctx, displayW, displayH,
@@ -635,7 +654,7 @@ const WatermarkPreview: React.FC<WatermarkPreviewProps> = ({
       };
       img.src = url;
     }
-  }, [pos, file, sizeMultiplier, enabled, textWmEnabled, textWmText, textWmOpacity, textWmSize, textWmAngle, textWmColor, textWmSpacingX, textWmSpacingY]);
+  }, [pos, file, sizeMultiplier, enabled, textWmEnabled, textWmText, textWmOpacity, textWmSize, textWmAngle, textWmColor, textWmSpacingX, textWmSpacingY, logoText, logoColorLeft, logoColorRight]);
 
   const getFrac = (e: React.MouseEvent<HTMLCanvasElement> | MouseEvent) => {
     const canvas = canvasRef.current!;
@@ -677,7 +696,7 @@ const WatermarkPreview: React.FC<WatermarkPreviewProps> = ({
         onDragStart={(e) => e.preventDefault()}
       />
       <p className="text-[10px] text-[#6B5B55] text-center mt-1 italic">
-        Click or drag to reposition the AG watermark
+        Click or drag to reposition the logo watermark
       </p>
 
     </div>
@@ -731,6 +750,9 @@ export const AdminProducts: React.FC = () => {
   const [textWmColor, setTextWmColor] = useState<string>('#ffffff');
   const [textWmSpacingX, setTextWmSpacingX] = useState<number>(180);
   const [textWmSpacingY, setTextWmSpacingY] = useState<number>(90);
+  const [agLogoText, setAgLogoText] = useState<string>('AG');
+  const [agLogoColorLeft, setAgLogoColorLeft] = useState<string>('#C0C0C0');
+  const [agLogoColorRight, setAgLogoColorRight] = useState<string>('#F5A623');
   const [hasEyeDropper] = useState(() => typeof (window as any).EyeDropper !== 'undefined');
   const [detectedColors, setDetectedColors] = useState<string[]>([]);
   const [detectingColors, setDetectingColors] = useState(false);
@@ -895,6 +917,10 @@ export const AdminProducts: React.FC = () => {
           color: textWmColor,
           spacingX: textWmSpacingX,
           spacingY: textWmSpacingY,
+        }, {
+          text: agLogoText,
+          colorLeft: agLogoColorLeft,
+          colorRight: agLogoColorRight,
         }) : files[i];
       } catch {
         watermarked = files[i];
@@ -1399,6 +1425,9 @@ export const AdminProducts: React.FC = () => {
                     textWmColor={textWmColor}
                     textWmSpacingX={textWmSpacingX}
                     textWmSpacingY={textWmSpacingY}
+                    logoText={agLogoText}
+                    logoColorLeft={agLogoColorLeft}
+                    logoColorRight={agLogoColorRight}
                   />
                   <button
                     type="button"
@@ -1428,7 +1457,15 @@ export const AdminProducts: React.FC = () => {
                   {wmPanelOpen && (
                     <div className="bg-blush-light/30 px-3 py-2.5 space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-[#6B5B55]">AG Logo Watermark</span>
+                        <span className="text-xs font-medium text-[#6B5B55]">
+                          Logo Watermark
+                          {agLogoText && (
+                            <span className="ml-1.5 font-black text-[11px]">
+                              <span style={{ color: agLogoColorLeft }}>{agLogoText.slice(0, Math.ceil(agLogoText.length / 2))}</span>
+                              <span style={{ color: agLogoColorRight }}>{agLogoText.slice(Math.ceil(agLogoText.length / 2))}</span>
+                            </span>
+                          )}
+                        </span>
                         <label className="flex items-center gap-2 cursor-pointer select-none">
                           <span className="text-xs text-[#6B5B55]">{wmEnabled ? 'On' : 'Off'}</span>
                           <div
@@ -1440,14 +1477,75 @@ export const AdminProducts: React.FC = () => {
                         </label>
                       </div>
                       {wmEnabled && (
-                        <div className="flex items-center gap-3">
-                          <span className="text-[11px] text-[#6B5B55] whitespace-nowrap">Logo Size</span>
-                          <input
-                            type="range" min={0.4} max={2.5} step={0.05} value={wmSize}
-                            onChange={e => setWmSize(parseFloat(e.target.value))}
-                            className="flex-1 accent-rose-gold"
-                          />
-                          <span className="text-[11px] text-[#6B5B55] w-8 text-right">{Math.round(wmSize * 100)}%</span>
+                        <div className="space-y-2.5">
+                          {/* Logo Text */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] text-[#6B5B55] w-20 shrink-0">Logo Text</span>
+                            <input
+                              type="text"
+                              value={agLogoText}
+                              onChange={e => setAgLogoText(e.target.value.slice(0, 10))}
+                              maxLength={10}
+                              className="flex-1 px-2.5 py-1.5 rounded-lg border border-blush/30 bg-white/80 text-xs focus:outline-none focus:ring-1 focus:ring-rose-gold/30 font-bold tracking-widest"
+                              placeholder="e.g. AG"
+                            />
+                            <span className="text-[10px] text-[#6B5B55]/60 shrink-0">max 10</span>
+                          </div>
+
+                          {/* Left half color */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] text-[#6B5B55] w-20 shrink-0">Left Color</span>
+                            <input
+                              type="color"
+                              value={agLogoColorLeft}
+                              onChange={e => setAgLogoColorLeft(e.target.value)}
+                              className="w-8 h-7 rounded cursor-pointer border border-blush/30 p-0.5 bg-white"
+                            />
+                            <span className="text-[10px] text-[#6B5B55] font-mono">{agLogoColorLeft}</span>
+                            {/* live mini preview */}
+                            <span
+                              className="ml-auto text-sm font-black select-none"
+                              style={{ color: agLogoColorLeft, textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}
+                            >
+                              {agLogoText.slice(0, Math.ceil(agLogoText.length / 2)) || 'A'}
+                            </span>
+                            <span
+                              className="text-sm font-black select-none"
+                              style={{ color: agLogoColorRight, textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}
+                            >
+                              {agLogoText.slice(Math.ceil(agLogoText.length / 2)) || 'G'}
+                            </span>
+                          </div>
+
+                          {/* Right half color */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] text-[#6B5B55] w-20 shrink-0">Right Color</span>
+                            <input
+                              type="color"
+                              value={agLogoColorRight}
+                              onChange={e => setAgLogoColorRight(e.target.value)}
+                              className="w-8 h-7 rounded cursor-pointer border border-blush/30 p-0.5 bg-white"
+                            />
+                            <span className="text-[10px] text-[#6B5B55] font-mono">{agLogoColorRight}</span>
+                            <button
+                              type="button"
+                              onClick={() => { setAgLogoColorLeft('#C0C0C0'); setAgLogoColorRight('#F5A623'); setAgLogoText('AG'); }}
+                              className="ml-auto text-[10px] text-[#6B5B55] underline hover:text-rose-gold transition-colors"
+                            >
+                              Reset
+                            </button>
+                          </div>
+
+                          {/* Logo Size */}
+                          <div className="flex items-center gap-3">
+                            <span className="text-[11px] text-[#6B5B55] w-20 shrink-0">Logo Size</span>
+                            <input
+                              type="range" min={0.4} max={2.5} step={0.05} value={wmSize}
+                              onChange={e => setWmSize(parseFloat(e.target.value))}
+                              className="flex-1 accent-rose-gold"
+                            />
+                            <span className="text-[11px] text-[#6B5B55] w-8 text-right">{Math.round(wmSize * 100)}%</span>
+                          </div>
                         </div>
                       )}
 
@@ -1580,6 +1678,9 @@ export const AdminProducts: React.FC = () => {
                             textWmColor={textWmColor}
                             textWmSpacingX={textWmSpacingX}
                             textWmSpacingY={textWmSpacingY}
+                            logoText={agLogoText}
+                            logoColorLeft={agLogoColorLeft}
+                            logoColorRight={agLogoColorRight}
                           />
                           <button
                             type="button"
