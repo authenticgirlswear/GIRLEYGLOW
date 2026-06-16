@@ -209,7 +209,10 @@ export const ShopPage: React.FC = () => {
 
     if (categoryFilter) {
       filtered = filtered.filter(
-        product => product.category === categoryFilter || product.category_slug === categoryFilter
+        product =>
+          product.category_slug === categoryFilter ||
+          product.category_name === categoryFilter ||
+          product.category === categoryFilter
       );
     }
 

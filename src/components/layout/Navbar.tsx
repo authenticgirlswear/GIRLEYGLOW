@@ -169,59 +169,63 @@ export const Navbar: React.FC<NavbarProps> = ({ barVisible = false }) => {
                   </span>
                 </div>
               </Link>
-              {/* Desktop Nav Links — centered */}
-              <div className="hidden md:flex items-center gap-5 lg:gap-8">                {navLinks.map(link => (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  className={`
+              {/* Desktop Nav Links + Categories — centered */}
+              <div className="hidden md:flex items-center gap-5 lg:gap-8">
+                {navLinks.map(link => (
+                  <Link
+                    key={link.path}
+                    to={link.path}
+                    className={`
                       text-[13px] lg:text-[14px] font-semibold tracking-[0.25em] uppercase
                       transition-colors duration-300 hover:text-[#B07D6B] relative py-1
                       ${isActive(link.path) ? 'text-[#B07D6B]' : 'text-[#2C2C2C]'}
                     `}
+                  >
+                    {link.label}
+                    {isActive(link.path) && (
+                      <motion.span
+                        layoutId="activeNavUnderline"
+                        className="absolute -bottom-0.5 left-0 right-0 h-px bg-[#B07D6B]"
+                        transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                      />
+                    )}
+                  </Link>
+                ))}
+
+                {/* Categories dropdown — inline with nav links */}
+                <div
+                  className="relative"
+                  onMouseEnter={() => setCategoriesOpen(true)}
+                  onMouseLeave={() => setCategoriesOpen(false)}
                 >
-                  {link.label}
-                  {isActive(link.path) && (
-                    <motion.span
-                      layoutId="activeNavUnderline"
-                      className="absolute -bottom-0.5 left-0 right-0 h-px bg-[#B07D6B]"
-                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                  <button
+                    type="button"
+                    onClick={() => setCategoriesOpen(o => !o)}
+                    className={`text-[13px] lg:text-[14px] font-semibold tracking-[0.25em] uppercase transition-colors duration-300 flex items-center gap-1 py-1 ${categoriesOpen ? 'text-[#B07D6B]' : 'text-[#2C2C2C] hover:text-[#B07D6B]'}`}
+                  >
+                    Categories
+                    <ChevronDown
+                      size={12}
+                      className={`transition-transform duration-300 ${categoriesOpen ? 'rotate-180' : ''}`}
                     />
-                  )}
+                  </button>
 
-                </Link>
-
-              ))}
-              </div>
-              {/* Categories Dropdown */}
-              <div
-                className="relative"
-                onMouseEnter={() => setCategoriesOpen(true)}
-                onMouseLeave={() => setCategoriesOpen(false)}
-              >
-                <button className="text-[12px] lg:text-[13px] font-semibold tracking-[0.25em] uppercase text-[#2C2C2C] hover:text-[#B07D6B] transition-colors duration-300 flex items-center gap-1 py-1">
-                  Categories
-                  <ChevronDown
-                    size={11}
-                    className={`transition-transform duration-300 ${categoriesOpen ? 'rotate-180' : ''}`}
-                  />
-                </button>
-
-                <AnimatePresence>
-                  {categoriesOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 8, scale: 0.97 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 8, scale: 0.97 }}
-                      transition={{ duration: 0.18, ease: 'easeOut' }}
-                      className="absolute top-full left-1/2 -translate-x-1/2 pt-4"
-                    >
-                      <div className="bg-[#F5E6DC]/95 backdrop-blur-xl rounded-2xl p-1.5 shadow-xl shadow-black/10 min-w-[180px] border border-white/50">
-                        {renderCategoryLinks()}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                  <AnimatePresence>
+                    {categoriesOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 8, scale: 0.97 }}
+                        transition={{ duration: 0.18, ease: 'easeOut' }}
+                        className="absolute top-full left-1/2 -translate-x-1/2 pt-4 z-10"
+                      >
+                        <div className="bg-[#F5E6DC]/95 backdrop-blur-xl rounded-2xl p-1.5 shadow-xl shadow-black/10 min-w-[180px] border border-white/50">
+                          {renderCategoryLinks()}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
 
 
@@ -299,7 +303,7 @@ export const Navbar: React.FC<NavbarProps> = ({ barVisible = false }) => {
             </AnimatePresence>
           </nav>
         </motion.div>
-      </div>
+      </div >
       {/* ═══ END FIXED HEADER — zero layout space taken ═══ */}
 
 
