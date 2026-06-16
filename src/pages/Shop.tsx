@@ -7,7 +7,7 @@ declare global { interface Window { dataLayer: any[]; } }
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Grid3X3, Grid2X2, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { Grid3X3, Grid2X2, SlidersHorizontal, Sparkles, X } from 'lucide-react';
 
 import { ProductCard } from '@/components/home';
 import { FadeIn, Button, Select } from '@/components/ui';
@@ -390,9 +390,152 @@ export const ShopPage: React.FC = () => {
           </div>
         </div>
 
+        {/* ══════════════════════════════════════════════════
+            MOBILE FILTER BOTTOM SHEET
+            Slides up from bottom on mobile when showFilters=true.
+            Completely separate from the desktop sidebar so neither
+            interferes with the other.
+        ══════════════════════════════════════════════════ */}
+        <AnimatePresence>
+          {showFilters && (
+            <>
+              {/* Backdrop */}
+              <motion.div
+                key="mobile-filter-backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/40 z-40 md:hidden"
+                onClick={() => setShowFilters(false)}
+              />
+
+              {/* Sheet */}
+              <motion.div
+                key="mobile-filter-sheet"
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                transition={{ type: 'spring', damping: 28, stiffness: 260 }}
+                className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white rounded-t-3xl shadow-2xl max-h-[82vh] overflow-y-auto"
+              >
+                {/* Handle bar */}
+                <div className="flex justify-center pt-3 pb-1">
+                  <div className="w-10 h-1 rounded-full bg-gray-300" />
+                </div>
+
+                {/* Header */}
+                <div className="flex items-center justify-between px-5 py-3 border-b border-blush/30">
+                  <span className="text-base font-semibold text-charcoal">Filters</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowFilters(false)}
+                    className="p-1.5 rounded-full hover:bg-blush-light transition-colors"
+                    aria-label="Close filters"
+                  >
+                    <X size={18} className="text-[#6B5B55]" />
+                  </button>
+                </div>
+
+                {/* Filter content — same options as desktop */}
+                <div className="px-5 py-5 space-y-6">
+
+                  {/* Category */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-charcoal mb-3 uppercase tracking-wider">
+                      Category
+                    </h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const p = new URLSearchParams(searchParams);
+                          p.delete('category');
+                          setSearchParams(p);
+                        }}
+                        className={`text-sm px-3 py-2 rounded-xl border transition-colors text-left ${!categoryFilter
+                          ? 'bg-rose-gold text-white border-rose-gold font-medium'
+                          : 'border-blush/40 text-[#6B5B55] hover:border-rose-gold'
+                          }`}
+                      >
+                        All
+                      </button>
+                      {categories.map(cat => (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => {
+                            const p = new URLSearchParams(searchParams);
+                            p.set('category', cat.slug);
+                            setSearchParams(p);
+                          }}
+                          className={`text-sm px-3 py-2 rounded-xl border transition-colors text-left ${categoryFilter === cat.slug
+                            ? 'bg-rose-gold text-white border-rose-gold font-medium'
+                            : 'border-blush/40 text-[#6B5B55] hover:border-rose-gold'
+                            }`}
+                        >
+                          {cat.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Price Range */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-charcoal mb-3 uppercase tracking-wider">
+                      Price Range
+                    </h3>
+                    <input
+                      type="range"
+                      min={299}
+                      max={10000}
+                      step={1}
+                      value={priceRange[1]}
+                      onChange={e => setPriceRange([299, parseInt(e.target.value)])}
+                      className="w-full accent-rose-gold"
+                    />
+                    <div className="flex justify-between text-sm text-[#6B5B55] mt-1">
+                      <span>৳299</span>
+                      <span>{priceRange[1] >= 10000 ? 'No limit' : `৳${priceRange[1]}`}</span>
+                    </div>
+                  </div>
+
+                  {/* In Stock */}
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={inStockOnly}
+                      onChange={e => setInStockOnly(e.target.checked)}
+                      className="w-5 h-5 rounded accent-rose-gold"
+                    />
+                    <span className="text-sm text-[#6B5B55]">In stock only</span>
+                  </label>
+
+                  {/* Apply / Clear */}
+                  <div className="flex gap-3 pt-2 pb-safe">
+                    <button
+                      type="button"
+                      onClick={clearFilters}
+                      className="flex-1 py-3 rounded-xl border-2 border-blush/40 text-sm font-medium text-[#6B5B55] hover:border-rose-gold transition-colors"
+                    >
+                      Clear All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowFilters(false)}
+                      className="flex-1 py-3 rounded-xl bg-rose-gold text-white text-sm font-semibold hover:bg-deep-rose transition-colors"
+                    >
+                      Show {filteredProducts.length} Results
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
         <div className="flex gap-8">
 
-          {/* ── Sidebar Filter ── */}
+          {/* ── Desktop Sidebar Filter — hidden on mobile ── */}
           <AnimatePresence>
             {showFilters && (
               <motion.aside
@@ -410,6 +553,7 @@ export const ShopPage: React.FC = () => {
                     </h3>
                     <div className="space-y-2">
                       <button
+                        type="button"
                         onClick={() => {
                           const p = new URLSearchParams(searchParams);
                           p.delete('category');
@@ -422,10 +566,10 @@ export const ShopPage: React.FC = () => {
                       >
                         All Categories
                       </button>
-
                       {categories.map(cat => (
                         <button
                           key={cat.id}
+                          type="button"
                           onClick={() => {
                             const p = new URLSearchParams(searchParams);
                             p.set('category', cat.slug);
