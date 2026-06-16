@@ -86,13 +86,9 @@ export default defineConfig(({ command }) => {
     // ─── Plugins ─────────────────────────────────────────────────────────────
     plugins: [
       react({
-        // React 19 uses the new JSX transform — babel plugins are not needed
-        // for production; Vite/esbuild handles JSX directly at build time.
-        babel: {
-          // react-remove-properties strips data-testid / data-cy from prod builds
-          // (reduces HTML payload for every component)
-          plugins: isProd ? [["react-remove-properties", { properties: ["data-testid", "data-cy"] }]] : [],
-        },
+        // React 19 automatic JSX transform — esbuild handles all JSX/TSX
+        // transformation at build time. No babel plugins needed.
+        babel: { plugins: [] },
       }),
 
       // Tailwind v4 Vite plugin — outputs a single optimised CSS bundle;
