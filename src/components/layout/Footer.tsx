@@ -288,12 +288,12 @@ export const Footer: React.FC = () => {
 
                 {/* Static shop shortcuts always shown below categories */}
                 <li>
-                  <Link to="/shop?filter=new_arrivals" className="text-white/50 hover:text-rose-gold-light text-sm transition-colors">
+                  <Link to="/new-arrivals" className="text-white/50 hover:text-rose-gold-light text-sm transition-colors">
                     New Arrivals
                   </Link>
                 </li>
                 <li>
-                  <Link to="/shop?sale=true" className="text-white/50 hover:text-rose-gold-light text-sm transition-colors">
+                  <Link to="/sale" className="text-white/50 hover:text-rose-gold-light text-sm transition-colors">
                     Sale
                   </Link>
                 </li>

@@ -82,24 +82,15 @@ export const Navbar: React.FC<NavbarProps> = ({ barVisible = false }) => {
   const navLinks = [
     { label: 'Home', path: '/' },
     { label: 'Shop', path: '/shop' },
-    { label: 'New Arrivals', path: '/shop?filter=new_arrivals' },
-    { label: 'Sale', path: '/shop?sale=true' },
+    { label: 'New Arrivals', path: '/new-arrivals' },
+    { label: 'Sale', path: '/sale' },
   ];
 
   const isActive = (path: string) => {
-    const current = location.pathname + location.search;
-
-    if (current === path) return true;
-
     if (path === '/') {
       return location.pathname === '/';
     }
-
-    if (path === '/shop') {
-      return location.pathname === '/shop' && location.search === '';
-    }
-
-    return false;
+    return location.pathname === path;
   };
 
   const renderCategoryLinks = (onClose?: () => void) => {

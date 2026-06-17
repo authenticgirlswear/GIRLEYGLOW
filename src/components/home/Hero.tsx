@@ -134,7 +134,7 @@ export const Hero: React.FC = () => {
                         <Button
                             variant="outline"
                             size="md"
-                            onClick={() => navigate('/shop?sale=true')}
+                            onClick={() => navigate('/sale')}
                             aria-label="Shop sale items"
                         >
                             Shop Sale

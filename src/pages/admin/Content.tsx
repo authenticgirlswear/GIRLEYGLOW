@@ -178,7 +178,7 @@ export const AdminContent: React.FC = () => {
           title: 'Sale Banner',
           subtitle: 'Limited time offers',
           buttonText: 'Shop Sale',
-          buttonLink: '/shop?sale=true',
+          buttonLink: '/sale',
           gradient: gradients[0],
           imageUrl: '',
           active: true,
