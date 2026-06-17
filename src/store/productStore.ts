@@ -125,7 +125,9 @@ function applyFilters(products: Product[], filters: ProductFilters): Product[] {
       if (!filters.sizes.some((s) => p.sizes.includes(s))) return false;
     }
     if (filters.colors?.length) {
-      if (!filters.colors.some((c) => (p.colors as unknown as string[]).includes(c))) return false;
+      if (!filters.colors.some((c) =>
+        p.colors.some((pc) => pc.name.toLowerCase() === c.toLowerCase() || pc.label?.toLowerCase() === c.toLowerCase())
+      )) return false;
     }
     if (filters.tags?.length) {
       if (!filters.tags.some((t) => p.tags.includes(t))) return false;

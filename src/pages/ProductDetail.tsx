@@ -22,18 +22,36 @@ import { trackViewContent } from '@/lib/facebookPixel';
 import { SITE } from '@/config/siteConfig';
 import { BRAND } from '@/config/brandingConfig';
 
-// ─── Color libraries ──────────────────────────────────────────────────────────
-import { colornames as _colorNameList } from 'color-name-list';
-import nearestColor from 'nearest-color';
+// ─── Color libraries — dynamically imported to keep initial bundle light ─────
+let _colorLib: {
+  nameToHex: Record<string, string>;
+  getNearestColor: any;
+} | null = null;
 
-// Built once at module level — never rebuilt on re-render
-const _nameToHex: Record<string, string> = {};
-const _nearestMap: Record<string, string> = {};
-_colorNameList.forEach((c: { name: string; hex: string }) => {
-  _nameToHex[c.name.toLowerCase()] = c.hex;
-  _nearestMap[c.name] = c.hex;
-});
-const _getNearestColor = nearestColor.from(_nearestMap);
+let _colorLibPromise: Promise<void> | null = null;
+
+const ensureColorLib = () => {
+  if (_colorLib) return Promise.resolve();
+  if (_colorLibPromise) return _colorLibPromise;
+
+  _colorLibPromise = Promise.all([
+    import('color-name-list'),
+    import('nearest-color'),
+  ]).then(([colorNameListModule, nearestColorModule]) => {
+    const nameToHex: Record<string, string> = {};
+    const nearestMap: Record<string, string> = {};
+    colorNameListModule.colornames.forEach((c: { name: string; hex: string }) => {
+      nameToHex[c.name.toLowerCase()] = c.hex;
+      nearestMap[c.name] = c.hex;
+    });
+    const getNearestColor = nearestColorModule.default.from(nearestMap);
+    _colorLib = { nameToHex, getNearestColor };
+  }).catch((err) => {
+    console.error('Failed to load color name libraries dynamically:', err);
+  });
+
+  return _colorLibPromise;
+};
 
 // Common color names → hex. Defined at module scope: allocated once, shared across all renders.
 const _SIMPLE: Record<string, string> = {
@@ -81,11 +99,13 @@ const resolveColor = (() => {
     if (hex) { cache[key] = hex; return hex; }
     if (trimmed.startsWith('linear-gradient')) { cache[key] = trimmed; return trimmed; }
     if (_SIMPLE[key]) { cache[key] = _SIMPLE[key]; return _SIMPLE[key]; }
-    if (_nameToHex[key]) { cache[key] = _nameToHex[key]; return _nameToHex[key]; }
-    try {
-      const result = _getNearestColor(key) as any;
-      if (result?.value) { cache[key] = result.value; return result.value; }
-    } catch { /* skip */ }
+    if (_colorLib) {
+      if (_colorLib.nameToHex[key]) { cache[key] = _colorLib.nameToHex[key]; return _colorLib.nameToHex[key]; }
+      try {
+        const result = _colorLib.getNearestColor(key) as any;
+        if (result?.value) { cache[key] = result.value; return result.value; }
+      } catch { /* skip */ }
+    }
     try {
       const canvas = document.createElement('canvas');
       canvas.width = 1; canvas.height = 1;
@@ -206,6 +226,16 @@ export const ProductDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const addItem = useCartStore((s) => s.addItem);
   const addRecentlyViewed = useRecentlyViewedStore((s) => s.addProduct);
+
+  const [libLoaded, setLibLoaded] = useState(!!_colorLib);
+
+  useEffect(() => {
+    if (!_colorLib) {
+      ensureColorLib().then(() => {
+        setLibLoaded(true);
+      });
+    }
+  }, []);
 
   const [product, setProduct] = useState<Product | null>(null);
   const [related, setRelated] = useState<Product[]>([]);

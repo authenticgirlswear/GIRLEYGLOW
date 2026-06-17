@@ -190,10 +190,12 @@
   <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
 
   <!--
-    FONT LOADING STRATEGY — Google Fonts with preload
-    display=swap: text renders in fallback immediately, swaps when font arrives.
-    Preloading the CSS prevents render-blocking font discovery.
+    FONT LOADING STRATEGY (OPTIONAL — uncomment if using Google Fonts)
+    display=swap: text renders in a fallback font immediately, swaps to
+    the web font when it arrives — prevents invisible text (FOIT).
+    Uncomment these two lines and remove any @import from index.css:
   -->
+  <!--
   <link rel="preload" as="style"
     href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" />
   <link rel="stylesheet"
@@ -203,6 +205,7 @@
     <link rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" />
   </noscript>
+  -->
 
   <!--
     TIER 2 — ANALYTICS (fires on/after first interaction)
@@ -244,7 +247,7 @@
   {
     "@context": "https://schema.org",
     "@type": "Organization",
-    "@id": "https://girleyglow.vercel.app//#organization",
+    "@id": "https://girleyglow.vercel.app/#organization",
     "name": "GIrley GLow",
     "url": "https://girleyglow.vercel.app/",
     "logo": {
@@ -296,13 +299,13 @@
     "url": "https://girleyglow.vercel.app/",
     "inLanguage": ["en", "bn"],
     "publisher": {
-      "@id": "https://girleyglow.vercel.app//#organization"
+      "@id": "https://girleyglow.vercel.app/#organization"
     },
     "potentialAction": {
       "@type": "SearchAction",
       "target": {
         "@type": "EntryPoint",
-        "urlTemplate": "https://girleyglow.vercel.app//search?q={search_term_string}"
+        "urlTemplate": "https://girleyglow.vercel.app/search?q={search_term_string}"
       },
       "query-input": "required name=search_term_string"
     }
@@ -356,18 +359,18 @@
     })(window, document, 'script', 'dataLayer', 'GTM-TWN3NF5S');
   </script>
 
-  <script type="module" crossorigin src="/assets/index-DQo6mOlF.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/vendor-react-BTvygAcc.js">
-  <link rel="modulepreload" crossorigin href="/assets/vendor-misc-CHZdaO7o.js">
-  <link rel="modulepreload" crossorigin href="/assets/vendor-helmet-Cuk8pjQh.js">
-  <link rel="modulepreload" crossorigin href="/assets/vendor-router-Cu5BRNtu.js">
-  <link rel="modulepreload" crossorigin href="/assets/vendor-motion-wQ-EsFJC.js">
-  <link rel="modulepreload" crossorigin href="/assets/vendor-icons-CY78abzo.js">
-  <link rel="modulepreload" crossorigin href="/assets/vendor-color-4Ityweae.js">
-  <link rel="modulepreload" crossorigin href="/assets/vendor-zustand-Bcy-Q25q.js">
-  <link rel="modulepreload" crossorigin href="/assets/vendor-supabase-CntDPFoY.js">
-  <link rel="modulepreload" crossorigin href="/assets/app-admin-B80oUvLe.js">
-  <link rel="stylesheet" crossorigin href="/assets/css/index-Dm7fjKwb.css">
+  <script type="module" crossorigin src="/assets/index-KzvFo8-S.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/vendor-react-vCJmeiA8.js">
+  <link rel="modulepreload" crossorigin href="/assets/vendor-misc-Ce5WMLOL.js">
+  <link rel="modulepreload" crossorigin href="/assets/vendor-helmet-BFrwUADI.js">
+  <link rel="modulepreload" crossorigin href="/assets/vendor-router-CZzRrDxu.js">
+  <link rel="modulepreload" crossorigin href="/assets/vendor-motion-jZOvX3kc.js">
+  <link rel="modulepreload" crossorigin href="/assets/vendor-icons-DBmNAQcB.js">
+  <link rel="modulepreload" crossorigin href="/assets/vendor-color-ClKQWcOm.js">
+  <link rel="modulepreload" crossorigin href="/assets/vendor-zustand-50wwS1mr.js">
+  <link rel="modulepreload" crossorigin href="/assets/vendor-supabase-xjLS3DwE.js">
+  <link rel="modulepreload" crossorigin href="/assets/app-admin-Cj1SMt9K.js">
+  <link rel="stylesheet" crossorigin href="/assets/css/index-BmG_iQLD.css">
 </head>
 
 <body>

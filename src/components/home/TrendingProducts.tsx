@@ -5,6 +5,7 @@ import { FadeIn, SectionHeader, PriceDisplay, Badge } from '@/components/ui';
 import { useProductStore } from '@/store';
 import { useContentStore } from '@/store/contentStore';
 import { useAutoScroll } from './useAutoScroll';
+import { getOptimizedImageUrl } from '@/lib/cloudinary';
 
 export const TrendingProducts: React.FC = () => {
     const { products, fetchProducts } = useProductStore();
@@ -56,7 +57,7 @@ export const TrendingProducts: React.FC = () => {
                                     <div className="relative rounded-2xl overflow-hidden aspect-[3/4] bg-blush-light/30">
                                         {product.images?.[0]?.startsWith('http') ? (
                                             <img
-                                                src={product.images[0]}
+                                                src={getOptimizedImageUrl(product.images[0], { width: 360, height: 480, crop: 'fill' })}
                                                 alt={product.name}
                                                 loading={idx < 6 ? 'eager' : 'lazy'}
                                                 className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"

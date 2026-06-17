@@ -6,4 +6,4 @@ Disallow: /admin/
 Disallow: /cart
 Disallow: /checkout
 
-Sitemap: https://girleyglow-seven.vercel.app//sitemap.xml
+Sitemap: https://girleyglow-seven.vercel.app/sitemap.xml

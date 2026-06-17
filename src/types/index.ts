@@ -1,5 +1,5 @@
 /* ===================================================
-   GIrley GLow - Type Definitions
+    - Type Definitions
    =================================================== */
 
 // ===== Product Types =====
@@ -32,7 +32,7 @@ export interface Product {
 }
 
 export interface ProductColor {
-  label: string;
+  label?: string;
   name: string;
   hex: string;
 }
