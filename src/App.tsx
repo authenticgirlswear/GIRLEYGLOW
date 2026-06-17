@@ -27,6 +27,8 @@ import { supabase } from '@/lib/supabase';
 // Customer pages — eagerly loaded (critical for FCP / LCP)
 import { HomePage } from '@/pages/Home';
 import { ShopPage } from '@/pages/Shop';
+import { NewArrivalsPage } from '@/pages/NewArrivals';
+import { SalePage } from '@/pages/Sale';
 import { ProductDetailPage } from '@/pages/ProductDetail';
 import { CartPage } from '@/pages/Cart';
 import { CheckoutPage } from '@/pages/Checkout';
@@ -336,13 +338,13 @@ const App: React.FC = () => (
       <Route element={<CustomerLayout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/shop" element={<ShopPage />} />
+        <Route path="/new-arrivals" element={<NewArrivalsPage />} />
+        <Route path="/sale" element={<SalePage />} />
         <Route path="/product/:slug" element={<ProductDetailPage />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/category/:slug" element={<CategoryPage />} />
-        {/* Permanent redirect — preserves link equity */}
-        <Route path="/sale" element={<Navigate to="/shop?sale=true" replace />} />
         <Route path="/404" element={<NotFoundPage />} />
       </Route>
 

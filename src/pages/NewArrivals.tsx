@@ -1,18 +1,19 @@
 /* ===================================================
-   GIrley GLow - Shop Page
-   General collection browser with filters & sorting
+   GIrley GLow - New Arrivals Page
+   Dedicated page for the newest collection additions
    =================================================== */
 
 declare global { interface Window { dataLayer: any[]; } }
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Grid3X3, Grid2X2, SlidersHorizontal, X } from 'lucide-react';
+import { Grid3X3, Grid2X2, SlidersHorizontal, Sparkles, X } from 'lucide-react';
 
 import { ProductCard } from '@/components/home';
 import { FadeIn, Button, Select } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 import { useCategoryStore } from '@/store';
+import { useContentStore } from '@/store/contentStore';
 
 /* ─── Fisher-Yates shuffle (returns a new array) ─── */
 const shuffleArray = <T,>(arr: T[]): T[] => {
@@ -25,11 +26,84 @@ const shuffleArray = <T,>(arr: T[]): T[] => {
 };
 
 /* ─────────────────────────────────────────────
-   MAIN SHOP PAGE
+   NEW ARRIVALS HERO BANNER
 ───────────────────────────────────────────── */
-export const ShopPage: React.FC = () => {
+const NewArrivalsHero: React.FC<{
+  banner?: { title?: string; subtitle?: string; imageUrl?: string; gradient?: string };
+}> = ({ banner }) => (
+  <motion.div
+    initial={{ opacity: 0, y: -16 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+    className="relative mb-10 rounded-3xl overflow-hidden"
+    style={
+      banner?.imageUrl
+        ? { backgroundImage: `url(${banner.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+        : { background: banner?.gradient || 'linear-gradient(135deg, #F5E6DC 0%, #EDD5C5 40%, #E8C9B8 100%)' }
+    }
+  >
+    {/* Decorative circles */}
+    <div
+      className="absolute -top-16 -right-16 w-72 h-72 rounded-full opacity-20"
+      style={{ background: 'radial-gradient(circle, #B07D6B 0%, transparent 70%)' }}
+    />
+    <div
+      className="absolute -bottom-10 -left-10 w-48 h-48 rounded-full opacity-15"
+      style={{ background: 'radial-gradient(circle, #C4956A 0%, transparent 70%)' }}
+    />
+
+    {/* Top rule */}
+    <div className="absolute top-0 left-0 right-0 h-px opacity-30" style={{ background: '#B07D6B' }} />
+
+    <div className="relative z-10 px-8 md:px-16 py-8 md:py-10 flex flex-col md:flex-row items-center gap-8">
+      {/* Left: text */}
+      <div className="flex-1 text-center md:text-left">
+        <div className="inline-flex items-center gap-2 mb-4">
+          <div className="h-px w-8" style={{ background: '#B07D6B' }} />
+          <span className="text-[10px] font-semibold tracking-[0.35em] uppercase" style={{ color: '#B07D6B' }}>
+            Just Arrived
+          </span>
+          <div className="h-px w-8" style={{ background: '#B07D6B' }} />
+        </div>
+
+        <h1
+          className="font-serif text-4xl md:text-5xl lg:text-6xl font-light mb-4 leading-tight"
+          style={{ color: '#2C2C2C' }}
+        >
+          {banner?.title || 'New Arrivals'}
+        </h1>
+
+        <p className="text-sm md:text-base mb-0 max-w-xs md:max-w-sm" style={{ color: '#8C7269', lineHeight: '1.7' }}>
+          {banner?.subtitle || 'Fresh pieces, curated with love. Be the first to wear what\'s new this season.'}
+        </p>
+      </div>
+
+      {/* Right: decorative icon */}
+      <div className="flex-shrink-0 hidden md:flex flex-col items-center gap-3">
+        <motion.div
+          animate={{ rotate: [0, 3, -3, 0] }}
+          transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+          className="w-24 h-24 rounded-full flex items-center justify-center"
+          style={{ background: 'rgba(176, 125, 107, 0.15)', border: '1px solid rgba(176, 125, 107, 0.3)' }}
+        >
+          <Sparkles size={36} style={{ color: '#B07D6B' }} />
+        </motion.div>
+          <span className="text-[9px] tracking-[0.3em] uppercase" style={{ color: '#B07D6B' }}>New Season</span>
+      </div>
+    </div>
+
+    {/* Bottom rule */}
+    <div className="absolute bottom-0 left-0 right-0 h-px opacity-30" style={{ background: '#B07D6B' }} />
+  </motion.div>
+);
+
+/* ─────────────────────────────────────────────
+   NEW ARRIVALS PAGE
+───────────────────────────────────────────── */
+export const NewArrivalsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { categories } = useCategoryStore();
+  const { content } = useContentStore();
 
   const [showFilters, setShowFilters] = useState(false);
   const [gridCols, setGridCols] = useState<3 | 4>(4);
@@ -63,7 +137,10 @@ export const ShopPage: React.FC = () => {
   };
 
   const filteredProducts = useMemo(() => {
-    let filtered = [...products];
+    // Filter specifically for new arrivals first
+    let filtered = products.filter(
+      product => product.isNewArrival === true || product.is_new_arrival === true
+    );
 
     if (searchQuery) {
       filtered = filtered.filter(product =>
@@ -94,7 +171,7 @@ export const ShopPage: React.FC = () => {
         break;
       case 'newest':
       default:
-        // keep the shuffled order from fetchProducts
+        // keep standard default order
         break;
     }
 
@@ -113,20 +190,12 @@ export const ShopPage: React.FC = () => {
     setInStockOnly(false);
   };
 
-  const currentCategoryName = categories.find(c => c.slug === categoryFilter)?.name;
-
   const activeFilterCount = [
     categoryFilter,
     priceRange[0] > 299 || priceRange[1] < 10000,
     inStockOnly,
     searchQuery,
   ].filter(Boolean).length;
-
-  const pageTitle = searchQuery
-    ? `Search: "${searchQuery}"`
-    : categoryFilter
-      ? currentCategoryName || 'Shop'
-      : 'Our Collection';
 
   /* GTM DATA LAYER — view_item_list */
   useEffect(() => {
@@ -136,7 +205,7 @@ export const ShopPage: React.FC = () => {
     window.dataLayer.push({
       event: 'view_item_list',
       ecommerce: {
-        item_list_name: pageTitle,
+        item_list_name: 'New Arrivals',
         items: filteredProducts.slice(0, 20).map((product, index) => ({
           item_id: product.id,
           item_name: product.name,
@@ -146,24 +215,21 @@ export const ShopPage: React.FC = () => {
         })),
       },
     });
-  }, [filteredProducts, pageTitle]);
+  }, [filteredProducts]);
 
   return (
     <div className="min-h-screen pt-24 pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        {/* ── Page Header ── */}
+        {/* ── Special Hero Banners ── */}
+        <NewArrivalsHero banner={content.newArrivalBanners?.[0]} />
+
+        {/* ── Piece count under hero banner ── */}
         <FadeIn>
-          <div className="mb-8">
-            <h1 className="heading-serif text-3xl md:text-4xl lg:text-5xl font-bold text-charcoal mb-2">
-              {pageTitle}
-            </h1>
-            <p className="text-[#6B5B55]">
-              {filteredProducts.length}{' '}
-              {filteredProducts.length === 1 ? 'piece' : 'pieces'} found
-            </p>
-            <div className="luxury-line mt-4 w-16" />
-          </div>
+          <p className="text-[#6B5B55] text-sm mb-6 -mt-4">
+            {filteredProducts.length}{' '}
+            {filteredProducts.length === 1 ? 'piece' : 'pieces'} found
+          </p>
         </FadeIn>
 
         {/* ── Toolbar ── */}
@@ -360,7 +426,7 @@ export const ShopPage: React.FC = () => {
 
         <div className="flex gap-8">
 
-          {/* ── Desktop Sidebar Filter — hidden on mobile ── */}
+          {/* ── Desktop Sidebar Filter ── */}
           <AnimatePresence>
             {showFilters && (
               <motion.aside
@@ -461,7 +527,7 @@ export const ShopPage: React.FC = () => {
                   No products found
                 </h3>
                 <p className="text-[#6B5B55] mb-6">
-                  Try adjusting your filters or search terms
+                  No new arrivals in the last 30 days. Check back soon!
                 </p>
                 <Button variant="outline" onClick={clearFilters}>Clear Filters</Button>
               </div>
