@@ -16,9 +16,9 @@ export const CartPage: React.FC = () => {
     items,
     coupon,
     couponError,
+    applyCoupon,
     removeItem,
     updateQuantity,
-    applyCoupon,
     removeCoupon,
     getSubtotal,
     getDiscount,
@@ -90,7 +90,7 @@ export const CartPage: React.FC = () => {
   };
 
   // Free shipping threshold in BDT
-  const FREE_SHIPPING_THRESHOLD = 500;
+  const FREE_SHIPPING_THRESHOLD = 50000;
   const SHIPPING_CHARGE = 80;
   const subtotal = getSubtotal();
   const discount = getDiscount();
@@ -272,7 +272,12 @@ export const CartPage: React.FC = () => {
                       placeholder="Coupon code"
                       value={couponCode}
                       onChange={(e) => setCouponCode(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && applyCoupon(couponCode)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          applyCoupon(couponCode);
+                        }
+                      }}
                       aria-label="Enter coupon code"
                       className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-blush/30 bg-white/80 text-sm focus:outline-none focus:ring-2 focus:ring-rose-gold/30"
                     />

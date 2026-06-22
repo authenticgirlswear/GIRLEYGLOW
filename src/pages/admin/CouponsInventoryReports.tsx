@@ -1,5 +1,5 @@
 /* ===================================================
-   GIrley GLow - Admin: Coupons, Inventory, Reports
+    Admin: Coupons, Inventory, Reports
    FIXED:
    - All yellow warnings removed (unused variables cleaned)
    - Inventory uses real products from useProductStore

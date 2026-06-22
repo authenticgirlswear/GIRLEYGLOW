@@ -35,6 +35,12 @@ import { CheckoutPage } from '@/pages/Checkout';
 import { SearchPage } from '@/pages/Search';
 import { CategoryPage } from '@/pages/CategoryPage';
 import { NotFoundPage } from '@/pages/NotFound';
+import { ContactUsPage } from '@/pages/ContactUs';
+import { PrivacyPolicyPage } from '@/pages/PrivacyPolicy';
+import { ReturnPolicyPage } from '@/pages/ReturnPolicy';
+import { TermsPage } from '@/pages/Terms';
+import { PaymentSuccessPage } from '@/pages/PaymentSuccess';
+import { PaymentCancelPage } from '@/pages/PaymentCancel';
 
 // Admin login — eager (small, often hit directly via URL)
 import { AdminLoginPage } from '@/pages/admin/AdminLogin';
@@ -345,6 +351,12 @@ const App: React.FC = () => (
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/category/:slug" element={<CategoryPage />} />
+        <Route path="/contact" element={<ContactUsPage />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+        <Route path="/return-policy" element={<ReturnPolicyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/payment/success" element={<PaymentSuccessPage />} />
+        <Route path="/payment/cancel" element={<PaymentCancelPage />} />
         <Route path="/404" element={<NotFoundPage />} />
       </Route>
 

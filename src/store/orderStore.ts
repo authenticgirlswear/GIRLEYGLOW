@@ -31,6 +31,7 @@ export interface RealOrder {
   paymentStatus: PaymentStatus;
   paymentMethod: string;
   transactionId?: string;
+  gatewaySessionId?: string;
   couponCode?: string;
   subtotal: number;
   discount: number;
@@ -53,6 +54,7 @@ function rowToOrder(row: any): RealOrder {
     paymentStatus: (row.payment_status as PaymentStatus) ?? 'pending',
     paymentMethod: String(row.payment_method ?? ''),
     transactionId: row.transaction_id ?? undefined,
+    gatewaySessionId: row.gateway_session_id ?? undefined,
     couponCode: row.coupon_code ?? undefined,
     subtotal: Number(row.subtotal ?? 0),
     discount: Number(row.discount ?? 0),
@@ -81,6 +83,7 @@ function orderToRow(order: RealOrder): Record<string, unknown> {
     payment_status: order.paymentStatus,
     payment_method: order.paymentMethod,
     transaction_id: order.transactionId ?? null,
+    gateway_session_id: order.gatewaySessionId ?? null,
     coupon_code: order.couponCode ?? null,
     subtotal: order.subtotal,
     discount: order.discount,
@@ -165,8 +168,9 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
       set({ orders: [saved, ...get().orders] });
     } catch (err) {
       console.error('[OrderStore] placeOrder:', err);
-      // Optimistic fallback so checkout doesn't break
-      set({ orders: [order, ...get().orders] });
+      // Re-throw so the caller (Checkout) can surface a real error
+      // and avoid showing a fake success screen.
+      throw err;
     }
   },
 
@@ -189,6 +193,7 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
       ),
     });
   },
+
   // ── Delete order ────────────────────────────────────────────────────────────
   deleteOrder: async (id) => {
     try {
@@ -206,6 +211,7 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
       orders: get().orders.filter((o) => o.id !== id),
     });
   },
+
   // ── Update payment status ───────────────────────────────────────────────────
   updatePaymentStatus: async (id, status) => {
     try {

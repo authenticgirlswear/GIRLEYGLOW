@@ -95,7 +95,7 @@ export type OrderStatus =
   | 'delivered'
   | 'cancelled';
 
-export type PaymentMethod = 'cod' | 'bkash' | 'nagad';
+export type PaymentMethod = 'cod' | 'bkash' | 'nagad' | 'stripe' | 'sslcommerz';
 
 export type PaymentStatus = 'pending' | 'verified' | 'failed' | 'refunded';
 

@@ -1,20 +1,10 @@
 /* ===================================================
    GIrley GLow - Elegant Footer
-   WITH Luxury Animated Bra Size Guide Modal
    =================================================== */
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  MapPin,
-  Phone,
-  Mail,
-  X,
-  Sparkles,
-  Ruler,
-  Heart,
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { MapPin, Phone, Mail } from 'lucide-react';
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
 import { BRAND } from '@/config/brandingConfig';
@@ -113,61 +103,23 @@ export const Footer: React.FC = () => {
   useCategoriesSync();
 
   // ===================================================
-  // SIZE GUIDE STATES
-  // ===================================================
-
-  const [showSizeGuide, setShowSizeGuide] = useState(false);
-  const [bandSize, setBandSize] = useState('');
-  const [bustSize, setBustSize] = useState('');
-  const [result, setResult] = useState('');
-  const [showResult, setShowResult] = useState(false);
-
-  // ===================================================
-  // BRA SIZE CALCULATOR
-  // ===================================================
-
-  const calculateBraSize = () => {
-    const band = parseFloat(bandSize);
-    const bust = parseFloat(bustSize);
-
-    if (!band || !bust) return;
-
-    // Round band size to nearest even
-    const roundedBand = Math.round(band / 2) * 2;
-
-    // Cup calculation
-    const difference = bust - band;
-
-    const cupSizes = ['AA', 'A', 'B', 'C', 'D', 'DD', 'E', 'F', 'G'];
-
-    const cupIndex = Math.max(
-      0,
-      Math.min(Math.round(difference), cupSizes.length - 1)
-    );
-
-    const cup = cupSizes[cupIndex];
-
-    setResult(`${roundedBand}${cup}`);
-    setShowResult(true);
-  };
-
-  // ===================================================
-  // HELP LINKS — all routed, none hardcoded to "#"
+  // HELP LINKS — Size Guide, FAQ, Shipping Info, and
+  // Track Order removed per latest design
   // ===================================================
 
   const helpLinks: { label: string; to: string }[] = [
     { label: 'About Us', to: '/about' },
-    { label: 'FAQ', to: '/faq' },
-    { label: 'Shipping Info', to: '/shipping' },
     { label: 'Returns & Exchanges', to: '/return-policy' },
-    { label: 'Track Order', to: '/track-order' },
     { label: 'Contact Us', to: '/contact' },
   ];
+
+  // ===================================================
+  // LEGAL LINKS — Return Policy removed per latest design
+  // ===================================================
 
   const legalLinks: { label: string; to: string }[] = [
     { label: 'Privacy Policy', to: '/privacy-policy' },
     { label: 'Terms & Conditions', to: '/terms' },
-    { label: 'Return Policy', to: '/return-policy' },
   ];
 
   return (
@@ -315,20 +267,6 @@ export const Footer: React.FC = () => {
               </h4>
 
               <ul className="space-y-3">
-
-                {/* Size Guide — opens modal */}
-                <li>
-                  <button
-                    onClick={() => {
-                      setShowSizeGuide(true);
-                      setShowResult(false);
-                    }}
-                    className="text-white/50 hover:text-rose-gold-light text-sm transition-colors"
-                  >
-                    Size Guide
-                  </button>
-                </li>
-
                 {helpLinks.map(link => (
                   <li key={link.to}>
                     <Link
@@ -339,7 +277,6 @@ export const Footer: React.FC = () => {
                     </Link>
                   </li>
                 ))}
-
               </ul>
 
               {/* Legal links sub-section */}
@@ -426,191 +363,7 @@ export const Footer: React.FC = () => {
           </div>
         </div>
 
-        {/* ===================================================
-            BOTTOM BAR
-        =================================================== */}
-
-        <div className="border-t border-white/10">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-white/40">
-
-              <p>
-                &copy; {new Date().getFullYear()} {BRAND.fullName ?? `${BRAND.nameTop} ${BRAND.nameBottom}`}.
-                All rights reserved.
-              </p>
-
-              {/* Bottom legal links row */}
-              <div className="flex items-center gap-4 flex-wrap justify-center">
-                {legalLinks.map(link => (
-                  <Link
-                    key={link.to}
-                    to={link.to}
-                    className="hover:text-rose-gold-light transition-colors"
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-              </div>
-
-              <p>{BRAND.tagline ?? 'Designed with love for the modern woman'}</p>
-
-            </div>
-          </div>
-        </div>
       </footer>
-
-      {/* ===================================================
-          SIZE GUIDE MODAL
-      =================================================== */}
-
-      <AnimatePresence>
-        {showSizeGuide && (
-          <motion.div
-            className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0, y: 50 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              transition={{ type: 'spring', damping: 18, stiffness: 150 }}
-              className="relative w-full max-w-md rounded-3xl overflow-hidden border border-white/10 shadow-2xl"
-            >
-              {/* BACKGROUND */}
-              <div className="absolute inset-0 bg-gradient-to-br from-[#2b2b2b] via-[#3a3433] to-[#e7d6d0]" />
-
-              {/* GLOW */}
-              <div className="absolute -top-20 -right-20 w-48 h-48 bg-rose-300/20 rounded-full blur-3xl" />
-
-              {/* CONTENT */}
-              <div className="relative p-8">
-
-                {/* CLOSE BUTTON */}
-                <button
-                  onClick={() => setShowSizeGuide(false)}
-                  className="absolute top-5 right-5 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 transition flex items-center justify-center"
-                >
-                  <X size={18} />
-                </button>
-
-                {/* HEADER */}
-                <div className="text-center mb-8">
-                  <motion.div
-                    animate={{ rotate: [0, 8, -8, 0] }}
-                    transition={{ duration: 4, repeat: Infinity }}
-                    className="w-20 h-20 rounded-full bg-rose-200/20 backdrop-blur-md flex items-center justify-center mx-auto mb-5 border border-white/10"
-                  >
-                    <Ruler className="text-rose-100" size={34} />
-                  </motion.div>
-
-                  <h2 className="text-3xl font-serif text-white mb-2">
-                    Find Your Perfect Fit
-                  </h2>
-
-                  <p className="text-white/60 text-sm">
-                    Luxury comfort starts with the perfect size
-                  </p>
-                </div>
-
-                {!showResult ? (
-                  <div className="space-y-5">
-
-                    {/* BAND SIZE */}
-                    <div>
-                      <label className="block text-sm text-white/70 mb-2">
-                        Band Size (Under Bust)
-                      </label>
-                      <input
-                        type="number"
-                        placeholder="e.g. 32"
-                        value={bandSize}
-                        onChange={e => setBandSize(e.target.value)}
-                        className="w-full h-14 rounded-2xl bg-white/10 border border-white/10 px-5 text-white placeholder:text-white/30 focus:outline-none focus:border-rose-200/40 transition"
-                      />
-                    </div>
-
-                    {/* BUST SIZE */}
-                    <div>
-                      <label className="block text-sm text-white/70 mb-2">
-                        Bust Size (Fullest Part)
-                      </label>
-                      <input
-                        type="number"
-                        placeholder="e.g. 36"
-                        value={bustSize}
-                        onChange={e => setBustSize(e.target.value)}
-                        className="w-full h-14 rounded-2xl bg-white/10 border border-white/10 px-5 text-white placeholder:text-white/30 focus:outline-none focus:border-rose-200/40 transition"
-                      />
-                    </div>
-
-                    {/* CALCULATE BUTTON */}
-                    <motion.button
-                      whileHover={{ scale: 1.03 }}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={calculateBraSize}
-                      className="w-full h-14 rounded-2xl bg-gradient-to-r from-[#d8b4a0] to-[#f0d9d2] text-[#2d2d2d] font-semibold tracking-wide shadow-xl mt-4"
-                    >
-                      Calculate My Size
-                    </motion.button>
-
-                  </div>
-                ) : (
-                  <motion.div
-                    initial={{ scale: 0.7, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className="text-center py-6"
-                  >
-                    {/* HEART */}
-                    <motion.div
-                      animate={{ scale: [1, 1.2, 1] }}
-                      transition={{ duration: 1.5, repeat: Infinity }}
-                      className="w-24 h-24 rounded-full bg-rose-200/20 flex items-center justify-center mx-auto mb-6"
-                    >
-                      <Heart className="text-rose-100 fill-rose-100" size={42} />
-                    </motion.div>
-
-                    <div className="flex justify-center mb-3">
-                      <Sparkles className="text-rose-100" />
-                    </div>
-
-                    <h3 className="text-2xl font-serif text-white mb-2">
-                      Congratulations!
-                    </h3>
-
-                    <p className="text-white/60 mb-6">
-                      Your perfect bra size is
-                    </p>
-
-                    <motion.div
-                      initial={{ scale: 0.5 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: 'spring', stiffness: 180 }}
-                      className="text-6xl font-bold text-rose-100 mb-8"
-                    >
-                      {result}
-                    </motion.div>
-
-                    <button
-                      onClick={() => {
-                        setShowResult(false);
-                        setBandSize('');
-                        setBustSize('');
-                      }}
-                      className="px-6 py-3 rounded-2xl bg-white/10 hover:bg-white/20 transition text-white"
-                    >
-                      Calculate Again
-                    </button>
-
-                  </motion.div>
-                )}
-
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </>
   );
 };

@@ -1,8 +1,10 @@
+//cartStore.ts 
+
 declare global { interface Window { dataLayer: any[]; } }
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { CartItem, Product, Coupon } from '@/types';
-import { coupons as mockCoupons } from '@/data/mockData';
+import { useAdminDataStore } from '@/store';
 import { trackAddToCart } from '@/lib/facebookPixel';
 
 interface CartStore {
@@ -120,9 +122,15 @@ export const useCartStore = create<CartStore>()(
         set({ items: [], coupon: null, couponCode: '', couponError: '' }),
 
       applyCoupon: (code) => {
-        const coupon = mockCoupons.find(
-          (c) => c.code.toLowerCase() === code.toLowerCase() && c.isActive,
-        );
+        // ✅ Pull real, live coupons created in the admin panel
+        // (was previously reading from a static mockData array,
+        // so admin-created coupons could never be found here)
+        const coupon = useAdminDataStore
+          .getState()
+          .coupons.find(
+            (c) => c.code.toLowerCase() === code.toLowerCase() && c.isActive,
+          );
+
         if (!coupon) {
           set({ couponError: 'Invalid coupon code', coupon: null, couponCode: '' });
           return;
@@ -142,7 +150,8 @@ export const useCartStore = create<CartStore>()(
         const subtotal = get().getSubtotal();
         if (subtotal < coupon.minOrderAmount) {
           set({
-            couponError: `Minimum order amount is $${coupon.minOrderAmount}`,
+            // ✅ BDT symbol instead of hardcoded $
+            couponError: `Minimum order amount is ৳${coupon.minOrderAmount}`,
             coupon: null,
             couponCode: '',
           });
@@ -173,6 +182,6 @@ export const useCartStore = create<CartStore>()(
       getItemCount: () =>
         get().items.reduce((sum, item) => sum + item.quantity, 0),
     }),
-    { name: 'authentic-girlswear-cart' },
+    { name: 'cart' },
   ),
 );

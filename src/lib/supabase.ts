@@ -1,5 +1,5 @@
 /* ===================================================
-   GIrley GLow - Supabase Client
+  - Supabase Client
    Updated with Cloudinary + Google Sheets integration
    =================================================== */
 
@@ -91,7 +91,7 @@ export async function validateCoupon(code: string) {
     .select('*')
     .eq('code', code)
     .eq('is_active', true)
-    .single();
+    .maybeSingle()
   if (error) return null;
   return data;
 }
