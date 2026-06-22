@@ -9,7 +9,8 @@
 // Setup (after deploying):
 //   1. Stripe Dashboard > Developers > Webhooks > Add endpoint
 //   2. Endpoint URL: https://yourdomain.com/api/stripe-webhook
-//   3. Event to send: checkout.session.completed
+//   3. Events to send: checkout.session.completed,
+//      payment_intent.succeeded, payment_intent.payment_failed
 //   4. Copy the "Signing secret" (whsec_...) into STRIPE_WEBHOOK_SECRET
 //
 // Required environment variables:
@@ -119,6 +120,54 @@ export default async function handler(req, res) {
           payment_status: paid ? 'verified' : 'failed',
           transaction_id: session.payment_intent || session.id,
           gateway_session_id: session.id,
+          notes: declineReason ? `Payment failed: ${declineReason}` : undefined,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('order_number', orderNumber);
+
+      if (updateError) {
+        console.error('[stripe-webhook] Failed to update order:', updateError);
+        return res.status(500).send('Failed to update order');
+      }
+    }
+
+    // ── Embedded checkout flow (Stripe Elements + confirmCardPayment) ──
+    // No Checkout Session involved here — the order number lives in the
+    // PaymentIntent's metadata instead (set in create-payment-intent.js).
+    if (event.type === 'payment_intent.succeeded' || event.type === 'payment_intent.payment_failed') {
+      const paymentIntent = event.data.object;
+      const orderNumber = paymentIntent.metadata?.orderNumber;
+
+      if (!orderNumber) {
+        console.error('[stripe-webhook] No orderNumber on payment intent', paymentIntent.id);
+        return res.status(200).json({ received: true });
+      }
+
+      const { error: dupeError } = await supabase
+        .from('processed_webhook_events')
+        .insert({ id: event.id, provider: 'stripe' });
+
+      if (dupeError) {
+        if (dupeError.code === '23505') {
+          return res.status(200).json({ received: true, duplicate: true });
+        }
+        console.error('[stripe-webhook] Dedup insert error:', dupeError);
+      }
+
+      const paid = event.type === 'payment_intent.succeeded';
+      const declineReason = !paid
+        ? paymentIntent.last_payment_error?.decline_code
+        || paymentIntent.last_payment_error?.code
+        || paymentIntent.last_payment_error?.message
+        || null
+        : null;
+
+      const { error: updateError } = await supabase
+        .from('orders')
+        .update({
+          payment_status: paid ? 'verified' : 'failed',
+          transaction_id: paymentIntent.id,
+          gateway_session_id: paymentIntent.id,
           notes: declineReason ? `Payment failed: ${declineReason}` : undefined,
           updated_at: new Date().toISOString(),
         })

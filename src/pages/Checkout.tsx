@@ -196,8 +196,12 @@ const Textarea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement>> = (p
 
 /* ════════════════════════════════════════
    MAIN COMPONENT
+   (wrapped in <Elements> further below so it
+   can call useStripe()/useElements())
 ════════════════════════════════════════ */
-export const CheckoutPage: React.FC = () => {
+const CheckoutForm: React.FC = () => {
+  const stripe = useStripe();
+  const elements = useElements();
   const navigate = useNavigate();
   const location = useLocation();
   const { items, getSubtotal, getDiscount, clearCart } = useCartStore();
@@ -420,24 +424,44 @@ export const CheckoutPage: React.FC = () => {
     if (isGatewayPayment) {
       try {
         if (paymentMethod === 'stripe') {
-          const resp = await fetch('/api/create-stripe-session', {
+          if (!stripe || !elements) throw new Error('Stripe.js has not finished loading yet.');
+
+          const cardNumberElement = elements.getElement(CardNumberElement);
+          if (!cardNumberElement) throw new Error('Card form is not ready.');
+
+          // 1) Ask our server to create a PaymentIntent for this order.
+          const resp = await fetch('/api/create-payment-intent', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               orderNumber: num,
               amount: total,
               currency: 'usd',
-              items: checkoutItems.map(item => ({
-                name: item.product.name,
-                price: item.product.price,
-                quantity: item.quantity,
-              })),
             }),
           });
           const data = await resp.json();
-          if (!resp.ok || !data.url) throw new Error(data.error || 'Stripe session failed');
-          window.location.href = data.url;
-          return; // navigating away — leave `placing` true so the button stays disabled
+          if (!resp.ok || !data.clientSecret) throw new Error(data.error || 'Could not start payment.');
+
+          // 2) Confirm the card right here on our own page. Stripe.js pops up
+          //    the 3D Secure challenge automatically when the card requires it,
+          //    and this call resolves only after that's done.
+          const result = await stripe.confirmCardPayment(data.clientSecret, {
+            payment_method: {
+              card: cardNumberElement,
+              billing_details: { name: cardForm.cardholderName },
+            },
+          });
+
+          if (result.error) throw new Error(result.error.message || 'Card payment failed.');
+          if (result.paymentIntent?.status !== 'succeeded') {
+            throw new Error('Payment was not completed. Please try again.');
+          }
+
+          // 3) Payment confirmed client-side. The Stripe webhook will mark
+          //    the order 'verified' in the DB momentarily — the success page
+          //    polls for that, same as the old redirect-based flow did.
+          navigate(`/payment/success?order=${encodeURIComponent(num)}`);
+          return; // leave `placing` true — we're navigating away
         }
 
         if (paymentMethod === 'sslcommerz') {
@@ -462,10 +486,13 @@ export const CheckoutPage: React.FC = () => {
           return;
         }
       } catch (err) {
-        console.error('Gateway redirect failed', err);
+        console.error('Gateway payment failed', err);
         setPlacing(false);
         setShowReview(false);
-        setGatewayError('Payment gateway could not be reached. Please check your connection and try again, or choose a different payment method.');
+        const message = err instanceof Error && err.message
+          ? err.message
+          : 'Payment gateway could not be reached. Please check your connection and try again, or choose a different payment method.';
+        setGatewayError(message);
         return;
       }
     }
@@ -555,505 +582,511 @@ export const CheckoutPage: React.FC = () => {
 
 
   return (
-    <Elements stripe={stripePromise}>
-      <div className="min-h-screen pt-20 pb-16" style={{ background: '#FAF6F3' }}>
-        <div className="max-w-2xl mx-auto px-4 sm:px-6">
+    <div className="min-h-screen pt-20 pb-16" style={{ background: '#FAF6F3' }}>
+      <div className="max-w-2xl mx-auto px-4 sm:px-6">
 
-          {/* Header */}
-          <div className="flex items-center gap-3 mb-5">
-            <button onClick={() => navigate(-1)}
-              className="p-2 rounded-xl" style={{ background: 'rgba(176,125,107,0.1)', color: '#B07D6B' }}>
-              <ArrowLeft size={18} />
-            </button>
-            <div>
-              <h1 className="heading-serif text-2xl font-bold text-charcoal">চেকআউট</h1>
-              <p className="text-xs text-[#6B5B55]">আপনার অর্ডার সম্পন্ন করুন</p>
-            </div>
-          </div>
-
-          {/* Main Card */}
-          <div className="rounded-3xl p-5 md:p-5 space-y-3"
-            style={{ background: 'rgba(255,255,255,0.75)', backdropFilter: 'blur(12px)', border: '1px solid rgba(176,125,107,0.15)' }}>
-
-            {/* ── Order Summary (top) ── */}
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: '#B07D6B' }}>
-                <Package size={12} className="inline mr-1" />
-                আপনার অর্ডার ({checkoutItems.length} পণ্য)
-              </p>
-              <div className="space-y-2">
-                {checkoutItems.map(item => (
-                  <div key={`${item.product.id}-${item.selectedSize}`}
-                    className="flex items-center gap-2 p-2.5 rounded-xl"
-                    style={{ background: 'rgba(176,125,107,0.05)' }}>
-                    {item.product.images?.[0]?.startsWith('http') ? (
-                      <img src={item.product.images[0]} alt={item.product.name}
-                        className="w-11 h-12 rounded-lg object-cover flex-shrink-0" />
-                    ) : (
-                      <div className="w-11 h-12 rounded-lg flex-shrink-0"
-                        style={{ background: 'linear-gradient(135deg, #F0E0D6, #E8D0C4)' }} />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-charcoal truncate">{item.product.name}</p>
-                      <p className="text-xs text-[#6B5B55]">{item.selectedSize} • {item.selectedColor} × {item.quantity}</p>
-                    </div>
-                    <p className="text-sm font-bold flex-shrink-0" style={{ color: '#B07D6B' }}>
-                      ৳{(item.product.price * item.quantity).toFixed(0)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="h-px" style={{ background: 'rgba(176,125,107,0.15)' }} />
-
-            {/* ── Shipping Info ── */}
-            <div className="space-y-2">
-              <p className="text-[15px] font-bold text-[#2B2B2B]">📦 ডেলিভারি তথ্য</p>
-
-              <Field label="পুরো নাম" required error={errors.fullName}>
-                <Input
-                  value={form.fullName}
-                  onChange={e => updateForm('fullName', e.target.value)}
-                  placeholder="আপনার  নাম"
-                  hasError={!!errors.fullName}
-                />
-              </Field>
-
-              <Field label="মোবাইল নম্বর" required error={errors.phone}>
-                <Input
-                  type="tel"
-                  value={form.phone}
-                  onChange={e => updateForm('phone', e.target.value)}
-                  placeholder="মোবাইল নম্বর"
-                  hasError={!!errors.phone}
-                />
-              </Field>
-
-              <Field label="সম্পূর্ণ ঠিকানা" required error={errors.address}>
-                <Textarea
-                  value={form.address}
-                  onChange={e => updateForm('address', e.target.value)}
-                  placeholder="সম্পূর্ণ ঠিকানা, গ্রাম, থানা, বিভাগ"
-                />
-              </Field>
-
-              {/* Delivery Zone */}
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: '#8C7269' }}>
-                  ডেলিভারি এলাকা <span style={{ color: '#e87c55' }}>*</span>
-                </p>
-                <div className="grid grid-cols-2 gap-3">
-                  {DELIVERY_ZONES.map(zone => (
-                    <motion.button key={zone.id} type="button"
-                      whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
-                      onClick={() => { setDeliveryZone(zone.id); setErrors(p => ({ ...p, deliveryZone: '' })); }}
-                      className="text-left p-3 rounded-2xl transition-all"
-                      style={{
-                        border: deliveryZone === zone.id ? '2px solid #B07D6B' : '1.5px solid rgba(176,125,107,0.2)',
-                        background: deliveryZone === zone.id ? 'rgba(176,125,107,0.08)' : 'rgba(255,255,255,0.6)',
-                      }}>
-                      <span className="text-xl">{zone.icon}</span>
-                      <p className="font-semibold text-sm mt-1" style={{ color: '#2C2C2C' }}>{zone.label}</p>
-                      <p className="text-sm font-bold mt-1" style={{ color: '#B07D6B' }}>৳{zone.charge}</p>
-                    </motion.button>
-                  ))}
-                </div>
-                {errors.deliveryZone && (
-                  <p className="text-xs mt-1 flex items-center gap-1" style={{ color: '#C0504D' }}>
-                    <AlertCircle size={11} />{errors.deliveryZone}
-                  </p>
-                )}
-              </div>
-
-              {/* Notes */}
-              <Field label="বিশেষ নির্দেশনা (ঐচ্ছিক)">
-                <Textarea
-                  value={form.notes}
-                  onChange={e => updateForm('notes', e.target.value)}
-                  placeholder="কোনো বিশেষ কিছু জানাতে চাইলে লিখুন..."
-                />
-              </Field>
-            </div>
-
-            <div className="h-px" style={{ background: 'rgba(176,125,107,0.15)' }} />
-
-            {/* ── Payment Method ── */}
-            <div className="space-y-3">
-              <p className="text-sm font-semibold text-charcoal">💳 পেমেন্ট পদ্ধতি</p>
-              <div className="space-y-2">
-
-                {/* ── Cash on Delivery ── */}
-                <div className="rounded-2xl overflow-hidden"
-                  style={{ border: paymentMethod === 'cod' ? '2px solid #B07D6B' : '1.5px solid rgba(176,125,107,0.35)' }}>
-                  <button onClick={() => setPaymentMethod('cod')}
-                    className="w-full flex items-center gap-3 p-3 text-left transition-all"
-                    style={{ background: paymentMethod === 'cod' ? 'rgba(176,125,107,0.10)' : 'rgba(255,255,255,0.85)' }}>
-                    <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0"
-                      style={{ borderColor: paymentMethod === 'cod' ? '#B07D6B' : '#ccc' }}>
-                      {paymentMethod === 'cod' && <div className="w-4 h-4 rounded-full" style={{ background: '#B07D6B' }} />}
-                    </div>
-                    <Truck size={18} style={{ color: '#B07D6B' }} />
-                    <div className="flex-1">
-                      <p className="font-semibold text-[14px] text-[#2A2A2A]">ক্যাশ অন ডেলিভারি</p>
-                      <p className="text-xs text-[#6B5B55]">পণ্য পেলে টাকা দিন</p>
-                    </div>
-                  </button>
-                  <AnimatePresence>
-                    {paymentMethod === 'cod' && (
-                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                        <div className="px-4 pb-4 pt-2"
-                          style={{ background: 'rgba(176,125,107,0.04)', borderTop: '1px solid rgba(176,125,107,0.15)' }}>
-                          <p className="text-sm text-[#6C5A54] flex items-center gap-2">
-                            <CheckCircle size={15} className="text-green-500 flex-shrink-0" />
-                            ডেলিভারির সময় ৳{total.toFixed(0)} পরিশোধ করুন। কোনো অগ্রিম প্রয়োজন নেই।
-                          </p>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-
-                {/* ── bKash ── */}
-                <div className="rounded-2xl overflow-hidden"
-                  style={{ border: paymentMethod === 'bkash' ? '2px solid #B07D6B' : '1.5px solid rgba(176,125,107,0.35)' }}>
-                  <button onClick={() => setPaymentMethod('bkash')}
-                    className="w-full flex items-center gap-3 p-3 text-left transition-all"
-                    style={{ background: paymentMethod === 'bkash' ? 'rgba(176,125,107,0.10)' : 'rgba(255,255,255,0.85)' }}>
-                    <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0"
-                      style={{ borderColor: paymentMethod === 'bkash' ? '#B07D6B' : '#ccc' }}>
-                      {paymentMethod === 'bkash' && <div className="w-4 h-4 rounded-full" style={{ background: '#B07D6B' }} />}
-                    </div>
-                    <span className="text-lg font-bold" style={{ color: '#E2136E' }}>b</span>
-                    <div className="flex-1">
-                      <p className="font-semibold text-[14px] text-[#2A2A2A]">বিকাশ</p>
-                      <p className="text-xs text-[#6B5B55]">বিকাশে পেমেন্ট করুন</p>
-                    </div>
-                  </button>
-                  <AnimatePresence>
-                    {paymentMethod === 'bkash' && (
-                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                        <div className="px-4 pb-4 pt-3 space-y-3"
-                          style={{ background: 'rgba(176,125,107,0.04)', borderTop: '1px solid rgba(176,125,107,0.15)' }}>
-                          <p className="text-sm font-semibold text-charcoal">পেমেন্ট পাঠানোর নির্দেশনা:</p>
-                          <ol className="text-sm space-y-1" style={{ color: '#6C5A54' }}>
-                            <li>১. নিচের নম্বরে <strong>৳{total.toFixed(0)}</strong> পাঠান:</li>
-                          </ol>
-                          <CopyNumber />
-                          <ol className="text-sm space-y-1" style={{ color: '#6C5A54' }}>
-                            <li>২. আপনার বিকাশ নাম্বারের শেষ ৪ ডিজিট লিখুন</li>
-                            <li>৩. আমরা ২৪ ঘণ্টার মধ্যে যাচাই করব</li>
-                          </ol>
-                          <Field label="শেষের ৪ সংখা" required error={errors.transactionId}>
-                            <Input value={transactionId}
-                              onChange={e => { setTransactionId(e.target.value); setErrors(p => ({ ...p, transactionId: '' })); }}
-                              placeholder="যেমন : 3060" hasError={!!errors.transactionId} />
-                          </Field>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-
-                {/* ── Nagad ── */}
-                <div className="rounded-2xl overflow-hidden"
-                  style={{ border: paymentMethod === 'nagad' ? '2px solid #B07D6B' : '1.5px solid rgba(176,125,107,0.35)' }}>
-                  <button onClick={() => setPaymentMethod('nagad')}
-                    className="w-full flex items-center gap-3 p-3 text-left transition-all"
-                    style={{ background: paymentMethod === 'nagad' ? 'rgba(176,125,107,0.10)' : 'rgba(255,255,255,0.85)' }}>
-                    <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0"
-                      style={{ borderColor: paymentMethod === 'nagad' ? '#B07D6B' : '#ccc' }}>
-                      {paymentMethod === 'nagad' && <div className="w-4 h-4 rounded-full" style={{ background: '#B07D6B' }} />}
-                    </div>
-                    <span className="text-lg font-bold" style={{ color: '#F15A22' }}>N</span>
-                    <div className="flex-1">
-                      <p className="font-semibold text-[14px] text-[#2A2A2A]">নগদ</p>
-                      <p className="text-xs text-[#6B5B55]">নগদে পেমেন্ট করুন</p>
-                    </div>
-                  </button>
-                  <AnimatePresence>
-                    {paymentMethod === 'nagad' && (
-                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                        <div className="px-4 pb-4 pt-3 space-y-3"
-                          style={{ background: 'rgba(176,125,107,0.04)', borderTop: '1px solid rgba(176,125,107,0.15)' }}>
-                          <p className="text-sm font-semibold text-charcoal">পেমেন্ট পাঠানোর নির্দেশনা:</p>
-                          <ol className="text-sm space-y-1" style={{ color: '#6C5A54' }}>
-                            <li>১. নিচের নম্বরে <strong>৳{total.toFixed(0)}</strong> পাঠান:</li>
-                          </ol>
-                          <CopyNumber />
-                          <ol className="text-sm space-y-1" style={{ color: '#6C5A54' }}>
-                            <li>২. আপনার নগদ নাম্বারের শেষ ৪ ডিজিট লিখুন</li>
-                            <li>৩. আমরা ২৪ ঘণ্টার মধ্যে যাচাই করব</li>
-                          </ol>
-                          <Field label="শেষের ৪ সংখা" required error={errors.transactionId}>
-                            <Input value={transactionId}
-                              onChange={e => { setTransactionId(e.target.value); setErrors(p => ({ ...p, transactionId: '' })); }}
-                              placeholder="যেমন : 3060" hasError={!!errors.transactionId} />
-                          </Field>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-
-                {/* ── Card / Stripe ── */}
-                <div className="rounded-2xl overflow-hidden"
-                  style={{ border: paymentMethod === 'stripe' ? '2px solid #635BFF' : '1.5px solid rgba(176,125,107,0.35)' }}>
-                  <button onClick={() => setPaymentMethod('stripe')}
-                    className="w-full flex items-center gap-3 p-3 text-left transition-all"
-                    style={{ background: paymentMethod === 'stripe' ? 'rgba(99,91,255,0.06)' : 'rgba(255,255,255,0.85)' }}>
-                    <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0"
-                      style={{ borderColor: paymentMethod === 'stripe' ? '#635BFF' : '#ccc' }}>
-                      {paymentMethod === 'stripe' && <div className="w-4 h-4 rounded-full" style={{ background: '#635BFF' }} />}
-                    </div>
-                    <CreditCard size={18} style={{ color: '#635BFF' }} />
-                    <div className="flex-1">
-                      <p className="font-semibold text-[14px] text-[#2A2A2A]">Credit / Debit Card</p>
-                      <p className="text-xs text-[#6B5B55]">Visa, Mastercard, Amex — secured by Stripe</p>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold text-white" style={{ background: '#1A1F71' }}>VISA</span>
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold text-white" style={{ background: '#EB001B' }}>MC</span>
-                    </div>
-                  </button>
-                  <AnimatePresence>
-                    {paymentMethod === 'stripe' && (
-                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                        <div className="px-4 pb-4 pt-3 space-y-3"
-                          style={{ background: 'rgba(99,91,255,0.03)', borderTop: '1px solid rgba(99,91,255,0.15)' }}>
-
-                          {/* Stripe card fields */}
-                          <StripeCardField onReady={setStripeReady} cardholderName={cardForm.cardholderName} onCardholderNameChange={name => setCardForm(p => ({ ...p, cardholderName: name }))} />
-
-                          {/* Use shipping address as billing */}
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" defaultChecked className="w-4 h-4 accent-[#635BFF]" />
-                            <span className="text-xs" style={{ color: '#4A4A6A' }}>Use shipping address as billing address</span>
-                          </label>
-
-                          {/* Trust badges */}
-                          <div className="flex gap-3 pt-1">
-                            <div className="flex items-center gap-1 text-xs" style={{ color: '#6B5B55' }}>
-                              <Shield size={12} style={{ color: '#635BFF' }} /> SSL Encrypted
-                            </div>
-                            <div className="flex items-center gap-1 text-xs" style={{ color: '#6B5B55' }}>
-                              <CheckCircle size={12} className="text-green-500" /> PCI Compliant
-                            </div>
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </div>
-            </div>
-
-            <div className="h-px" style={{ background: 'rgba(176,125,107,0.15)' }} />
-
-            {/* ── Coupon ── */}
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: '#8C7269' }}>
-                <Tag size={11} className="inline mr-1" />কুপন কোড (ঐচ্ছিক)
-              </p>
-              <div className="flex gap-2">
-                <input value={couponInput}
-                  onChange={e => { setCouponInput(e.target.value); setCouponError(''); if (couponApplied) { setCouponApplied(false); setCouponDiscount(0); } }}
-                  placeholder="কুপন কোড লিখুন"
-                  className="flex-1 px-3 py-2.5 rounded-xl text-sm outline-none"
-                  style={{ background: 'rgba(255,255,255,0.8)', border: `1.5px solid ${couponError ? 'rgba(192,80,77,0.4)' : couponApplied ? 'rgba(74,140,92,0.4)' : 'rgba(176,125,107,0.2)'}`, color: '#2C2C2C' }}
-                  onKeyDown={e => e.key === 'Enter' && applyCoupon()}
-                />
-                <button onClick={applyCoupon}
-                  className="px-4 py-2.5 rounded-xl text-sm font-semibold"
-                  style={{ background: couponApplied ? 'rgba(74,140,92,0.15)' : 'rgba(176,125,107,0.15)', color: couponApplied ? '#4A8C5C' : '#B07D6B', border: 'none', cursor: 'pointer' }}>
-                  {couponApplied ? '✓ হয়েছে' : 'প্রয়োগ করুন'}
-                </button>
-              </div>
-              {couponError && <p className="text-xs mt-1" style={{ color: '#C0504D' }}>{couponError}</p>}
-              {couponApplied && <p className="text-xs mt-1" style={{ color: '#4A8C5C' }}>✓ ৳{couponDiscount} ছাড় পেয়েছেন!</p>}
-            </div>
-
-            <div className="h-px" style={{ background: 'rgba(176,125,107,0.15)' }} />
-
-            {/* ── Price Summary ── */}
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-warm-gray">সাবটোটাল</span>
-                <span className="font-medium">৳{subtotal.toFixed(0)}</span>
-              </div>
-              {discount > 0 && (
-                <div className="flex justify-between" style={{ color: '#4A8C5C' }}>
-                  <span>ছাড়</span><span>−৳{discount.toFixed(0)}</span>
-                </div>
-              )}
-              {couponApplied && couponDiscount > 0 && (
-                <div className="flex justify-between" style={{ color: '#4A8C5C' }}>
-                  <span>কুপন ছাড়</span><span>−৳{couponDiscount.toFixed(0)}</span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span className="text-warm-gray">ডেলিভারি চার্জ</span>
-                <span className="font-medium" style={{ color: '#B07D6B' }}>
-                  {deliveryZone ? `৳${shippingCharge}` : 'এলাকা বেছে নিন'}
-                </span>
-              </div>
-              <div className="flex justify-between items-center pt-2"
-                style={{ borderTop: '1px solid rgba(176,125,107,0.15)' }}>
-                <span className="font-bold text-charcoal text-base">মোট</span>
-                <span className="heading-serif text-2xl font-bold" style={{ color: '#B07D6B' }}>৳{total.toFixed(0)}</span>
-              </div>
-            </div>
-
-            {/* ── Review Order Button ── */}
-            <motion.button
-              onClick={handleReviewOrder}
-              whileHover={{ scale: 1.02, boxShadow: '0 8px 30px rgba(176,125,107,0.35)' }}
-              whileTap={{ scale: 0.97 }}
-              className="w-full py-4 rounded-2xl font-bold text-sm tracking-wider uppercase text-white"
-              style={{ background: 'linear-gradient(135deg, #B07D6B 0%, #C4956A 50%, #B07D6B 100%)', border: 'none', cursor: 'pointer' }}>
-              অর্ডার রিভিউ করুন →
-            </motion.button>
-
-            {/* Gateway error popup */}
-            <AnimatePresence>
-              {gatewayError && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="flex items-start gap-3 p-4 rounded-2xl"
-                  style={{ background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.25)' }}>
-                  <AlertCircle size={18} className="text-red-500 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-red-600 mb-0.5">Payment Error</p>
-                    <p className="text-xs text-red-500">{gatewayError}</p>
-                  </div>
-                  <button onClick={() => setGatewayError('')} className="text-red-400 hover:text-red-600">
-                    <X size={16} />
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Security badge */}
-            <div className="flex items-center justify-center gap-2 text-xs" style={{ color: '#9A8880' }}>
-              <Shield size={12} style={{ color: '#B07D6B' }} />
-              নিরাপদ চেকআউট • SSL এনক্রিপ্টেড
-            </div>
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-5">
+          <button onClick={() => navigate(-1)}
+            className="p-2 rounded-xl" style={{ background: 'rgba(176,125,107,0.1)', color: '#B07D6B' }}>
+            <ArrowLeft size={18} />
+          </button>
+          <div>
+            <h1 className="heading-serif text-2xl font-bold text-charcoal">চেকআউট</h1>
+            <p className="text-xs text-[#6B5B55]">আপনার অর্ডার সম্পন্ন করুন</p>
           </div>
         </div>
 
-        {/* ════ REVIEW POPUP MODAL ════ */}
-        <AnimatePresence>
-          {showReview && (
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-              style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
-              onClick={e => { if (e.target === e.currentTarget) setShowReview(false); }}>
-              <motion.div
-                initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 60 }}
-                className="w-full max-w-md rounded-3xl overflow-hidden"
-                style={{ background: '#FDF8F5', maxHeight: '90vh', overflowY: 'auto' }}>
+        {/* Main Card */}
+        <div className="rounded-3xl p-5 md:p-5 space-y-3"
+          style={{ background: 'rgba(255,255,255,0.75)', backdropFilter: 'blur(12px)', border: '1px solid rgba(176,125,107,0.15)' }}>
 
-                {/* Modal Header */}
-                <div className="flex items-center justify-between p-5 sticky top-0"
-                  style={{ background: '#FDF8F5', borderBottom: '1px solid rgba(176,125,107,0.15)' }}>
-                  <h2 className="heading-serif text-lg font-bold text-charcoal">অর্ডার নিশ্চিত করুন</h2>
-                  <button onClick={() => setShowReview(false)}
-                    className="p-1.5 rounded-lg" style={{ background: 'rgba(176,125,107,0.1)', color: '#B07D6B' }}>
-                    <X size={16} />
-                  </button>
+          {/* ── Order Summary (top) ── */}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: '#B07D6B' }}>
+              <Package size={12} className="inline mr-1" />
+              আপনার অর্ডার ({checkoutItems.length} পণ্য)
+            </p>
+            <div className="space-y-2">
+              {checkoutItems.map(item => (
+                <div key={`${item.product.id}-${item.selectedSize}`}
+                  className="flex items-center gap-2 p-2.5 rounded-xl"
+                  style={{ background: 'rgba(176,125,107,0.05)' }}>
+                  {item.product.images?.[0]?.startsWith('http') ? (
+                    <img src={item.product.images[0]} alt={item.product.name}
+                      className="w-11 h-12 rounded-lg object-cover flex-shrink-0" />
+                  ) : (
+                    <div className="w-11 h-12 rounded-lg flex-shrink-0"
+                      style={{ background: 'linear-gradient(135deg, #F0E0D6, #E8D0C4)' }} />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-charcoal truncate">{item.product.name}</p>
+                    <p className="text-xs text-[#6B5B55]">{item.selectedSize} • {item.selectedColor} × {item.quantity}</p>
+                  </div>
+                  <p className="text-sm font-bold flex-shrink-0" style={{ color: '#B07D6B' }}>
+                    ৳{(item.product.price * item.quantity).toFixed(0)}
+                  </p>
                 </div>
+              ))}
+            </div>
+          </div>
 
-                <div className="p-5 space-y-4">
+          <div className="h-px" style={{ background: 'rgba(176,125,107,0.15)' }} />
 
-                  {/* Customer Info */}
-                  <div className="rounded-2xl p-4"
-                    style={{ background: 'rgba(176,125,107,0.06)', border: '1px solid rgba(176,125,107,0.15)' }}>
-                    <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: '#B07D6B' }}>📍 ডেলিভারি তথ্য</p>
-                    <p className="text-sm font-semibold text-charcoal">{form.fullName}</p>
-                    <p className="text-sm text-warm-gray">{form.phone}</p>
-                    <p className="text-sm text-warm-gray">{form.address}</p>
-                    <p className="text-xs mt-1 font-medium" style={{ color: '#B07D6B' }}>
-                      {DELIVERY_ZONES.find(z => z.id === deliveryZone)?.label} — ৳{shippingCharge}
-                    </p>
+          {/* ── Shipping Info ── */}
+          <div className="space-y-2">
+            <p className="text-[15px] font-bold text-[#2B2B2B]">📦 ডেলিভারি তথ্য</p>
+
+            <Field label="পুরো নাম" required error={errors.fullName}>
+              <Input
+                value={form.fullName}
+                onChange={e => updateForm('fullName', e.target.value)}
+                placeholder="আপনার  নাম"
+                hasError={!!errors.fullName}
+              />
+            </Field>
+
+            <Field label="মোবাইল নম্বর" required error={errors.phone}>
+              <Input
+                type="tel"
+                value={form.phone}
+                onChange={e => updateForm('phone', e.target.value)}
+                placeholder="মোবাইল নম্বর"
+                hasError={!!errors.phone}
+              />
+            </Field>
+
+            <Field label="সম্পূর্ণ ঠিকানা" required error={errors.address}>
+              <Textarea
+                value={form.address}
+                onChange={e => updateForm('address', e.target.value)}
+                placeholder="সম্পূর্ণ ঠিকানা, গ্রাম, থানা, বিভাগ"
+              />
+            </Field>
+
+            {/* Delivery Zone */}
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: '#8C7269' }}>
+                ডেলিভারি এলাকা <span style={{ color: '#e87c55' }}>*</span>
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                {DELIVERY_ZONES.map(zone => (
+                  <motion.button key={zone.id} type="button"
+                    whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
+                    onClick={() => { setDeliveryZone(zone.id); setErrors(p => ({ ...p, deliveryZone: '' })); }}
+                    className="text-left p-3 rounded-2xl transition-all"
+                    style={{
+                      border: deliveryZone === zone.id ? '2px solid #B07D6B' : '1.5px solid rgba(176,125,107,0.2)',
+                      background: deliveryZone === zone.id ? 'rgba(176,125,107,0.08)' : 'rgba(255,255,255,0.6)',
+                    }}>
+                    <span className="text-xl">{zone.icon}</span>
+                    <p className="font-semibold text-sm mt-1" style={{ color: '#2C2C2C' }}>{zone.label}</p>
+                    <p className="text-sm font-bold mt-1" style={{ color: '#B07D6B' }}>৳{zone.charge}</p>
+                  </motion.button>
+                ))}
+              </div>
+              {errors.deliveryZone && (
+                <p className="text-xs mt-1 flex items-center gap-1" style={{ color: '#C0504D' }}>
+                  <AlertCircle size={11} />{errors.deliveryZone}
+                </p>
+              )}
+            </div>
+
+            {/* Notes */}
+            <Field label="বিশেষ নির্দেশনা (ঐচ্ছিক)">
+              <Textarea
+                value={form.notes}
+                onChange={e => updateForm('notes', e.target.value)}
+                placeholder="কোনো বিশেষ কিছু জানাতে চাইলে লিখুন..."
+              />
+            </Field>
+          </div>
+
+          <div className="h-px" style={{ background: 'rgba(176,125,107,0.15)' }} />
+
+          {/* ── Payment Method ── */}
+          <div className="space-y-3">
+            <p className="text-sm font-semibold text-charcoal">💳 পেমেন্ট পদ্ধতি</p>
+            <div className="space-y-2">
+
+              {/* ── Cash on Delivery ── */}
+              <div className="rounded-2xl overflow-hidden"
+                style={{ border: paymentMethod === 'cod' ? '2px solid #B07D6B' : '1.5px solid rgba(176,125,107,0.35)' }}>
+                <button onClick={() => setPaymentMethod('cod')}
+                  className="w-full flex items-center gap-3 p-3 text-left transition-all"
+                  style={{ background: paymentMethod === 'cod' ? 'rgba(176,125,107,0.10)' : 'rgba(255,255,255,0.85)' }}>
+                  <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0"
+                    style={{ borderColor: paymentMethod === 'cod' ? '#B07D6B' : '#ccc' }}>
+                    {paymentMethod === 'cod' && <div className="w-4 h-4 rounded-full" style={{ background: '#B07D6B' }} />}
                   </div>
-
-                  {/* Payment Info */}
-                  <div className="rounded-2xl p-4"
-                    style={{ background: 'rgba(176,125,107,0.06)', border: '1px solid rgba(176,125,107,0.15)' }}>
-                    <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: '#B07D6B' }}>💳 পেমেন্ট</p>
-                    <p className="text-sm text-charcoal">
-                      {paymentMethod === 'cod' ? 'ক্যাশ অন ডেলিভারি'
-                        : paymentMethod === 'bkash' ? 'বিকাশ'
-                          : paymentMethod === 'nagad' ? 'নগদ'
-                            : paymentMethod === 'stripe' ? 'Credit / Debit Card (Stripe)'
-                              : 'SSLCommerz'}
-                    </p>
-                    {paymentMethod === 'stripe' && cardForm.cardholderName && (
-                      <p className="text-xs text-warm-gray mt-1">Cardholder: {cardForm.cardholderName}</p>
-                    )}
-                    {transactionId && <p className="text-xs text-warm-gray mt-1">TXN: {transactionId}</p>}
+                  <Truck size={18} style={{ color: '#B07D6B' }} />
+                  <div className="flex-1">
+                    <p className="font-semibold text-[14px] text-[#2A2A2A]">ক্যাশ অন ডেলিভারি</p>
+                    <p className="text-xs text-[#6B5B55]">পণ্য পেলে টাকা দিন</p>
                   </div>
+                </button>
+                <AnimatePresence>
+                  {paymentMethod === 'cod' && (
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                      <div className="px-4 pb-4 pt-2"
+                        style={{ background: 'rgba(176,125,107,0.04)', borderTop: '1px solid rgba(176,125,107,0.15)' }}>
+                        <p className="text-sm text-[#6C5A54] flex items-center gap-2">
+                          <CheckCircle size={15} className="text-green-500 flex-shrink-0" />
+                          ডেলিভারির সময় ৳{total.toFixed(0)} পরিশোধ করুন। কোনো অগ্রিম প্রয়োজন নেই।
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
-                  {/* Items */}
-                  <div className="rounded-2xl p-4"
-                    style={{ background: 'rgba(176,125,107,0.06)', border: '1px solid rgba(176,125,107,0.15)' }}>
-                    <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: '#B07D6B' }}>🛍️ অর্ডার আইটেম</p>
-                    <div className="space-y-2">
-                      {checkoutItems.map(item => (
-                        <div key={item.product.id} className="flex items-center gap-3">
-                          <div className="w-10 h-12 rounded-lg overflow-hidden flex-shrink-0"
-                            style={{ background: 'rgba(176,125,107,0.1)' }}>
-                            {item.product.images?.[0]?.startsWith('http') && (
-                              <img src={item.product.images[0]} alt={item.product.name} className="w-full h-full object-cover" />
-                            )}
+              {/* ── bKash ── */}
+              <div className="rounded-2xl overflow-hidden"
+                style={{ border: paymentMethod === 'bkash' ? '2px solid #B07D6B' : '1.5px solid rgba(176,125,107,0.35)' }}>
+                <button onClick={() => setPaymentMethod('bkash')}
+                  className="w-full flex items-center gap-3 p-3 text-left transition-all"
+                  style={{ background: paymentMethod === 'bkash' ? 'rgba(176,125,107,0.10)' : 'rgba(255,255,255,0.85)' }}>
+                  <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0"
+                    style={{ borderColor: paymentMethod === 'bkash' ? '#B07D6B' : '#ccc' }}>
+                    {paymentMethod === 'bkash' && <div className="w-4 h-4 rounded-full" style={{ background: '#B07D6B' }} />}
+                  </div>
+                  <span className="text-lg font-bold" style={{ color: '#E2136E' }}>b</span>
+                  <div className="flex-1">
+                    <p className="font-semibold text-[14px] text-[#2A2A2A]">বিকাশ</p>
+                    <p className="text-xs text-[#6B5B55]">বিকাশে পেমেন্ট করুন</p>
+                  </div>
+                </button>
+                <AnimatePresence>
+                  {paymentMethod === 'bkash' && (
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                      <div className="px-4 pb-4 pt-3 space-y-3"
+                        style={{ background: 'rgba(176,125,107,0.04)', borderTop: '1px solid rgba(176,125,107,0.15)' }}>
+                        <p className="text-sm font-semibold text-charcoal">পেমেন্ট পাঠানোর নির্দেশনা:</p>
+                        <ol className="text-sm space-y-1" style={{ color: '#6C5A54' }}>
+                          <li>১. নিচের নম্বরে <strong>৳{total.toFixed(0)}</strong> পাঠান:</li>
+                        </ol>
+                        <CopyNumber />
+                        <ol className="text-sm space-y-1" style={{ color: '#6C5A54' }}>
+                          <li>২. আপনার বিকাশ নাম্বারের শেষ ৪ ডিজিট লিখুন</li>
+                          <li>৩. আমরা ২৪ ঘণ্টার মধ্যে যাচাই করব</li>
+                        </ol>
+                        <Field label="শেষের ৪ সংখা" required error={errors.transactionId}>
+                          <Input value={transactionId}
+                            onChange={e => { setTransactionId(e.target.value); setErrors(p => ({ ...p, transactionId: '' })); }}
+                            placeholder="যেমন : 3060" hasError={!!errors.transactionId} />
+                        </Field>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* ── Nagad ── */}
+              <div className="rounded-2xl overflow-hidden"
+                style={{ border: paymentMethod === 'nagad' ? '2px solid #B07D6B' : '1.5px solid rgba(176,125,107,0.35)' }}>
+                <button onClick={() => setPaymentMethod('nagad')}
+                  className="w-full flex items-center gap-3 p-3 text-left transition-all"
+                  style={{ background: paymentMethod === 'nagad' ? 'rgba(176,125,107,0.10)' : 'rgba(255,255,255,0.85)' }}>
+                  <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0"
+                    style={{ borderColor: paymentMethod === 'nagad' ? '#B07D6B' : '#ccc' }}>
+                    {paymentMethod === 'nagad' && <div className="w-4 h-4 rounded-full" style={{ background: '#B07D6B' }} />}
+                  </div>
+                  <span className="text-lg font-bold" style={{ color: '#F15A22' }}>N</span>
+                  <div className="flex-1">
+                    <p className="font-semibold text-[14px] text-[#2A2A2A]">নগদ</p>
+                    <p className="text-xs text-[#6B5B55]">নগদে পেমেন্ট করুন</p>
+                  </div>
+                </button>
+                <AnimatePresence>
+                  {paymentMethod === 'nagad' && (
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                      <div className="px-4 pb-4 pt-3 space-y-3"
+                        style={{ background: 'rgba(176,125,107,0.04)', borderTop: '1px solid rgba(176,125,107,0.15)' }}>
+                        <p className="text-sm font-semibold text-charcoal">পেমেন্ট পাঠানোর নির্দেশনা:</p>
+                        <ol className="text-sm space-y-1" style={{ color: '#6C5A54' }}>
+                          <li>১. নিচের নম্বরে <strong>৳{total.toFixed(0)}</strong> পাঠান:</li>
+                        </ol>
+                        <CopyNumber />
+                        <ol className="text-sm space-y-1" style={{ color: '#6C5A54' }}>
+                          <li>২. আপনার নগদ নাম্বারের শেষ ৪ ডিজিট লিখুন</li>
+                          <li>৩. আমরা ২৪ ঘণ্টার মধ্যে যাচাই করব</li>
+                        </ol>
+                        <Field label="শেষের ৪ সংখা" required error={errors.transactionId}>
+                          <Input value={transactionId}
+                            onChange={e => { setTransactionId(e.target.value); setErrors(p => ({ ...p, transactionId: '' })); }}
+                            placeholder="যেমন : 3060" hasError={!!errors.transactionId} />
+                        </Field>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* ── Card / Stripe ── */}
+              <div className="rounded-2xl overflow-hidden"
+                style={{ border: paymentMethod === 'stripe' ? '2px solid #635BFF' : '1.5px solid rgba(176,125,107,0.35)' }}>
+                <button onClick={() => setPaymentMethod('stripe')}
+                  className="w-full flex items-center gap-3 p-3 text-left transition-all"
+                  style={{ background: paymentMethod === 'stripe' ? 'rgba(99,91,255,0.06)' : 'rgba(255,255,255,0.85)' }}>
+                  <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0"
+                    style={{ borderColor: paymentMethod === 'stripe' ? '#635BFF' : '#ccc' }}>
+                    {paymentMethod === 'stripe' && <div className="w-4 h-4 rounded-full" style={{ background: '#635BFF' }} />}
+                  </div>
+                  <CreditCard size={18} style={{ color: '#635BFF' }} />
+                  <div className="flex-1">
+                    <p className="font-semibold text-[14px] text-[#2A2A2A]">Credit / Debit Card</p>
+                    <p className="text-xs text-[#6B5B55]">Visa, Mastercard, Amex — secured by Stripe</p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold text-white" style={{ background: '#1A1F71' }}>VISA</span>
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold text-white" style={{ background: '#EB001B' }}>MC</span>
+                  </div>
+                </button>
+                <AnimatePresence>
+                  {paymentMethod === 'stripe' && (
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                      <div className="px-4 pb-4 pt-3 space-y-3"
+                        style={{ background: 'rgba(99,91,255,0.03)', borderTop: '1px solid rgba(99,91,255,0.15)' }}>
+
+                        {/* Stripe card fields */}
+                        <StripeCardField onReady={setStripeReady} cardholderName={cardForm.cardholderName} onCardholderNameChange={name => setCardForm(p => ({ ...p, cardholderName: name }))} />
+
+                        {/* Use shipping address as billing */}
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="checkbox" defaultChecked className="w-4 h-4 accent-[#635BFF]" />
+                          <span className="text-xs" style={{ color: '#4A4A6A' }}>Use shipping address as billing address</span>
+                        </label>
+
+                        {/* Trust badges */}
+                        <div className="flex gap-3 pt-1">
+                          <div className="flex items-center gap-1 text-xs" style={{ color: '#6B5B55' }}>
+                            <Shield size={12} style={{ color: '#635BFF' }} /> SSL Encrypted
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-charcoal truncate">{item.product.name}</p>
-                            <p className="text-xs text-[#6B5B55]">{item.selectedSize} • x{item.quantity}</p>
+                          <div className="flex items-center gap-1 text-xs" style={{ color: '#6B5B55' }}>
+                            <CheckCircle size={12} className="text-green-500" /> PCI Compliant
                           </div>
-                          <p className="text-sm font-bold flex-shrink-0" style={{ color: '#B07D6B' }}>
-                            ৳{(item.product.price * item.quantity).toFixed(0)}
-                          </p>
                         </div>
-                      ))}
-                    </div>
-                  </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          </div>
 
-                  {/* Total */}
-                  <div className="flex justify-between items-center px-1">
-                    <span className="font-bold text-charcoal">মোট পরিমাণ</span>
-                    <span className="heading-serif text-xl font-bold" style={{ color: '#B07D6B' }}>৳{total.toFixed(0)}</span>
-                  </div>
+          <div className="h-px" style={{ background: 'rgba(176,125,107,0.15)' }} />
 
-                  {/* Action Buttons */}
-                  <div className="flex gap-3 pt-2">
-                    <button onClick={() => setShowReview(false)}
-                      className="flex-1 py-3.5 rounded-2xl font-semibold text-sm"
-                      style={{ background: 'rgba(176,125,107,0.1)', color: '#B07D6B', border: 'none', cursor: 'pointer' }}>
-                      ← ফিরে যান
-                    </button>
-                    <motion.button
-                      onClick={handlePlaceOrder}
-                      disabled={placing}
-                      whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-                      className="flex-1 py-3.5 rounded-2xl font-bold text-sm text-white"
-                      style={{ background: placing ? 'rgba(176,125,107,0.5)' : 'linear-gradient(135deg, #B07D6B, #C4956A)', border: 'none', cursor: placing ? 'not-allowed' : 'pointer' }}>
-                      {placing ? 'প্রসেস হচ্ছে...' : `অর্ডার করুন — ৳${total.toFixed(0)}`}
-                    </motion.button>
+          {/* ── Coupon ── */}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: '#8C7269' }}>
+              <Tag size={11} className="inline mr-1" />কুপন কোড (ঐচ্ছিক)
+            </p>
+            <div className="flex gap-2">
+              <input value={couponInput}
+                onChange={e => { setCouponInput(e.target.value); setCouponError(''); if (couponApplied) { setCouponApplied(false); setCouponDiscount(0); } }}
+                placeholder="কুপন কোড লিখুন"
+                className="flex-1 px-3 py-2.5 rounded-xl text-sm outline-none"
+                style={{ background: 'rgba(255,255,255,0.8)', border: `1.5px solid ${couponError ? 'rgba(192,80,77,0.4)' : couponApplied ? 'rgba(74,140,92,0.4)' : 'rgba(176,125,107,0.2)'}`, color: '#2C2C2C' }}
+                onKeyDown={e => e.key === 'Enter' && applyCoupon()}
+              />
+              <button onClick={applyCoupon}
+                className="px-4 py-2.5 rounded-xl text-sm font-semibold"
+                style={{ background: couponApplied ? 'rgba(74,140,92,0.15)' : 'rgba(176,125,107,0.15)', color: couponApplied ? '#4A8C5C' : '#B07D6B', border: 'none', cursor: 'pointer' }}>
+                {couponApplied ? '✓ হয়েছে' : 'প্রয়োগ করুন'}
+              </button>
+            </div>
+            {couponError && <p className="text-xs mt-1" style={{ color: '#C0504D' }}>{couponError}</p>}
+            {couponApplied && <p className="text-xs mt-1" style={{ color: '#4A8C5C' }}>✓ ৳{couponDiscount} ছাড় পেয়েছেন!</p>}
+          </div>
+
+          <div className="h-px" style={{ background: 'rgba(176,125,107,0.15)' }} />
+
+          {/* ── Price Summary ── */}
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-warm-gray">সাবটোটাল</span>
+              <span className="font-medium">৳{subtotal.toFixed(0)}</span>
+            </div>
+            {discount > 0 && (
+              <div className="flex justify-between" style={{ color: '#4A8C5C' }}>
+                <span>ছাড়</span><span>−৳{discount.toFixed(0)}</span>
+              </div>
+            )}
+            {couponApplied && couponDiscount > 0 && (
+              <div className="flex justify-between" style={{ color: '#4A8C5C' }}>
+                <span>কুপন ছাড়</span><span>−৳{couponDiscount.toFixed(0)}</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span className="text-warm-gray">ডেলিভারি চার্জ</span>
+              <span className="font-medium" style={{ color: '#B07D6B' }}>
+                {deliveryZone ? `৳${shippingCharge}` : 'এলাকা বেছে নিন'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center pt-2"
+              style={{ borderTop: '1px solid rgba(176,125,107,0.15)' }}>
+              <span className="font-bold text-charcoal text-base">মোট</span>
+              <span className="heading-serif text-2xl font-bold" style={{ color: '#B07D6B' }}>৳{total.toFixed(0)}</span>
+            </div>
+          </div>
+
+          {/* ── Review Order Button ── */}
+          <motion.button
+            onClick={handleReviewOrder}
+            whileHover={{ scale: 1.02, boxShadow: '0 8px 30px rgba(176,125,107,0.35)' }}
+            whileTap={{ scale: 0.97 }}
+            className="w-full py-4 rounded-2xl font-bold text-sm tracking-wider uppercase text-white"
+            style={{ background: 'linear-gradient(135deg, #B07D6B 0%, #C4956A 50%, #B07D6B 100%)', border: 'none', cursor: 'pointer' }}>
+            অর্ডার রিভিউ করুন →
+          </motion.button>
+
+          {/* Gateway error popup */}
+          <AnimatePresence>
+            {gatewayError && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="flex items-start gap-3 p-4 rounded-2xl"
+                style={{ background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.25)' }}>
+                <AlertCircle size={18} className="text-red-500 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-red-600 mb-0.5">Payment Error</p>
+                  <p className="text-xs text-red-500">{gatewayError}</p>
+                </div>
+                <button onClick={() => setGatewayError('')} className="text-red-400 hover:text-red-600">
+                  <X size={16} />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Security badge */}
+          <div className="flex items-center justify-center gap-2 text-xs" style={{ color: '#9A8880' }}>
+            <Shield size={12} style={{ color: '#B07D6B' }} />
+            নিরাপদ চেকআউট • SSL এনক্রিপ্টেড
+          </div>
+        </div>
+      </div>
+
+      {/* ════ REVIEW POPUP MODAL ════ */}
+      <AnimatePresence>
+        {showReview && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
+            onClick={e => { if (e.target === e.currentTarget) setShowReview(false); }}>
+            <motion.div
+              initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 60 }}
+              className="w-full max-w-md rounded-3xl overflow-hidden"
+              style={{ background: '#FDF8F5', maxHeight: '90vh', overflowY: 'auto' }}>
+
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-5 sticky top-0"
+                style={{ background: '#FDF8F5', borderBottom: '1px solid rgba(176,125,107,0.15)' }}>
+                <h2 className="heading-serif text-lg font-bold text-charcoal">অর্ডার নিশ্চিত করুন</h2>
+                <button onClick={() => setShowReview(false)}
+                  className="p-1.5 rounded-lg" style={{ background: 'rgba(176,125,107,0.1)', color: '#B07D6B' }}>
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="p-5 space-y-4">
+
+                {/* Customer Info */}
+                <div className="rounded-2xl p-4"
+                  style={{ background: 'rgba(176,125,107,0.06)', border: '1px solid rgba(176,125,107,0.15)' }}>
+                  <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: '#B07D6B' }}>📍 ডেলিভারি তথ্য</p>
+                  <p className="text-sm font-semibold text-charcoal">{form.fullName}</p>
+                  <p className="text-sm text-warm-gray">{form.phone}</p>
+                  <p className="text-sm text-warm-gray">{form.address}</p>
+                  <p className="text-xs mt-1 font-medium" style={{ color: '#B07D6B' }}>
+                    {DELIVERY_ZONES.find(z => z.id === deliveryZone)?.label} — ৳{shippingCharge}
+                  </p>
+                </div>
+
+                {/* Payment Info */}
+                <div className="rounded-2xl p-4"
+                  style={{ background: 'rgba(176,125,107,0.06)', border: '1px solid rgba(176,125,107,0.15)' }}>
+                  <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: '#B07D6B' }}>💳 পেমেন্ট</p>
+                  <p className="text-sm text-charcoal">
+                    {paymentMethod === 'cod' ? 'ক্যাশ অন ডেলিভারি'
+                      : paymentMethod === 'bkash' ? 'বিকাশ'
+                        : paymentMethod === 'nagad' ? 'নগদ'
+                          : paymentMethod === 'stripe' ? 'Credit / Debit Card (Stripe)'
+                            : 'SSLCommerz'}
+                  </p>
+                  {paymentMethod === 'stripe' && cardForm.cardholderName && (
+                    <p className="text-xs text-warm-gray mt-1">Cardholder: {cardForm.cardholderName}</p>
+                  )}
+                  {transactionId && <p className="text-xs text-warm-gray mt-1">TXN: {transactionId}</p>}
+                </div>
+
+                {/* Items */}
+                <div className="rounded-2xl p-4"
+                  style={{ background: 'rgba(176,125,107,0.06)', border: '1px solid rgba(176,125,107,0.15)' }}>
+                  <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: '#B07D6B' }}>🛍️ অর্ডার আইটেম</p>
+                  <div className="space-y-2">
+                    {checkoutItems.map(item => (
+                      <div key={item.product.id} className="flex items-center gap-3">
+                        <div className="w-10 h-12 rounded-lg overflow-hidden flex-shrink-0"
+                          style={{ background: 'rgba(176,125,107,0.1)' }}>
+                          {item.product.images?.[0]?.startsWith('http') && (
+                            <img src={item.product.images[0]} alt={item.product.name} className="w-full h-full object-cover" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-charcoal truncate">{item.product.name}</p>
+                          <p className="text-xs text-[#6B5B55]">{item.selectedSize} • x{item.quantity}</p>
+                        </div>
+                        <p className="text-sm font-bold flex-shrink-0" style={{ color: '#B07D6B' }}>
+                          ৳{(item.product.price * item.quantity).toFixed(0)}
+                        </p>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </motion.div>
+
+                {/* Total */}
+                <div className="flex justify-between items-center px-1">
+                  <span className="font-bold text-charcoal">মোট পরিমাণ</span>
+                  <span className="heading-serif text-xl font-bold" style={{ color: '#B07D6B' }}>৳{total.toFixed(0)}</span>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-2">
+                  <button onClick={() => setShowReview(false)}
+                    className="flex-1 py-3.5 rounded-2xl font-semibold text-sm"
+                    style={{ background: 'rgba(176,125,107,0.1)', color: '#B07D6B', border: 'none', cursor: 'pointer' }}>
+                    ← ফিরে যান
+                  </button>
+                  <motion.button
+                    onClick={handlePlaceOrder}
+                    disabled={placing}
+                    whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                    className="flex-1 py-3.5 rounded-2xl font-bold text-sm text-white"
+                    style={{ background: placing ? 'rgba(176,125,107,0.5)' : 'linear-gradient(135deg, #B07D6B, #C4956A)', border: 'none', cursor: placing ? 'not-allowed' : 'pointer' }}>
+                    {placing ? 'প্রসেস হচ্ছে...' : `অর্ডার করুন — ৳${total.toFixed(0)}`}
+                  </motion.button>
+                </div>
+              </div>
             </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </Elements>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 };
+/* Outer wrapper: provides the Stripe Elements context that CheckoutForm
+   needs in order to call useStripe()/useElements(). This is the default
+   export your router should keep using. */
+export const CheckoutPage: React.FC = () => (
+  <Elements stripe={stripePromise}>
+    <CheckoutForm />
+  </Elements>
+);
