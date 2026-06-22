@@ -1,5 +1,5 @@
 /* ===================================================
-   GIrley GLow - Admin Layout (Sidebar + Topbar)
+    - Admin Layout (Sidebar + Topbar)
    =================================================== */
 
 import React, { useState } from 'react';
@@ -10,6 +10,7 @@ import {
   FileText, Ticket, BarChart3, AlertTriangle, LogOut, Menu
 } from 'lucide-react';
 import { useAdminAuthStore } from '@/store';
+import { BRAND } from '@/config/brandingConfig';
 
 const sidebarItems = [
   { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
@@ -40,8 +41,8 @@ export const AdminLayout: React.FC = () => {
       <div className="p-5 border-b border-blush/20">
         <Link to="/admin/dashboard" className="block">
           <h2 className="heading-serif text-lg font-bold text-charcoal">
-            AUTHENTIC
-            <span className="block text-[9px] font-sans font-normal tracking-[0.25em] text-rose-gold">GIRLSWEAR</span>
+            {BRAND.nameTop}
+            <span className="block text-[9px] font-sans font-normal tracking-[0.25em] text-rose-gold">{BRAND.nameBottom}</span>
           </h2>
           <p className="text-[10px] text-[#6B5B55] mt-1 uppercase tracking-wider">Admin Panel</p>
         </Link>

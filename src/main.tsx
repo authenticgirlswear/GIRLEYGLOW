@@ -13,7 +13,13 @@ import App from './App';
 import { useContentStore } from '@/store/contentStore';
 import { useCategoryStore } from '@/store/categoryStore';
 import { useLoadingStore } from '@/store/useLoadingStore';
-import { BRAND } from '@/config/brandingConfig';
+import { BRAND, applyBrandTheme } from '@/config/brandingConfig';
+
+// ─── Inject brand theme CSS variables before React mounts ─────────────────────
+// This sets --color-rose-gold, --color-blush, etc. on <html> so every
+// Tailwind class that uses those variables picks up the correct brand color.
+// Change colors in brandingConfig.ts → rebuild → entire site updates.
+applyBrandTheme();
 
 // ─── Error Boundary ──────────────────────────────────────────────────────────
 

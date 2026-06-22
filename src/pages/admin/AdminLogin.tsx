@@ -1,8 +1,9 @@
 /* ===================================================
-   GIrley GLow - Admin Login Page
+   GIRLEY GLOW - Admin Login Page
    Real Supabase Authentication (no demo credentials)
    =================================================== */
 import { useAdminAuthStore } from '@/store';
+import { BRAND } from '@/config/brandingConfig';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -46,8 +47,8 @@ export const AdminLoginPage: React.FC = () => {
           {/* Logo */}
           <div className="text-center mb-8">
             <h1 className="heading-serif text-2xl font-bold text-charcoal">
-              AUTHENTIC
-              <span className="block text-[10px] font-sans font-normal tracking-[0.3em] text-rose-gold">GIRLSWEAR</span>
+              {BRAND.nameTop}
+              <span className="block text-[10px] font-sans font-normal tracking-[0.3em] text-rose-gold">{BRAND.nameBottom}</span>
             </h1>
             <p className="text-sm text-[#6B5B55] mt-2">Admin Panel — Sign in to manage your store</p>
           </div>

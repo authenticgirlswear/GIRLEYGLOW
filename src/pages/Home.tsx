@@ -1,5 +1,5 @@
 /**
- * Home.tsx — GIrley Glow landing page
+ * Home.tsx —  landing page
  *
  * Optimised for:
  *  • Lighthouse / Core Web Vitals (LCP, CLS, FCP, INP)
@@ -37,8 +37,7 @@ const DOMAIN = SITE.domain.replace(/\/$/, '');
 
 const PAGE_TITLE = `${BRAND.fullName} | Premium Women's Fashion in Bangladesh`;
 
-const PAGE_DESCRIPTION =
-  "Shop GIrley Glow — Bangladesh's premium destination for push-up bras, maternity wear, shapewear, nightwear, couple nightwear, and elegant western dresses. Fast delivery across Bangladesh.";
+const PAGE_DESCRIPTION = BRAND.defaultDescription;
 
 /** Always an exact URL with no double-slash */
 const CANONICAL = `${DOMAIN}/`;

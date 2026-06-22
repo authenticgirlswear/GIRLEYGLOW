@@ -1,21 +1,28 @@
 /**
- * Site Configuration
- * Central source for site-wide settings.
- * Import SITE wherever payment methods, SEO, or site meta is needed.
+ * siteConfig.ts
+ * Site-wide settings: payment methods, social links, domain, SEO.
+ *
+ * Brand name, title, and description are pulled automatically from
+ * brandingConfig.ts — change them there, not here.
  */
+
+import { BRAND } from './brandingConfig';
 
 export const SITE = {
     /** Payment methods shown in footer */
     paymentMethods: ['bKash', 'Nagad', 'COD'] as string[],
 
-    /** Social links (fallback if not set in CONTACT) */
+    /** Social links */
     instagram: 'https://www.instagram.com/auntheticgirlswear',
     facebook: 'https://www.facebook.com/authenticgirlswear',
 
-    /** SEO / meta */
-    domain: 'https://girleyglow-seven.vercel.app/',
-    defaultTitle: 'GIrley GLow - Luxury Feminine Fashion',
-    defaultDescription: 'Discover luxury feminine fashion at GIrley GLow. Dresses, tops, accessories and more — crafted for the modern woman.',
+    /** Canonical domain (no trailing slash) */
+    domain: 'https://girleyglow-seven.vercel.app',
+
+    /** SEO / meta — derived from brandingConfig so renaming propagates here too */
+    defaultTitle: BRAND.defaultTitle,
+    defaultDescription: BRAND.defaultDescription,
+
     keywords: [
         'girlswear',
         'women fashion',
@@ -26,7 +33,7 @@ export const SITE = {
         'innerwear',
         'western dresses bangladesh',
         'bangladesh fashion',
-        'GIrley GLow',
+        BRAND.fullName,
         'buy lingerie online',
         'buy bras online',
         'best bras in Bangladesh',
@@ -35,7 +42,6 @@ export const SITE = {
         'women lingerie',
         'womens lingerie',
         'intimate wear',
-        'innerwear',
         'underwear for women',
         'bra',
         'bras',
@@ -58,17 +64,11 @@ export const SITE = {
         'lingerie set',
         'couple nightwear',
         'couple nighty',
-        'couple nightie set',
         'nighty',
         'nightdress',
-        'nightgown',
         'satin nighty',
-        'silk nighty',
-        'lace nighty',
         'bridal lingerie',
-        'bridal nightwear',
         'romantic lingerie',
-        'sexy lingerie'
     ] as string[],
 
     ogImage: '/images/og-image.jpg',
@@ -76,12 +76,14 @@ export const SITE = {
 
 export type SiteConfig = typeof SITE;
 
-// ─── Legacy alias kept for any file still importing siteConfig ───────────────
+// ─── Legacy alias ─────────────────────────────────────────────────────────────
+// Any file still importing `siteConfig` (lowercase) keeps working.
+
 export const siteConfig = {
-    websiteName: 'GIrley GLow',
-    websiteShortName: 'AG',
-    defaultTitle: SITE.defaultTitle,
-    defaultDescription: SITE.defaultDescription,
+    websiteName: BRAND.fullName,
+    websiteShortName: BRAND.shortName,
+    defaultTitle: BRAND.defaultTitle,
+    defaultDescription: BRAND.defaultDescription,
     keywords: SITE.keywords,
     ogImage: SITE.ogImage,
     domain: SITE.domain,
