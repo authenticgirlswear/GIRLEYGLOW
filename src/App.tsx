@@ -36,6 +36,7 @@ import { SearchPage } from '@/pages/Search';
 import { CategoryPage } from '@/pages/CategoryPage';
 import { NotFoundPage } from '@/pages/NotFound';
 import { ContactUsPage } from '@/pages/ContactUs';
+import { AboutUsPage } from '@/pages/AboutUs';
 import { PrivacyPolicyPage } from '@/pages/PrivacyPolicy';
 import { ReturnPolicyPage } from '@/pages/ReturnPolicy';
 import { TermsPage } from '@/pages/Terms';
@@ -351,6 +352,7 @@ const App: React.FC = () => (
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/category/:slug" element={<CategoryPage />} />
+        <Route path="/about" element={<AboutUsPage />} />
         <Route path="/contact" element={<ContactUsPage />} />
         <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
         <Route path="/return-policy" element={<ReturnPolicyPage />} />
