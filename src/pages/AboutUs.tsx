@@ -30,10 +30,10 @@ import { SITE } from '@/config/siteConfig';
 // ─── Static data ──────────────────────────────────────────────────────────────
 
 const STATS = [
-  { value: '500+',   label: 'Products' },
-  { value: '10k+',   label: 'Happy Customers' },
-  { value: '64',     label: 'Districts Delivered' },
-  { value: '4.9★',  label: 'Avg. Rating' },
+  { value: '500+', label: 'Products' },
+  { value: '10k+', label: 'Happy Customers' },
+  { value: '64', label: 'Districts Delivered' },
+  { value: '4.9★', label: 'Avg. Rating' },
 ];
 
 const VALUES = [
@@ -41,7 +41,7 @@ const VALUES = [
     icon: <Heart size={22} className="text-rose-gold" />,
     title: 'Made with Love',
     body:
-      'Every product is hand-picked by our team. We only list what we would wear ourselves — nothing gets through that we wouldn't be proud to gift a friend.',
+      'Every product is hand-picked by our team. We only list what we would wear ourselves — nothing gets through that we wouldnt be proud to gift a friend.',
   },
   {
     icon: <ShieldCheck size={22} className="text-rose-gold" />,
